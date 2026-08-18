@@ -43,27 +43,27 @@ const AIAssistant = {
           </div>
 
           <!-- Quick Suggestion Chips -->
-          <div class="gemini-chips-scroll">
-            <button class="gemini-chip" onclick="AIAssistant.sendQuick('What is our chicken waste risk and what should we do?')">🍗 Chicken Risk</button>
-            <button class="gemini-chip" onclick="AIAssistant.sendQuick('Which surplus items can we donate to food banks today?')">🤝 Food Rescue</button>
-            <button class="gemini-chip" onclick="AIAssistant.sendQuick('What is the expiry status for salad and perishables?')">🥗 Near Expiry</button>
-            <button class="gemini-chip" onclick="AIAssistant.sendQuick('Give me a full daily waste intelligence summary.')">📊 Summary</button>
+          <div id="gemini-chips-container" class="gemini-chips-scroll">
+            <button class="gemini-chip" onclick="AIAssistant.sendQuickChip(1)">🍗 Chicken Risk</button>
+            <button class="gemini-chip" onclick="AIAssistant.sendQuickChip(2)">🤝 Food Rescue</button>
+            <button class="gemini-chip" onclick="AIAssistant.sendQuickChip(3)">🥗 Near Expiry</button>
+            <button class="gemini-chip" onclick="AIAssistant.sendQuickChip(4)">📊 Summary</button>
           </div>
 
           <!-- Messages Container -->
           <div id="gemini-messages-body" class="gemini-messages-container">
             <div class="gemini-msg gemini-msg-ai">
-              <div class="gemini-msg-bubble">
-                <div style="font-weight:700; margin-bottom:0.3rem;">👋 Hello! I am your FoodWaste AI Assistant.</div>
-                <div>I connect <strong>Google Gemini</strong> with <strong>SWI-Prolog first-order logic</strong> and live <strong>MySQL inventory metrics</strong> to explain waste risks and provide smart mitigation recommendations.</div>
-                <div style="margin-top:0.5rem; font-size:0.8rem; color:var(--text-muted);">Try asking a question or tap a chip above!</div>
+              <div class="gemini-msg-bubble" id="gemini-welcome-bubble">
+                <div style="font-weight:700; margin-bottom:0.3rem;" data-i18n="chat.welcomeTitle">👋 Hello! I am your FoodWaste AI Assistant.</div>
+                <div data-i18n="chat.welcomeDesc">I connect <strong>Google Gemini</strong> with <strong>SWI-Prolog first-order logic</strong> and live <strong>MySQL inventory metrics</strong> to explain waste risks and provide smart mitigation recommendations.</div>
+                <div style="margin-top:0.5rem; font-size:0.8rem; color:var(--text-muted);" data-i18n="chat.welcomeTip">Try asking a question or tap a chip above!</div>
               </div>
             </div>
           </div>
 
           <!-- Input Area -->
           <form class="gemini-input-bar" onsubmit="AIAssistant.handleSubmit(event)">
-            <input type="text" id="gemini-user-input" class="gemini-text-input" placeholder="Ask about food waste, expiry, or donation..." autocomplete="off">
+            <input type="text" id="gemini-user-input" class="gemini-text-input" placeholder="Ask about food waste, expiry, or donation..." data-i18n-placeholder="chat.placeholder" autocomplete="off">
             <button type="submit" id="gemini-send-btn" class="gemini-send-button">
               <span>➤</span>
             </button>
@@ -331,6 +331,29 @@ const AIAssistant = {
     }
   },
 
+  sendQuickChip(chipIndex) {
+    const isMm = typeof I18n !== 'undefined' && I18n.getLanguage() === 'mm';
+    let query = '';
+    switch (chipIndex) {
+      case 1:
+        query = isMm ? "ကြက်သား အလေအလွင့် ဘာကြောင့်များတာလဲ၊ ဘာလုပ်သင့်လဲ?" : "What is our chicken waste risk and what should we do?";
+        break;
+      case 2:
+        query = isMm ? "ယနေ့ ပရဟိတသို့ လှူဒါန်းနိုင်မည့် ပိုလျှံပစ္စည်းများ ရှိပါသလား?" : "Which surplus items can we donate to food banks today?";
+        break;
+      case 3:
+        query = isMm ? "သုပ်/အသီးအရွက်များ သက်တမ်းကုန်ဆုံးရက် အခြေအနေ ဘယ်လိုရှိလဲ?" : "What is the expiry status for salad and perishables?";
+        break;
+      case 4:
+      default:
+        query = isMm ? "ယနေ့ မီးဖိုချောင် အလေအလွင့် စောင့်ကြည့်မှု အနှစ်ချုပ်ပေးပါ" : "Give me a full daily waste intelligence summary.";
+        break;
+    }
+    const input = document.getElementById('gemini-user-input');
+    if (input) input.value = query;
+    this.handleSubmit(new Event('submit'));
+  },
+
   sendQuick(text) {
     const input = document.getElementById('gemini-user-input');
     if (input) input.value = text;
@@ -344,6 +367,8 @@ const AIAssistant = {
     const query = input.value.trim();
     if (!query || this.isSending) return;
 
+    const lang = (typeof I18n !== 'undefined') ? I18n.getLanguage() : 'en';
+
     input.value = '';
     this.appendUserMessage(query);
 
@@ -351,21 +376,21 @@ const AIAssistant = {
     const typingId = this.appendTypingIndicator();
 
     try {
-      const res = await API.post('/api/chat', { message: query });
+      const res = await API.post('/api/chat', { message: query, language: lang });
       this.removeTypingIndicator(typingId);
 
       if (res && res.data) {
         this.appendAIMessage(res.data);
       } else {
         this.appendAIMessage({
-          explanation: "Received evaluation from SWI-Prolog engine. High risk items are identified in your inventory.",
+          explanation: lang === 'mm' ? "SWI-Prolog စနစ်မှ မီးဖိုချောင်ရှိ အန္တရာယ်မြင့် ကုန်ပစ္စည်းများကို ဆန်းစစ်တွက်ချက်ထားပါသည်။" : "Received evaluation from SWI-Prolog engine. High risk items are identified in your inventory.",
           sourceEngine: "SWI-Prolog Expert Engine"
         });
       }
     } catch (err) {
       this.removeTypingIndicator(typingId);
       this.appendAIMessage({
-        explanation: "Our SWI-Prolog expert reasoning system evaluated current inventory. High-risk items include Fresh Chicken Breast (82% waste risk due to 1-day expiry). We recommend reducing tomorrow's prep by 25% and scheduling surplus donation.",
+        explanation: lang === 'mm' ? "ကျွန်ုပ်တို့၏ SWI-Prolog ယုတ္တိဗေဒစနစ်မှ လက်ရှိကုန်ပစ္စည်းများကို ဆန်းစစ်ပြီးဖြစ်ပါသည်။ အန္တရာယ်မြင့် ကြက်သား (၈၂% အန္တရာယ်) အတွက် မနက်ဖြန် ထုတ်လုပ်မှု ၂၅% လျှော့ချရန် အကြံပြုပါသည်။" : "Our SWI-Prolog expert reasoning system evaluated current inventory. High-risk items include Fresh Chicken Breast (82% waste risk due to 1-day expiry). We recommend reducing tomorrow's prep by 25% and scheduling surplus donation.",
         sourceEngine: "Prolog Fallback Reasoner"
       });
     } finally {

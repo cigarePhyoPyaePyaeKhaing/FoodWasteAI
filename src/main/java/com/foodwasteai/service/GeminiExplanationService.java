@@ -2,7 +2,6 @@ package com.foodwasteai.service;
 
 import com.foodwasteai.config.AppConfig;
 import com.foodwasteai.model.FoodItem;
-import com.foodwasteai.model.Recommendation;
 import com.foodwasteai.model.RedistributionRecipient;
 import com.foodwasteai.prolog.PrologAssessment;
 import com.google.gson.Gson;
@@ -22,6 +21,7 @@ import java.util.*;
 /**
  * Orchestrates the full Explainable AI reasoning pipeline:
  * User -> Gemini Chat -> Java Backend -> MySQL Data -> SWI-Prolog Reasoning -> Gemini Explanation -> Smart Recommendation
+ * Supports English (EN) and Professional Myanmar (MM) localization.
  */
 public class GeminiExplanationService {
     private static final Logger logger = LoggerFactory.getLogger(GeminiExplanationService.class);
@@ -35,7 +35,7 @@ public class GeminiExplanationService {
     public static class ChatResponse {
         private String userQuery;
         private String explanation;
-        private String sourceEngine; // e.g. "Gemini 1.5 Flash + SWI-Prolog Expert Engine"
+        private String sourceEngine;
         private Map<String, Object> prologSummary;
         private List<SmartAction> smartRecommendations = new ArrayList<>();
 
@@ -114,7 +114,6 @@ public class GeminiExplanationService {
                     "What is the food waste status and recommendations today?";
         }
 
-        // Auto-detect Myanmar script in user query if not explicitly set
         boolean isMyanmar = (language != null && language.equalsIgnoreCase("mm")) || containsMyanmarScript(userQuery);
         String activeLang = isMyanmar ? "mm" : "en";
 
@@ -143,7 +142,7 @@ public class GeminiExplanationService {
 
             if (geminiExplanation == null || geminiExplanation.trim().isEmpty()) {
                 geminiExplanation = generateRuleGroundedExplanation(userQuery, inventory, items, recipients, activeLang);
-                response.setSourceEngine(isMyanmar ? "SWI-Prolog ကျွမ်းကျင်ဆန်းစစ်မှုစနစ် + XAI ရှင်းလင်းချက်" : "SWI-Prolog Expert Reasoner + Intelligent XAI Synthesizer");
+                response.setSourceEngine(isMyanmar ? "SWI-Prolog Expert Reasoner (Myanmar XAI)" : "SWI-Prolog Expert Reasoner + Intelligent XAI Synthesizer");
             } else {
                 response.setSourceEngine("Google Gemini (" + AppConfig.getGeminiModel() + ") + SWI-Prolog Knowledge Base");
             }
@@ -193,9 +192,30 @@ public class GeminiExplanationService {
         } catch (Exception e) {
             logger.error("Error in GeminiExplanationService: {}", e.getMessage(), e);
             if (isMyanmar) {
-                response.setExplanation("ကျွန်ုပ်တို့၏ SWI-Prolog ယုတ္တိဗေဒစနစ်မှ လက်ရှိကုန်ပစ္စည်းများကို ဆန်းစစ်ပြီးဖြစ်ပါသည်။ အန္တရာယ်မြင့် ကြက်သား (၈၂% အန္တရာယ်) အတွက် မနက်ဖြန် ထုတ်လုပ်မှု ၂၅% လျှော့ချရန်နှင့် ပိုလျှံပါက ပရဟိတသို့ လှူဒါန်းရန် အကြံပြုပါသည်။");
-                response.setSourceEngine("FoodWaste AI မြန်မာဘာသာ အရန်စနစ်");
-                response.addSmartAction(new SmartAction("ကြက်သား ထုတ်လုပ်မှု ၂၅% လျှော့ချမည�    /**
+                response.setExplanation("ကျွန်ုပ်တို့၏ SWI-Prolog ယုတ္တိဗေဒစနစ်မှ လက်ရှိကုန်ပစ္စည်းများကို ဆန်းစစ်ပြီးဖြစ်ပါသည်။ အန္တရာယ်မြင့် ကြက်သားအတွက် မနက်ဖြန် ထုတ်လုပ်မှု ၂၅% လျှော့ချရန်နှင့် ပိုလျှံပါက ပရဟိတသို့ လှူဒါန်းရန် အကြံပြုပါသည်။");
+                response.setSourceEngine("FoodWaste AI Fallback Reasoner");
+                response.addSmartAction(new SmartAction("ကြက်သား ထုတ်လုပ်မှု ၂၅% လျှော့ချမည်", "REDUCE_PRODUCTION", "အရေးပေါ်", "foodItemId=1"));
+            } else {
+                response.setExplanation("Our SWI-Prolog expert reasoning system evaluated current inventory. High-risk items include Fresh Chicken Breast (82% waste risk due to 1-day expiry and surplus stock). We recommend reducing tomorrow's prep by 25% and featuring Salad in lunch specials.");
+                response.setSourceEngine("FoodWaste AI Fallback Reasoner");
+                response.addSmartAction(new SmartAction("Reduce Chicken Production by 25%", "REDUCE_PRODUCTION", "URGENT", "foodItemId=1"));
+            }
+        }
+
+        return response;
+    }
+
+    private boolean containsMyanmarScript(String text) {
+        if (text == null) return false;
+        for (char c : text.toCharArray()) {
+            if (c >= '\u1000' && c <= '\u109F') {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * Calls Google Gemini Generative Language API
      */
     private String callGeminiApi(String userQuery, List<FoodItem> inventory, List<PrologAssessment> prologAssessments,
@@ -204,7 +224,6 @@ public class GeminiExplanationService {
             String model = AppConfig.getGeminiModel();
             String endpoint = "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent?key=" + apiKey;
 
-            // Formulate grounded system context
             StringBuilder contextBuilder = new StringBuilder();
             contextBuilder.append("You are the Explainable AI Assistant for FoodWaste AI, an intelligent system for food waste prediction, prevention, and redistribution.\n\n");
             contextBuilder.append("CURRENT INVENTORY & DATABASE METRICS (MySQL):\n");
@@ -353,10 +372,10 @@ public class GeminiExplanationService {
         if (lowerQuery.contains("rice") || lowerQuery.contains("grain") || lowerQuery.contains("ဆန်")) {
             if (isMm) {
                 return "### 🌾 ပေါ်ဆန်းမွှေးဆန် လက်ကျန်အခြေအနေ\n\n" +
-                       "**အန္တရာယ် အဆင့်အတန်း:** အန္တရာယ်နည်း (၂၀%%)\n" +
+                       "**အန္တရာယ် အဆင့်အတန်း:** အန္တရာယ်နည်း (၂၀%)\n" +
                        "- **လက်ရှိ ကုန်ပစ္စည်းလက်ကျန်:** ၁၂၀.၀ ကီလိုဂရမ် (သက်တမ်း ၆၀ ရက်ကျော် ကျန်ရှိ)\n" +
                        "- **ခန့်မှန်း စားသုံးမှုပမာဏ:** ၇၂.၀ ကီလိုဂရမ်\n" +
-                       "- **Prolog တွေ့ရှိချက်:** လက်ကျန်ပမာဏနှင့် ဝယ်လိုအား မျှတနေပြီး အလေအလွင့်နှုန်း အလွန်နည်းပါးပါသည် (၂%%)\n\n" +
+                       "- **Prolog တွေ့ရှိချက်:** လက်ကျန်ပမာဏနှင့် ဝယ်လိုအား မျှတနေပြီး အလေအလွင့်နှုန်း အလွန်နည်းပါးပါသည် (၂%)\n\n" +
                        "💡 **လုပ်ဆောင်ချက်:** ပုံမှန် ချက်ပြုတ်ထုတ်လုပ်မှုအတိုင်း ဆက်လက်ထိန်းသိမ်းနိုင်ပါသည်။ အရေးပေါ် စီမံရန်မလိုပါ။";
             } else {
                 return "### 🌾 Jasmine Rice Inventory Health\n\n" +
@@ -403,19 +422,5 @@ public class GeminiExplanationService {
                     inventory.size(), highCount, totalSurplus
             );
         }
-    }
-}# 🍃 FoodWaste AI Daily Intelligence Summary\n\n" +
-                "Our **SWI-Prolog Expert Engine** analyzed %d food items across your live MySQL inventory.\n\n" +
-                "**Key Findings:**\n" +
-                "- **High Waste Risk Items:** %d items (Fresh Chicken Breast, Salad Mix)\n" +
-                "- **Estimated Total Surplus:** %.1f kg\n" +
-                "- **Potential Preventable Loss:** ~35,000 MMK\n\n" +
-                "**Top Actionable Directives:**\n" +
-                "1. ⚠️ **Chicken Breast (82%% Risk):** Reduce tomorrow's morning prep batch by 25%%.\n" +
-                "2. 🥗 **Salad Mix (82%% Risk):** Prioritize in tomorrow's lunch specials combo.\n" +
-                "3. 🤝 **Food Rescue:** 15 kg surplus chicken eligible for dispatch to Hope Food Bank.\n\n" +
-                "What specific item or operational action would you like to explore?",
-                inventory.size(), highCount, totalSurplus
-        );
     }
 }

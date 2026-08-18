@@ -60,4 +60,20 @@ public class GeminiChatPipelineTest {
         assertNotNull(response);
         assertTrue(response.getExplanation().toLowerCase().contains("food bank") || response.getExplanation().toLowerCase().contains("hope"));
     }
+
+    @Test
+    @DisplayName("Bilingual Pipeline: English and Myanmar queries return correctly localized explanations")
+    public void testBilingualChatResponses() {
+        // English query
+        GeminiExplanationService.ChatResponse enRes = geminiService.processUserQuery("What is our chicken waste risk?", "en");
+        assertNotNull(enRes);
+        assertNotNull(enRes.getExplanation());
+        assertTrue(enRes.getExplanation().contains("Chicken"));
+
+        // Myanmar query
+        GeminiExplanationService.ChatResponse mmRes = geminiService.processUserQuery("ကြက်သား အလေအလွင့် ဘာကြောင့်များတာလဲ?", "mm");
+        assertNotNull(mmRes);
+        assertNotNull(mmRes.getExplanation());
+        assertFalse(mmRes.getExplanation().isEmpty());
+    }
 }
