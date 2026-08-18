@@ -28,6 +28,7 @@ public class ChatServlet extends BaseServlet {
     public static class ChatRequest implements Serializable {
         private static final long serialVersionUID = 1L;
         private String message;
+        private String language; // "en" or "mm"
 
         public ChatRequest() {}
 
@@ -38,6 +39,14 @@ public class ChatServlet extends BaseServlet {
         public void setMessage(String message) {
             this.message = message;
         }
+
+        public String getLanguage() {
+            return language;
+        }
+
+        public void setLanguage(String language) {
+            this.language = language;
+        }
     }
 
     @Override
@@ -47,6 +56,7 @@ public class ChatServlet extends BaseServlet {
             status.put("prologEngineAvailable", PrologService.isPrologAvailable());
             status.put("geminiModel", AppConfig.getGeminiModel());
             status.put("geminiApiKeyConfigured", !AppConfig.getGeminiApiKey().isEmpty());
+            status.put("supportedLanguages", new String[]{"en", "mm"});
             status.put("pipeline", "User -> Gemini Chat -> Java Backend -> MySQL Data -> SWI-Prolog Reasoning -> Gemini Explanation -> Smart Recommendation");
             sendSuccess(resp, status);
         } catch (Exception e) {
@@ -59,8 +69,18 @@ public class ChatServlet extends BaseServlet {
         try {
             ChatRequest requestPayload = parseJsonBody(req, ChatRequest.class);
             String message = requestPayload != null ? requestPayload.getMessage() : "";
+            String language = requestPayload != null ? requestPayload.getLanguage() : null;
 
-            GeminiExplanationService.ChatResponse chatResponse = geminiService.processUserQuery(message);
+            if (language == null || language.trim().isEmpty()) {
+                String acceptLang = req.getHeader("Accept-Language");
+                if (acceptLang != null && (acceptLang.contains("my") || acceptLang.contains("mm"))) {
+                    language = "mm";
+                } else {
+                    language = "en";
+                }
+            }
+
+            GeminiExplanationService.ChatResponse chatResponse = geminiService.processUserQuery(message, language);
             sendSuccess(resp, chatResponse);
         } catch (Exception e) {
             logger.error("Error in ChatServlet POST: {}", e.getMessage(), e);

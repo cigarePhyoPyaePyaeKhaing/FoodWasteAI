@@ -54,11 +54,41 @@ const Dashboard = {
     ]
   },
 
-  init() {
+  async init() {
     this.renderKPIs();
     this.renderChart();
     this.renderHighRiskList();
     this.renderRecommendations();
+
+    // Fetch dynamic live metrics
+    try {
+      const predRes = await API.get('/api/prediction');
+      if (predRes && predRes.data) {
+        const d = predRes.data;
+        if (d.expectedTotalWasteKg !== undefined) {
+          const elPred = document.getElementById('kpi-predicted-tomorrow');
+          if (elPred) elPred.textContent = `${d.expectedTotalWasteKg} kg`;
+        }
+        if (d.estimatedMoneyLost !== undefined) {
+          const elMoney = document.getElementById('kpi-money-lost');
+          if (elMoney) elMoney.textContent = `${Number(d.estimatedMoneyLost).toLocaleString()} MMK`;
+        }
+        if (d.items && d.items.length > 0) {
+          this.data.highRiskFoods = d.items.map(item => ({
+            name: item.foodName,
+            riskPct: Math.round(item.riskPercentage),
+            riskLevel: item.riskLevel,
+            category: 'Kitchen Item',
+            stock: `${item.stock} kg`,
+            demand: `${item.expectedDemand} kg`,
+            expiry: `${item.expiryDays} Day(s)`
+          }));
+          this.renderHighRiskList();
+        }
+      }
+    } catch (e) {
+      console.debug('Dashboard using default initial stats');
+    }
   },
 
   renderKPIs() {

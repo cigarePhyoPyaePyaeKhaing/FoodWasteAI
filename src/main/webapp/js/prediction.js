@@ -60,78 +60,97 @@ const Prediction = {
     // Render Breakdown Progress Bars
     const breakdownContainer = document.getElementById('pred-breakdown-list');
     const items = this.report.items || [];
-    if (breakdownContainer && items.length > 0) {
-      const totalWaste = items.reduce((sum, i) => sum + Math.max(0, i.stock - i.expectedDemand), 0) || 1;
-      
-      breakdownContainer.innerHTML = items.map(item => {
-        const surplus = Math.max(0, item.stock - item.expectedDemand);
-        const sharePct = Math.min(100, Math.round((surplus / totalWaste) * 100)) || Math.round(item.riskPercentage);
-        
-        let color = '#059669';
-        let badge = 'LOW';
-        if (item.riskLevel === 'HIGH') {
-          color = 'var(--risk-high-text)';
-          badge = 'HIGH';
-        } else if (item.riskLevel === 'MEDIUM') {
-          color = 'var(--risk-med-text)';
-          badge = 'MED';
-        }
-
-        return `
-          <div>
-            <div style="display:flex; justify-content:space-between; margin-bottom:0.4rem; font-weight:700;">
-              <span>🍲 ${item.foodName}</span>
-              <span style="color:${color};">${surplus.toFixed(1)} kg (${sharePct}%) &bull; ${badge}</span>
-            </div>
-            <div style="background:rgba(0,0,0,0.06); height:12px; border-radius:9999px; overflow:hidden;">
-              <div style="width:${sharePct}%; height:100%; background:${color}; border-radius:9999px; transition:width 0.6s ease;"></div>
-            </div>
+    if (breakdownContainer) {
+      if (items.length === 0) {
+        breakdownContainer.innerHTML = `
+          <div style="text-align:center; padding:2rem; color:var(--text-muted);">
+            <div style="font-size:1.8rem; margin-bottom:0.4rem;">🔮</div>
+            <div style="font-weight:700; color:var(--text-main);">No Inventory Items To Evaluate</div>
+            <div style="font-size:0.85rem; margin-top:0.25rem;">Add your restaurant items in the Inventory section to generate waste predictions.</div>
           </div>
         `;
-      }).join('');
+      } else {
+        const totalWaste = items.reduce((sum, i) => sum + Math.max(0, i.stock - i.expectedDemand), 0) || 1;
+        
+        breakdownContainer.innerHTML = items.map(item => {
+          const surplus = Math.max(0, item.stock - item.expectedDemand);
+          const sharePct = Math.min(100, Math.round((surplus / totalWaste) * 100)) || Math.round(item.riskPercentage);
+          
+          let color = '#059669';
+          let badge = 'LOW';
+          if (item.riskLevel === 'HIGH') {
+            color = 'var(--risk-high-text)';
+            badge = 'HIGH';
+          } else if (item.riskLevel === 'MEDIUM') {
+            color = 'var(--risk-med-text)';
+            badge = 'MED';
+          }
+
+          return `
+            <div>
+              <div style="display:flex; justify-content:space-between; margin-bottom:0.4rem; font-weight:700;">
+                <span>🍲 ${item.foodName}</span>
+                <span style="color:${color};">${surplus.toFixed(1)} kg (${sharePct}%) &bull; ${badge}</span>
+              </div>
+              <div style="background:rgba(0,0,0,0.06); height:12px; border-radius:9999px; overflow:hidden;">
+                <div style="width:${sharePct}%; height:100%; background:${color}; border-radius:9999px; transition:width 0.6s ease;"></div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
     }
 
     // Render "Why?" Prolog Reasoning Cards
     const reasoningContainer = document.getElementById('pred-reasoning-list');
-    if (reasoningContainer && items.length > 0) {
-      reasoningContainer.innerHTML = items.slice(0, 4).map(item => {
-        let bg = 'rgba(209, 250, 229, 0.4)';
-        let border = 'var(--risk-low-border)';
-        let titleColor = 'var(--risk-low-text)';
-        
-        if (item.riskLevel === 'HIGH') {
-          bg = 'rgba(254, 226, 226, 0.4)';
-          border = 'var(--risk-high-border)';
-          titleColor = 'var(--risk-high-text)';
-        } else if (item.riskLevel === 'MEDIUM') {
-          bg = 'rgba(254, 243, 199, 0.4)';
-          border = 'var(--risk-med-border)';
-          titleColor = 'var(--risk-med-text)';
-        }
-
-        const reasonsHtml = (item.reasons || [])
-          .map(r => `<li>${r}</li>`)
-          .join('');
-
-        return `
-          <div style="background:${bg}; border:1px solid ${border}; padding:1rem; border-radius:var(--radius-md);">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-              <span style="font-weight:800; color:${titleColor}; font-size:0.95rem;">
-                Why is ${item.foodName} ${item.riskLevel} Risk (${Math.round(item.riskPercentage)}%)?
-              </span>
-              <span style="font-size:0.75rem; font-weight:700; background:rgba(255,255,255,0.8); padding:0.15rem 0.5rem; border-radius:9999px;">
-                ${item.priorityUsage || 'STANDARD'}
-              </span>
-            </div>
-            <ul style="font-size:0.85rem; color:var(--text-body); margin-top:0.4rem; padding-left:1.2rem; line-height:1.6;">
-              ${reasonsHtml}
-            </ul>
-            <div style="margin-top:0.6rem; font-size:0.85rem; font-weight:700; color:var(--text-main);">
-              💡 <strong>Recommendation:</strong> ${item.recommendation || item.recommendedAction || 'Maintain scheduled batches.'}
-            </div>
+    if (reasoningContainer) {
+      if (items.length === 0) {
+        reasoningContainer.innerHTML = `
+          <div style="text-align:center; padding:2rem; color:var(--text-muted); background:var(--glass-bg); border-radius:var(--radius-md); border:1px solid var(--glass-border);">
+            <div style="font-weight:700; color:var(--text-main);">🧠 No Active Prolog Explanations</div>
+            <div style="font-size:0.85rem; margin-top:0.25rem;">Once ingredients are added to inventory, the first-order logic reasoning engine will provide transparent explanations here.</div>
           </div>
         `;
-      }).join('');
+      } else {
+        reasoningContainer.innerHTML = items.slice(0, 4).map(item => {
+          let bg = 'rgba(209, 250, 229, 0.4)';
+          let border = 'var(--risk-low-border)';
+          let titleColor = 'var(--risk-low-text)';
+          
+          if (item.riskLevel === 'HIGH') {
+            bg = 'rgba(254, 226, 226, 0.4)';
+            border = 'var(--risk-high-border)';
+            titleColor = 'var(--risk-high-text)';
+          } else if (item.riskLevel === 'MEDIUM') {
+            bg = 'rgba(254, 243, 199, 0.4)';
+            border = 'var(--risk-med-border)';
+            titleColor = 'var(--risk-med-text)';
+          }
+
+          const reasonsHtml = (item.reasons || [])
+            .map(r => `<li>${r}</li>`)
+            .join('');
+
+          return `
+            <div style="background:${bg}; border:1px solid ${border}; padding:1rem; border-radius:var(--radius-md);">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-weight:800; color:${titleColor}; font-size:0.95rem;">
+                  Why is ${item.foodName} ${item.riskLevel} Risk (${Math.round(item.riskPercentage)}%)?
+                </span>
+                <span style="font-size:0.75rem; font-weight:700; background:rgba(255,255,255,0.8); padding:0.15rem 0.5rem; border-radius:9999px;">
+                  ${item.priorityUsage || 'STANDARD'}
+                </span>
+              </div>
+              <ul style="font-size:0.85rem; color:var(--text-body); margin-top:0.4rem; padding-left:1.2rem; line-height:1.6;">
+                ${reasonsHtml}
+              </ul>
+              <div style="margin-top:0.6rem; font-size:0.85rem; font-weight:700; color:var(--text-main);">
+                💡 <strong>Recommendation:</strong> ${item.recommendation || item.recommendedAction || 'Maintain scheduled batches.'}
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
     }
   }
 };
