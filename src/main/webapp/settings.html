@@ -3,121 +3,176 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FoodWaste AI - System Settings</title>
+  <title>FoodWaste AI - Settings</title>
   <link rel="stylesheet" href="css/variables.css">
   <link rel="stylesheet" href="css/components.css">
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-<div class="sidebar-backdrop"></div>
+
 <div class="app-container">
-  <aside class="sidebar">
+  <aside class="sidebar-float">
     <div class="sidebar-header">
-      <div class="sidebar-logo">🍃</div>
-      <div class="sidebar-title-box">
-        <div class="sidebar-title">FoodWaste AI</div>
-        <div class="sidebar-subtitle">Predict &bull; Prevent &bull; Save</div>
+      <div class="brand-bubble-logo">🍃</div>
+      <div class="brand-title-group">
+        <div class="brand-main-title">FoodWaste AI</div>
+        <span class="brand-sub-badge">iOS 26 Bubble Edition</span>
       </div>
     </div>
-    <nav class="sidebar-nav">
-      <div class="nav-section-title">Core Operations</div>
-      <a href="dashboard.html" class="nav-link"><span class="nav-icon">📊</span> Dashboard</a>
-      <a href="inventory.html" class="nav-link"><span class="nav-icon">📦</span> Inventory</a>
-      <a href="sales.html" class="nav-link"><span class="nav-icon">💰</span> Sales Entry</a>
-      <a href="waste.html" class="nav-link"><span class="nav-icon">🗑️</span> Waste Records</a>
+
+    <nav class="sidebar-nav-scroll">
+      <div class="nav-bubble-section-title">Core Operations</div>
+      <a href="dashboard.html" class="nav-bubble-link">
+        <span class="nav-bubble-icon">📊</span> Dashboard
+      </a>
+      <a href="inventory.html" class="nav-bubble-link">
+        <span class="nav-bubble-icon">📦</span> Inventory
+      </a>
+      <a href="sales.html" class="nav-bubble-link">
+        <span class="nav-bubble-icon">💰</span> Sales Entry
+      </a>
+      <a href="waste.html" class="nav-bubble-link">
+        <span class="nav-bubble-icon">🗑️</span> Waste Records
+      </a>
+
       <div class="nav-section-title">AI & Intelligence</div>
-      <a href="prediction.html" class="nav-link"><span class="nav-icon">🔮</span> AI Prediction</a>
-      <a href="recommendations.html" class="nav-link"><span class="nav-icon">💡</span> Recommendations</a>
-      <a href="redistribution.html" class="nav-link"><span class="nav-icon">🤝</span> Redistribution</a>
+      <a href="prediction.html" class="nav-bubble-link">
+        <span class="nav-bubble-icon">🔮</span> AI Prediction
+      </a>
+      <a href="recommendations.html" class="nav-bubble-link">
+        <span class="nav-bubble-icon">💡</span> Recommendations
+      </a>
+      <a href="redistribution.html" class="nav-bubble-link">
+        <span class="nav-bubble-icon">🤝</span> Redistribution
+      </a>
+
       <div class="nav-section-title admin-only">Management</div>
-      <a href="reports.html" class="nav-link"><span class="nav-icon">📈</span> Reports</a>
-      <a href="users.html" class="nav-link admin-only"><span class="nav-icon">👥</span> Users</a>
-      <a href="settings.html" class="nav-link active admin-only"><span class="nav-icon">⚙️</span> Settings</a>
+      <a href="reports.html" class="nav-bubble-link">
+        <span class="nav-bubble-icon">📈</span> Reports
+      </a>
+      <a href="users.html" class="nav-bubble-link admin-only">
+        <span class="nav-bubble-icon">👥</span> Users
+      </a>
+      <a href="settings.html" class="nav-bubble-link active admin-only">
+        <span class="nav-bubble-icon">⚙️</span> Settings
+      </a>
     </nav>
-    <div class="sidebar-footer">
-      <div class="user-badge">
-        <div class="user-avatar" id="current-user-avatar">A</div>
-        <div class="user-info">
-          <div class="user-name" id="current-user-name">Manager</div>
-          <div class="user-role" id="current-user-role">ADMIN</div>
+
+    <div class="sidebar-user-pill">
+      <div class="user-profile-meta">
+        <div class="user-avatar-bubble" id="current-user-avatar">A</div>
+        <div class="user-text-box">
+          <div class="user-name-text" id="current-user-name">Manager</div>
+          <div class="user-role-badge" id="current-user-role">ADMIN</div>
         </div>
       </div>
-      <button class="btn btn-sm" onclick="Auth.logout()" style="background:transparent;color:var(--sidebar-text-muted);border:none;cursor:pointer;">🚪</button>
+      <button class="btn-bubble btn-glass-subtle btn-sm-bubble" onclick="Auth.logout()" title="Sign Out">
+        🚪
+      </button>
     </div>
   </aside>
 
-  <div class="main-wrapper">
-    <header class="topbar">
+  <div class="main-wrapper-float">
+    <header class="topbar-glass">
       <div class="topbar-left">
-        <button class="mobile-menu-toggle" id="mobile-toggle-btn">☰</button>
-        <h1 class="page-headline">System Configuration & Environment</h1>
+        <h1 class="page-headline-glass">System Settings & Diagnostics</h1>
       </div>
       <div class="topbar-right">
-        <button class="btn btn-primary" onclick="checkHealth()">Test System Diagnostics</button>
+        <button class="btn-bubble btn-yellow btn-sm-bubble" onclick="checkHealth()">Test System Diagnostics</button>
       </div>
     </header>
 
-    <main class="content-body">
-      <div class="card">
-        <div class="card-header">
-          <h2 class="card-title">Database Configuration (Aiven MySQL)</h2>
-          <span class="badge badge-optimization" id="db-badge">Configured via ENV</span>
+    <main class="content-body-float">
+      <div class="card-glass">
+        <div class="card-header-glass">
+          <div>
+            <h2 class="card-title-glass">🗄️ Aiven Cloud MySQL Settings</h2>
+            <div class="card-subtitle-glass">Managed cloud database credentials (injected via environment variables)</div>
+          </div>
+          <span class="badge-bubble badge-optimization">SSL Mode: REQUIRED</span>
         </div>
-        <div class="card-body">
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label">DB Host</label>
-              <input class="form-input" type="text" value="mysql-example-aivencloud.com" readonly>
+        <div class="card-body-glass">
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:1rem;">
+            <div class="form-group-bubble">
+              <label class="form-label-bubble">Host Address</label>
+              <input class="form-input-bubble" type="text" value="mysql-example-aivencloud.com" readonly>
             </div>
-            <div class="form-group">
-              <label class="form-label">DB Port</label>
-              <input class="form-input" type="text" value="3306" readonly>
+            <div class="form-group-bubble">
+              <label class="form-label-bubble">Port</label>
+              <input class="form-input-bubble" type="text" value="3306" readonly>
             </div>
-            <div class="form-group">
-              <label class="form-label">Database Name</label>
-              <input class="form-input" type="text" value="foodwaste_ai" readonly>
+            <div class="form-group-bubble">
+              <label class="form-label-bubble">Database Name</label>
+              <input class="form-input-bubble" type="text" value="foodwaste_ai" readonly>
             </div>
           </div>
-          <p style="font-size:0.8rem; color:var(--text-subtle);">
-            🔒 Passwords and sensitive credentials are encrypted and injected via environment variables (<code>.env</code> / Railway Config Vars).
-          </p>
+          <div style="font-size:0.8rem; color:var(--text-muted); margin-top:0.5rem;">
+            🔒 Passwords and sensitive credentials are encrypted and managed via <code>.env</code> / Railway Config Vars.
+          </div>
         </div>
       </div>
 
-      <div class="card">
-        <div class="card-header">
-          <h2 class="card-title">SWI-Prolog Expert Engine Integration</h2>
-          <span class="badge badge-optimization" id="prolog-badge">Subprocess Engine</span>
+      <div class="card-glass">
+        <div class="card-header-glass">
+          <div>
+            <h2 class="card-title-glass">🧠 SWI-Prolog Expert Engine</h2>
+            <div class="card-subtitle-glass">Declarative rule knowledge base for waste mitigation</div>
+          </div>
+          <span class="badge-bubble badge-optimization">Subprocess Mode</span>
         </div>
-        <div class="card-body">
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label">SWI-Prolog Executable Path</label>
-              <input class="form-input" type="text" value="swipl (or SWIPL_PATH env var)" readonly>
+        <div class="card-body-glass">
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:1rem;">
+            <div class="form-group-bubble">
+              <label class="form-label-bubble">Binary Path</label>
+              <input class="form-input-bubble" type="text" value="swipl (or SWIPL_PATH env var)" readonly>
             </div>
-            <div class="form-group">
-              <label class="form-label">Rules Knowledge Base</label>
-              <input class="form-input" type="text" value="foodwaste_rules.pl" readonly>
+            <div class="form-group-bubble">
+              <label class="form-label-bubble">Rules File</label>
+              <input class="form-input-bubble" type="text" value="src/main/resources/prolog/foodwaste_rules.pl" readonly>
             </div>
           </div>
-          <div id="diagnostic-output" style="margin-top:1rem; padding:0.75rem; background:var(--bg-surface-secondary); border-radius:var(--radius-md); font-family:monospace; font-size:0.85rem; display:none;"></div>
+          <div id="diagnostic-json-box" style="display:none; margin-top:1rem; padding:1rem; background:rgba(255,255,255,0.7); border-radius:var(--radius-md); border:1px solid var(--glass-border); font-family:monospace; font-size:0.85rem;"></div>
         </div>
       </div>
     </main>
   </div>
 </div>
+
+<nav class="mobile-bottom-dock">
+  <a href="dashboard.html" class="dock-item">
+    <span class="dock-icon">📊</span>
+    <span>Home</span>
+  </a>
+  <a href="inventory.html" class="dock-item">
+    <span class="dock-icon">📦</span>
+    <span>Inventory</span>
+  </a>
+  <a href="prediction.html" class="dock-item">
+    <span class="dock-icon">🔮</span>
+    <span>Predict</span>
+  </a>
+  <a href="recommendations.html" class="dock-item">
+    <span class="dock-icon">💡</span>
+    <span>Actions</span>
+  </a>
+  <a href="settings.html" class="dock-item active">
+    <span class="dock-icon">⚙️</span>
+    <span>Settings</span>
+  </a>
+</nav>
+
 <script src="js/api.js"></script>
 <script src="js/auth.js"></script>
 <script>
   async function checkHealth() {
-    const out = document.getElementById('diagnostic-output');
-    out.style.display = 'block';
-    out.textContent = 'Querying /api/health...';
+    const box = document.getElementById('diagnostic-json-box');
+    box.style.display = 'block';
+    box.textContent = 'Querying /api/health...';
     try {
       const res = await API.get('/api/health');
-      out.textContent = JSON.stringify(res, null, 2);
+      box.textContent = JSON.stringify(res, null, 2);
     } catch (err) {
-      out.textContent = 'Health check response: ' + err.message;
+      box.textContent = 'Diagnostics output: ' + err.message;
     }
   }
 </script>
