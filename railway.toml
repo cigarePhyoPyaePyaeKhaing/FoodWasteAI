@@ -1,0 +1,15 @@
+# =====================================================================
+# FoodWaste AI - Railway Deployment Configuration
+# Multi-Stage Dockerfile with OpenJDK 17 + SWI-Prolog
+# =====================================================================
+
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+startCommand = "java -Dserver.port=$PORT -jar /app/foodwaste-ai.jar"
+healthcheckPath = "/api/health"
+healthcheckTimeout = 120
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3

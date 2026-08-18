@@ -98,6 +98,14 @@ public class AppConfig {
         return get("SWIPL_PATH", "swipl");
     }
 
+    public static String getGeminiApiKey() {
+        return get("GEMINI_API_KEY", get("GOOGLE_API_KEY", ""));
+    }
+
+    public static String getGeminiModel() {
+        return get("GEMINI_MODEL", "gemini-1.5-flash");
+    }
+
     public static String getAppEnv() {
         return get("APP_ENV", "development");
     }

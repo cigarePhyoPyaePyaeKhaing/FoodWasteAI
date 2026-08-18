@@ -6,204 +6,178 @@
 
 ---
 
-## 📌 Project Overview
+## 📌 1. Project Overview
 
-**FoodWaste AI** is a university competition project designed to help restaurants and food-service organizations systematically eliminate food waste. 
+**FoodWaste AI** is an intelligent, full-stack web application developed for university competition and enterprise deployment. It empowers restaurants, commercial kitchens, and food service providers to systematically eliminate food waste through a dual-AI architecture combining **Google Gemini** conversational intelligence with **SWI-Prolog** first-order logic reasoning.
 
-By integrating inventory tracking, sales velocity, expiry monitoring, and an expert reasoning engine powered by **SWI-Prolog**, FoodWaste AI transitions food service operations from reactive waste disposal to proactive prevention and verified charity redistribution.
+By tracking live inventory stock, sales demand trends, and waste history, FoodWaste AI transitions hospitality operations from reactive waste disposal to proactive prevention and verified charity redistribution.
 
 ---
 
-## 🛠️ Technology Stack
+## 🏛️ 2. Dual-AI System Architecture
 
-| Layer | Technology |
+FoodWaste AI pioneers a hybrid **Conversational + Symbolic AI** architecture:
+
+```
+[ User (Web Browser Client) ]
+       │  (iOS 26 Bubble Glassmorphic UI / Vanilla JavaScript)
+       ▼
+[ Jakarta REST Servlets & Security Filter ]
+       │  (Role-based Auth: ADMIN / STAFF, BCrypt Hashing)
+       ▼
+[ Java Service Layer (PredictionService, GeminiExplanationService) ]
+       │
+       ├──► [ Google Gemini API ] ◄── Conversational Explanation & Natural Language
+       │
+       ├──► [ SWI-Prolog Reasoning Engine ] ◄── Deterministic First-Order Logic
+       │          ▲ (foodwaste_rules.pl: Risk %, Production Cutbacks, Redistribution)
+       │
+       └──► [ MySQL Database (Aiven Cloud) ] ◄── Live Inventory, Sales, Waste & Donors
+                  (HikariCP Connection Pool, SSL REQUIRED, Prepared Statements)
+```
+
+### AI Component Separation of Concerns:
+- 🤖 **Gemini AI:** Conversational interface, natural language query understanding, articulate and contextual explanation generation.
+- 🧠 **SWI-Prolog:** Deterministic mathematical reasoning, rule evaluation (`assess_waste_risk/6`, `recommend_production/6`, `evaluate_priority_use/3`, `evaluate_redistribution/6`), zero hallucinations.
+- 🗄️ **MySQL (Aiven):** System of record for inventory, transactions, sales velocity, historical waste, and verified recipient NGOs.
+- ☕ **Java 17 Backend:** Central orchestrator managing pipelines, security filters, database pools, and sub-second JSON REST endpoints.
+
+---
+
+## ✨ 3. Core Features
+
+1. **iOS 26 Bubble Design System:**
+   - Apple-inspired glassmorphism, floating soft cards, golden yellow accent theme, rounded bubble components, clean typography, fully responsive across desktop, tablet, and mobile with an iPhone-style bottom dock.
+2. **Food Inventory Management (CRUD):**
+   - Live tracking with category filtering (Poultry, Produce, Seafood, Grains, Dairy, Bakery), near-expiry indicators, and low-stock alerts.
+3. **Sales & Customer Demand Tracking:**
+   - Real-time customer volume logging, sales revenue tracking, and automatic inventory stock deduction (`USAGE`).
+4. **Waste Incident Logging & Cost Calculation:**
+   - Waste reason classification (`EXPIRED`, `OVERPRODUCTION`, `UNSOLD`, `SPOILED`, etc.) and financial loss computation.
+5. **SWI-Prolog Explainable AI (XAI) Predictions:**
+   - First-order logic evaluation providing exact risk levels (HIGH, MEDIUM, LOW), risk percentages, and auditable reasons list.
+6. **Actionable AI Recommendations:**
+   - Categorized directives (`URGENT`, `IMPORTANT`, `OPTIMIZATION`, `REDISTRIBUTION`) with projected savings and one-click accept/dismiss actions.
+7. **Surplus Food Redistribution Workflows:**
+   - Real-time coordination with verified charity partners (*Hope Community Food Bank*, *City Youth Shelter & Kitchen*, *GreenEarth Animal Sanctuary*, *Circular BioCompost Hub*) with automatic stock deduction.
+8. **Interactive Gemini Copilot Chat:**
+   - Floating AI assistant widget answering natural language kitchen questions grounded in real database facts and Prolog rules.
+9. **Role-Based Security & User Management:**
+   - BCrypt password encryption ($2a$), secure session tokens, and granular permission enforcement (`ADMIN` vs `STAFF`).
+
+---
+
+## 🛠️ 4. Technology Stack
+
+| Component | Technology |
 |---|---|
-| **Frontend** | HTML5, CSS3 (Custom Sustainability Theme), Vanilla JavaScript, Chart.js |
+| **Frontend** | HTML5, CSS3 (iOS 26 Glass Bubble Design System), Vanilla JavaScript (No heavy frameworks) |
 | **Backend** | Java 17, Jakarta Servlets 6.0, Embedded Apache Tomcat 10.1, Maven |
-| **AI / Expert System** | SWI-Prolog (Rule-based reasoning engine) |
-| **Database** | MySQL 8.x (Hosted on Aiven Cloud) with HikariCP connection pooling |
-| **Deployment** | Railway (Containerized via Multi-Stage Dockerfile) |
-| **Version Control** | Git / GitHub |
+| **Symbolic AI** | SWI-Prolog 8.4+ (Subprocess integration with fallback reasoner) |
+| **Conversational AI** | Google Gemini Generative AI (Interactions / REST API) |
+| **Database** | MySQL 8.x (Aiven Cloud / Local MySQL) with HikariCP connection pooling |
+| **Security** | BCrypt password hashing, session tokens, role-based authorization filter |
+| **Deployment** | Railway & Docker (Multi-Stage Build with OpenJDK 17 + SWI-Prolog) |
 
 ---
 
-## 🏛️ System Architecture
-
-```
-[ Web Browser Client ]
-       │  (HTML5 / CSS3 / Vanilla JS)
-       ▼
-[ Jakarta Servlets / REST Controllers ]
-       │
-       ▼
-[ Java Service Layer (PredictionService, InventoryService) ]
-       │
-       ├──► [ SWI-Prolog Subprocess / PrologService ] ──► [ foodwaste_rules.pl ]
-       │          ▲ Returns structured facts & reasoning
-       │
-       └──► [ DAO Layer / HikariCP ] ──► [ Aiven Cloud MySQL Database ]
-```
-
----
-
-## 📂 Project Directory Structure
-
-```
-FoodWasteAI/
-├── src/
-│   ├── main/
-│   │   ├── java/com/foodwasteai/
-│   │   │   ├── App.java                 # Standalone embedded server runner
-│   │   │   ├── config/                  # AppConfig, DatabaseConfig (HikariCP)
-│   │   │   ├── controller/              # BaseServlet, HealthCheckServlet
-│   │   │   ├── dao/                     # BaseDao and JDBC helpers
-│   │   │   ├── filter/                  # CorsFilter, EncodingFilter
-│   │   │   ├── model/                   # ApiResponse, User, FoodItem
-│   │   │   ├── prolog/                  # PrologService, PrologAssessment
-│   │   │   └── service/                 # PredictionService, Business logic
-│   │   │
-│   │   ├── resources/
-│   │   │   └── prolog/
-│   │   │       └── foodwaste_rules.pl   # SWI-Prolog knowledge base & rules
-│   │   │
-│   │   └── webapp/
-│   │       ├── index.html               # Sign In / Portal Gateway
-│   │       ├── dashboard.html           # Main Overview & KPI Dashboard
-│   │       ├── inventory.html           # Food Inventory Management
-│   │       ├── sales.html               # Sales Recording & Velocity
-│   │       ├── waste.html               # Waste Logging & Loss Tracking
-│   │       ├── prediction.html          # AI Prediction & "Why?" Reasoning
-│   │       ├── recommendations.html     # Decision Action Cards
-│   │       ├── redistribution.html      # Surplus Donation Tracking
-│   │       ├── reports.html             # Sustainability Reports & Analytics
-│   │       ├── users.html               # User & Staff Management
-│   │       ├── settings.html            # Diagnostics & Environment Settings
-│   │       │
-│   │       ├── css/
-│   │       │   ├── variables.css        # Sustainability color tokens & layout
-│   │       │   ├── components.css       # Cards, badges, tables, forms, modals
-│   │       │   └── styles.css           # Responsive layouts & navigation
-│   │       │
-│   │       └── js/
-│   │           ├── api.js               # Central Fetch client with envelopes
-│   │           ├── auth.js              # Session & role manager
-│   │           ├── dashboard.js         # Dashboard logic
-│   │           ├── inventory.js         # Inventory controller
-│   │           ├── sales.js             # Sales controller
-│   │           ├── waste.js             # Waste controller
-│   │           ├── prediction.js        # Prediction & Prolog runner
-│   │           ├── recommendations.js   # Recommendation actions
-│   │           ├── redistribution.js    # Redistribution dispatcher
-│   │           └── reports.js           # Reporting & analytics
-│   │
-│   └── test/java/com/foodwasteai/       # JUnit 5 test suites
-│
-├── database/
-│   ├── schema.sql                       # Normalized MySQL DDL schema
-│   └── seed.sql                         # Realistic demonstration seed data
-│
-├── .env.example                         # Environment configuration template
-├── .gitignore                           # Git ignore rules
-├── Dockerfile                           # Multi-stage production container
-├── pom.xml                              # Maven project configuration
-└── README.md                            # Documentation
-```
-
----
-
-## ⚙️ Environment Configuration
-
-Copy `.env.example` to `.env` for local configuration:
-
-```bash
-cp .env.example .env
-```
-
-### Supported Variables:
-
-| Variable | Description | Default |
-|---|---|---|
-| `PORT` | Web server listening port | `8080` |
-| `DB_HOST` | MySQL host address (Aiven or localhost) | `localhost` |
-| `DB_PORT` | MySQL port | `3306` |
-| `DB_NAME` | MySQL database name | `foodwaste_ai` |
-| `DB_USER` | Database user (e.g. `avnadmin`) | `root` |
-| `DB_PASSWORD` | Database password | `""` |
-| `DB_SSL_MODE` | MySQL SSL Mode (`REQUIRED` for Aiven) | `PREFERRED` |
-| `SWIPL_PATH` | Path to SWI-Prolog binary | `swipl` |
-| `APP_ENV` | Application environment (`development`/`production`) | `development` |
-
----
-
-## 🚀 Build & Run Instructions
+## 🚀 5. Local Development Setup
 
 ### Prerequisites
 - **Java Development Kit (JDK) 17+**
 - **Apache Maven 3.8+**
-- **SWI-Prolog 8.4+** *(Optional for local dev - safe fallback included)*
+- **MySQL 8.x** (or free Aiven Cloud MySQL service)
+- **SWI-Prolog** *(Optional: Development fallback included if swipl is not on PATH)*
 
-### 1. Compile & Run Tests
+### 1. Clone & Configure Environment
+```bash
+git clone https://github.com/your-org/FoodWasteAI.git
+cd FoodWasteAI
+cp .env.example .env
+```
+
+Edit `.env` to configure your database and optional Gemini API key:
+```ini
+PORT=8088
+DB_HOST=localhost
+DB_PORT=3306
+DB_NAME=foodwaste_ai
+DB_USER=root
+DB_PASSWORD=your_mysql_password
+DB_SSL_MODE=PREFERRED
+GEMINI_API_KEY=your_optional_gemini_api_key
+GEMINI_MODEL=gemini-1.5-flash
+```
+
+### 2. Initialize Database
+Execute schema and seed data in your MySQL server:
+```bash
+mysql -u root -p < database/schema.sql
+mysql -u root -p < database/seed.sql
+```
+
+### 3. Run Automated Tests & Build Fat JAR
+```bash
+mvn clean test package
+```
+
+### 4. Start the Application
+```bash
+java -jar target/foodwaste-ai.jar
+```
+
+Access the application in your browser:  
+👉 **http://localhost:8088**
+
+Default Demo Credentials:
+- **Admin:** Username: `admin` | Password: `admin123`
+- **Staff:** Username: `staff` | Password: `staff123`
+
+---
+
+## 🚢 6. Cloud Deployment (Railway & Aiven MySQL)
+
+FoodWaste AI is fully configured for zero-configuration container deployment on **Railway**:
+
+### Docker Deployment Structure
+The included multi-stage [`Dockerfile`](file:///c:/FoodWasteAI/Dockerfile):
+1. Builds the Java fat JAR using `maven:3.9.6-eclipse-temurin-17`.
+2. Packages the runtime into `eclipse-temurin:17-jre-jammy` and installs `swi-prolog`.
+3. Binds dynamically to Railway's `$PORT` environment variable.
+
+### Deploy Steps:
+1. Push your repository to GitHub.
+2. In Railway, click **New Project** → **Deploy from GitHub Repo**.
+3. Add the following Environment Variables in the Railway Dashboard:
+   - `DB_HOST`: `<aiven-mysql-host>`
+   - `DB_PORT`: `<aiven-mysql-port>`
+   - `DB_NAME`: `foodwaste_ai`
+   - `DB_USER`: `avnadmin`
+   - `DB_PASSWORD`: `<aiven-password>`
+   - `DB_SSL_MODE`: `REQUIRED`
+   - `GEMINI_API_KEY`: `<google-ai-studio-key>` (Optional)
+   - `APP_ENV`: `production`
+4. Railway will automatically detect the [`railway.toml`](file:///c:/FoodWasteAI/railway.toml) and deploy the application.
+
+---
+
+## 🧪 7. Test Suite Summary
+
+The project includes unit and integration tests across all layers:
+- `SecurityAndAuthTest`: BCrypt hashing, session tokens, logout, input validation, and Gemini safety fallbacks.
+- `GeminiChatPipelineTest`: End-to-end user query $\rightarrow$ MySQL $\rightarrow$ Prolog $\rightarrow$ Gemini pipeline.
+- `PrologReasoningTest`: High risk chicken evaluation, low risk jasmine rice, salad imminent expiry.
+- `RecommendationRedistributionTest`: AI directive generation, category filtering, stock deduction.
+- `ServiceLayerTest`: Inventory, sales revenue calculation, waste financial loss derivation.
+- `ValidationUtilsTest`: Domain entity boundary validations.
+
+Run all tests:
 ```bash
 mvn clean test
 ```
 
-### 2. Package Executable Fat JAR
-```bash
-mvn package
-```
-
-### 3. Run Standalone Application
-```bash
-java -jar target/foodwaste-ai.jar
-```
-Or directly with Maven:
-```bash
-mvn compile exec:java -Dexec.mainClass="com.foodwasteai.App"
-```
-
-Once running, access the web application at:  
-👉 **http://localhost:8080**
-
-Check API health at:  
-👉 **http://localhost:8080/api/health**
-
 ---
 
-## 🧠 SWI-Prolog Expert Engine
+## 📄 8. License & Acknowledgements
 
-The knowledge base (`src/main/resources/prolog/foodwaste_rules.pl`) encodes domain logic for:
-- **Risk Assessment:** Analyzes stock volume, expiry thresholds, customer demand forecasts, and historical waste rates.
-- **Production Guidance:** Calculates percentage reductions (e.g., reduce by 25%) when overproduction is detected.
-- **Surplus Redistribution:** Evaluates shelf-life windows for safe donation to verified charities.
-- **Explainability:** Emits natural language reasons justifying each recommendation.
-
-*Note: If SWI-Prolog is not installed locally on a development machine, `PrologService` automatically uses a development fallback mirroring the exact Prolog rules, ensuring development remains frictionless.*
-
----
-
-## 🚢 Deployment on Railway
-
-The repository includes a production-ready `Dockerfile` that:
-1. Compiles the Java code in an isolated Maven build stage.
-2. Installs `swi-prolog` and JRE 17 in a minimal Debian runtime image.
-3. Automatically binds to Railway's dynamic `$PORT` environment variable.
-
-### Deploy Steps:
-1. Connect your GitHub repository to Railway.
-2. Under **Variables**, configure `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_SSL_MODE=REQUIRED`.
-3. Railway will build the container using the provided `Dockerfile` and launch the application.
-
----
-
-## 🗺️ Development Roadmap
-
-- [x] **Phase 1:** Project architecture, Maven configuration, package skeleton, starter Java files, Prolog rules, MySQL DDL, and responsive frontend shell.
-- [ ] **Phase 2:** Responsive frontend shell & dashboard UI with temporary demo data.
-- [ ] **Phase 3:** MySQL schema, Aiven configuration, Java database connection, models and DAO.
-- [ ] **Phase 4:** Inventory, sales, and waste CRUD endpoints.
-- [ ] **Phase 5:** SWI-Prolog expert system and Java subprocess integration.
-- [ ] **Phase 6:** Prediction and recommendation interface.
-- [ ] **Phase 7:** Redistribution and sustainability reports.
-- [ ] **Phase 8:** Authentication, roles, validation, and security cleanup.
-- [ ] **Phase 9:** Railway deployment configuration & verification.
-- [ ] **Phase 10:** Testing, documentation, and final competition audit.
+Created for the University Software Competition 2026. Built with modern, clean architecture principles, ethical food redistribution principles, and zero runtime dependencies outside standard Java, Jakarta, HikariCP, and SWI-Prolog.

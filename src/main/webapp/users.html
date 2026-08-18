@@ -78,7 +78,7 @@
         <h1 class="page-headline-glass">User & Staff Accounts</h1>
       </div>
       <div class="topbar-right">
-        <button class="btn-bubble btn-yellow btn-sm-bubble" onclick="API.showToast('Add user modal available in Phase 8', 'info')">+ Add New Staff</button>
+        <button class="btn-bubble btn-yellow btn-sm-bubble" onclick="Users.openModal()">+ Add New Staff</button>
       </div>
     </header>
 
@@ -87,9 +87,9 @@
         <div class="card-header-glass">
           <div>
             <h2 class="card-title-glass">👥 Authorized Restaurant Accounts</h2>
-            <div class="card-subtitle-glass">Role-based access control (ADMIN / STAFF)</div>
+            <div class="card-subtitle-glass">Role-based access control (ADMIN / STAFF) & BCrypt security</div>
           </div>
-          <span class="badge-bubble badge-optimization">2 Active Accounts</span>
+          <span class="badge-bubble badge-optimization" id="users-count-badge">2 Active Accounts</span>
         </div>
         <div class="card-body-glass" style="padding:0.75rem 1.25rem 1.25rem 1.25rem;">
           <div class="table-responsive">
@@ -104,29 +104,57 @@
                   <th style="text-align:right;">Actions</th>
                 </tr>
               </thead>
-              <tbody>
-                <tr>
-                  <td><strong>Restaurant Manager</strong></td>
-                  <td><code>admin</code></td>
-                  <td>manager@foodwaste.ai</td>
-                  <td><span class="badge-bubble badge-urgent">ADMIN</span></td>
-                  <td><span class="badge-bubble badge-risk-low">ACTIVE</span></td>
-                  <td style="text-align:right;"><button class="btn-bubble btn-glass-subtle btn-sm-bubble">Edit</button></td>
-                </tr>
-                <tr>
-                  <td><strong>Sarah Jenkins</strong></td>
-                  <td><code>staff_sarah</code></td>
-                  <td>sarah@foodwaste.ai</td>
-                  <td><span class="badge-bubble badge-optimization">STAFF</span></td>
-                  <td><span class="badge-bubble badge-risk-low">ACTIVE</span></td>
-                  <td style="text-align:right;"><button class="btn-bubble btn-glass-subtle btn-sm-bubble">Edit</button></td>
-                </tr>
+              <tbody id="users-tbody">
+                <!-- Dynamically populated from /api/users -->
               </tbody>
             </table>
           </div>
         </div>
       </div>
     </main>
+  </div>
+</div>
+
+<!-- Modal for New User -->
+<div class="modal-glass-backdrop" id="user-modal">
+  <div class="modal-glass-dialog">
+    <div class="modal-glass-header">
+      <h3 style="font-size:1.15rem; font-weight:800; color:var(--text-main);">+ Create Staff Account</h3>
+      <button class="btn-bubble btn-glass-subtle btn-sm-bubble" onclick="Users.closeModal()">✕</button>
+    </div>
+    <form id="new-user-form" onsubmit="Users.saveUser(event)">
+      <div class="modal-glass-body">
+        <div class="form-group-bubble">
+          <label class="form-label-bubble">Full Name</label>
+          <input class="form-input-bubble" type="text" id="user-fullname" required placeholder="e.g. Chef Alex Mercer">
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
+          <div class="form-group-bubble">
+            <label class="form-label-bubble">Username</label>
+            <input class="form-input-bubble" type="text" id="user-username" required placeholder="e.g. chef_alex">
+          </div>
+          <div class="form-group-bubble">
+            <label class="form-label-bubble">Role</label>
+            <select class="form-select-bubble" id="user-role">
+              <option value="STAFF">STAFF (Kitchen Operations)</option>
+              <option value="ADMIN">ADMIN (Full System Access)</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group-bubble">
+          <label class="form-label-bubble">Email</label>
+          <input class="form-input-bubble" type="email" id="user-email" required placeholder="alex@foodwaste.ai">
+        </div>
+        <div class="form-group-bubble">
+          <label class="form-label-bubble">Initial Password</label>
+          <input class="form-input-bubble" type="password" id="user-password" required minlength="6" placeholder="At least 6 characters (hashed with BCrypt)">
+        </div>
+      </div>
+      <div class="modal-glass-footer">
+        <button type="button" class="btn-bubble btn-glass" onclick="Users.closeModal()">Cancel</button>
+        <button type="submit" class="btn-bubble btn-yellow">Create Account</button>
+      </div>
+    </form>
   </div>
 </div>
 
@@ -155,5 +183,7 @@
 
 <script src="js/api.js"></script>
 <script src="js/auth.js"></script>
+<script src="js/users.js"></script>
+<script src="js/ai-assistant.js"></script>
 </body>
 </html>

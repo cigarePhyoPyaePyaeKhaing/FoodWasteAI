@@ -60,6 +60,17 @@ public class App {
         corsFilterMap.addURLPattern("/*");
         ctx.addFilterMap(corsFilterMap);
 
+        // Register Security Authentication Filter
+        FilterDef authFilterDef = new FilterDef();
+        authFilterDef.setFilterName("AuthenticationFilter");
+        authFilterDef.setFilterClass(com.foodwasteai.filter.AuthenticationFilter.class.getName());
+        ctx.addFilterDef(authFilterDef);
+
+        FilterMap authFilterMap = new FilterMap();
+        authFilterMap.setFilterName("AuthenticationFilter");
+        authFilterMap.addURLPattern("/api/*");
+        ctx.addFilterMap(authFilterMap);
+
         // Register Core API Servlets
         registerServlets(ctx);
 
@@ -119,7 +130,22 @@ public class App {
         ctx.addServletMappingDecoded("/api/redistribution", "RedistributionServlet");
         ctx.addServletMappingDecoded("/api/redistribution/*", "RedistributionServlet");
 
-        logger.info("Servlets registered: /api/health, /api/inventory/*, /api/sales/*, /api/waste/*, /api/prediction/*, /api/recommendations/*, /api/redistribution/*");
+        // Gemini Chat & Explainable AI Servlet
+        Tomcat.addServlet(ctx, "ChatServlet", new com.foodwasteai.controller.ChatServlet());
+        ctx.addServletMappingDecoded("/api/chat", "ChatServlet");
+        ctx.addServletMappingDecoded("/api/chat/*", "ChatServlet");
+
+        // Auth Servlet
+        Tomcat.addServlet(ctx, "AuthServlet", new com.foodwasteai.controller.AuthServlet());
+        ctx.addServletMappingDecoded("/api/auth", "AuthServlet");
+        ctx.addServletMappingDecoded("/api/auth/*", "AuthServlet");
+
+        // Users Servlet (Admin Protected)
+        Tomcat.addServlet(ctx, "UsersServlet", new com.foodwasteai.controller.UsersServlet());
+        ctx.addServletMappingDecoded("/api/users", "UsersServlet");
+        ctx.addServletMappingDecoded("/api/users/*", "UsersServlet");
+
+        logger.info("Servlets registered: /api/health, /api/auth/*, /api/users/*, /api/inventory/*, /api/sales/*, /api/waste/*, /api/prediction/*, /api/recommendations/*, /api/redistribution/*, /api/chat/*");
     }
 
     private static void printBanner(int port) {

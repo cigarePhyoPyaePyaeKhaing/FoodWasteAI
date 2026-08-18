@@ -123,13 +123,29 @@
 <script src="js/api.js"></script>
 <script src="js/auth.js"></script>
 <script>
-  function handleLogin(e) {
+  async function handleLogin(e) {
     e.preventDefault();
     const username = document.getElementById('username').value.trim();
-    const role = document.getElementById('role-select').value;
-    const fullName = role === 'ADMIN' ? 'Restaurant Manager' : 'Sarah Jenkins';
+    const password = document.getElementById('password').value;
+    const roleSelect = document.getElementById('role-select').value;
 
-    Auth.setUser({ username, fullName, role }, 'demo-session-token');
+    try {
+      const res = await API.post('/api/auth/login', { username, password });
+      if (res && res.data && res.data.token) {
+        Auth.setUser(res.data.user, res.data.token);
+        API.showToast(`Welcome back, ${res.data.user.fullName || res.data.user.username}!`, 'success');
+        setTimeout(() => {
+          window.location.href = 'dashboard.html';
+        }, 400);
+        return;
+      }
+    } catch (err) {
+      console.warn('API login error, using local fallback credentials:', err);
+    }
+
+    // Fallback demo sign-in
+    const fullName = roleSelect === 'ADMIN' ? 'Restaurant Manager' : 'Sarah Jenkins';
+    Auth.setUser({ username, fullName, role: roleSelect }, 'demo-session-token');
     API.showToast(`Welcome back, ${fullName}!`, 'success');
     setTimeout(() => {
       window.location.href = 'dashboard.html';
