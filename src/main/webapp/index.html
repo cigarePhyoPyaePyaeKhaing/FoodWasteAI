@@ -86,40 +86,44 @@
   <div class="login-bubble-card">
     <div class="brand-hero-box">
       <div class="brand-glow-bubble">🍃</div>
-      <h1 class="brand-headline-text">FoodWaste AI</h1>
-      <div class="brand-tagline-pill">Predict → Prevent → Redistribute → Reduce Waste</div>
+      <h1 class="brand-headline-text" data-i18n="brand.name">FoodWaste AI</h1>
+      <div class="brand-tagline-pill" data-i18n="brand.tagline">Predict → Prevent → Redistribute → Reduce Waste</div>
+      <div style="margin-top: 1rem;" id="login-lang-container"></div>
     </div>
 
     <form id="login-form" onsubmit="handleLogin(event)">
       <div class="form-group-bubble">
-        <label class="form-label-bubble" for="username">Username</label>
+        <label class="form-label-bubble" for="username" data-i18n="login.username">Username</label>
         <input class="form-input-bubble" type="text" id="username" value="admin" required placeholder="e.g. admin">
       </div>
 
       <div class="form-group-bubble">
-        <label class="form-label-bubble" for="password">Password</label>
+        <label class="form-label-bubble" for="password" data-i18n="login.password">Password</label>
         <input class="form-input-bubble" type="password" id="password" value="admin123" required placeholder="••••••••">
       </div>
 
       <div class="form-group-bubble">
-        <label class="form-label-bubble" for="role-select">Select Demonstration Role</label>
+        <label class="form-label-bubble" for="role-select" data-i18n="login.roleSelect">Select Demonstration Role</label>
         <select class="form-select-bubble" id="role-select">
-          <option value="ADMIN">Restaurant Manager (Admin Role)</option>
-          <option value="STAFF">Kitchen Staff Member (Staff Role)</option>
+          <option value="ADMIN" data-i18n="login.roleAdmin">Restaurant Manager (Admin Role)</option>
+          <option value="STAFF" data-i18n="login.roleStaff">Kitchen Staff Member (Staff Role)</option>
         </select>
       </div>
 
-      <button type="submit" class="btn-bubble btn-yellow" style="width: 100%; margin-top: 1.25rem; padding: 0.85rem; font-size: 0.95rem;">
+      <button type="submit" class="btn-bubble btn-yellow" style="width: 100%; margin-top: 1.25rem; padding: 0.85rem; font-size: 0.95rem;" data-i18n="login.submit">
         Sign In to Portal →
       </button>
     </form>
 
-    <div style="margin-top: 2rem; text-align: center; font-size: 0.78rem; color: var(--text-muted); font-weight: 500;">
+    <div style="margin-top: 2rem; text-align: center; font-size: 0.78rem; color: var(--text-muted); font-weight: 500;" data-i18n="brand.edition">
       iOS 26 Bubble System &bull; University Competition Edition
     </div>
   </div>
 </div>
 
+<script src="js/i18n/en.js"></script>
+<script src="js/i18n/mm.js"></script>
+<script src="js/i18n/language.js"></script>
 <script src="js/api.js"></script>
 <script src="js/auth.js"></script>
 <script>

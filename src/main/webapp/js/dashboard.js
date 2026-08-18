@@ -1,57 +1,24 @@
 /**
  * FoodWaste AI - Dashboard Controller
- * iOS 26 Glass Bubble Theme with Interactive Yellow-Based Charting
+ * Real Production Data Fetching from MySQL & SWI-Prolog REST APIs
+ * Clean Zero-State Baseline with Zero Hardcoded Fallbacks
  */
 const Dashboard = {
-  // Demo Dataset
   data: {
     kpis: {
-      todayWaste: '18.2 kg',
-      todayWasteTrend: '+2.4 kg vs yesterday',
-      predictedTomorrow: '12.5 kg',
-      predictedTrend: '▼ -31% with AI action',
-      moneyLost: '98,500 MMK',
+      todayWaste: '0.0 kg',
+      todayWasteSub: 'No waste logged today',
+      predictedTomorrow: '0.0 kg',
+      predictedTrend: 'No prediction available',
+      moneyLost: '0 MMK',
       moneyLostSub: "Today's financial spoilage",
-      carbonImpact: '45.5 kg CO₂e',
-      carbonSub: '32 kg diverted this week'
+      carbonImpact: '0.0 kg CO₂e',
+      carbonSub: 'Diverted food waste tracking'
     },
-    trend7Days: [
-      { day: 'Mon', actual: 14.2, predicted: 15.0 },
-      { day: 'Tue', actual: 16.5, predicted: 16.0 },
-      { day: 'Wed', actual: 13.8, predicted: 14.5 },
-      { day: 'Thu', actual: 19.1, predicted: 18.0 },
-      { day: 'Fri', actual: 21.4, predicted: 20.5 },
-      { day: 'Sat (Today)', actual: 18.2, predicted: 18.5 },
-      { day: 'Sun (AI Pred)', actual: null, predicted: 12.5 }
-    ],
-    highRiskFoods: [
-      { name: 'Fresh Chicken Breast', riskPct: 82, riskLevel: 'HIGH', category: 'Poultry', stock: '50 kg', demand: '30 kg', expiry: '1 Day' },
-      { name: 'Organic Garden Salad Mix', riskPct: 71, riskLevel: 'HIGH', category: 'Produce', stock: '18.5 kg', demand: '12 kg', expiry: '2 Days' },
-      { name: 'Atlantic Salmon Fillet', riskPct: 55, riskLevel: 'MEDIUM', category: 'Seafood', stock: '12 kg', demand: '9 kg', expiry: '3 Days' },
-      { name: 'Premium Jasmine Rice', riskPct: 35, riskLevel: 'LOW', category: 'Grains', stock: '120 kg', demand: '80 kg', expiry: '60 Days' }
-    ],
-    recommendations: [
-      {
-        id: 1,
-        food: 'Fresh Chicken Breast',
-        category: 'URGENT',
-        riskLevel: 'HIGH',
-        title: 'Reduce Tomorrow Production by 15%',
-        text: 'Chicken waste risk is very high. Current stock (50 kg) exceeds demand (30 kg) with 1-day expiry. Reducing scheduled batch exhausts stock.',
-        savings: '25,000 MMK',
-        prologRule: 'assess_item(50, 30, 1, 0.22, 40, high, Reasons, RecProd, Action)'
-      },
-      {
-        id: 2,
-        food: 'Organic Garden Salad Mix',
-        category: 'IMPORTANT',
-        riskLevel: 'HIGH',
-        title: 'Prioritize Salad in Tomorrow Menu Specials',
-        text: 'Salad expires in 2 days. Feature lunch combo salad specials to clear 18.5 kg inventory before wilting.',
-        savings: '10,000 MMK',
-        prologRule: 'evaluate_priority_use(2, high, IMMEDIATE_USE)'
-      }
-    ]
+    trend7Days: [],
+    highRiskFoods: [],
+    recommendations: [],
+    totalProjectedSavings: 0
   },
 
   async init() {
@@ -60,85 +27,207 @@ const Dashboard = {
     this.renderHighRiskList();
     this.renderRecommendations();
 
-    // Fetch dynamic live metrics
+    await this.fetchLiveDashboardData();
+
+    // Listen for language changes to re-translate dynamic text
+    window.addEventListener('languageChanged', () => {
+      this.renderKPIs();
+      this.renderChart();
+      this.renderHighRiskList();
+      this.renderRecommendations();
+    });
+  },
+
+  async fetchLiveDashboardData() {
     try {
+      // 1. Fetch live prediction & risk analysis
       const predRes = await API.get('/api/prediction');
       if (predRes && predRes.data) {
         const d = predRes.data;
-        if (d.expectedTotalWasteKg !== undefined) {
-          const elPred = document.getElementById('kpi-predicted-tomorrow');
-          if (elPred) elPred.textContent = `${d.expectedTotalWasteKg} kg`;
-        }
-        if (d.estimatedMoneyLost !== undefined) {
-          const elMoney = document.getElementById('kpi-money-lost');
-          if (elMoney) elMoney.textContent = `${Number(d.estimatedMoneyLost).toLocaleString()} MMK`;
-        }
-        if (d.items && d.items.length > 0) {
-          this.data.highRiskFoods = d.items.map(item => ({
-            name: item.foodName,
-            riskPct: Math.round(item.riskPercentage),
-            riskLevel: item.riskLevel,
-            category: 'Kitchen Item',
-            stock: `${item.stock} kg`,
-            demand: `${item.expectedDemand} kg`,
-            expiry: `${item.expiryDays} Day(s)`
-          }));
-          this.renderHighRiskList();
+        const totalItems = d.totalItemsEvaluated || 0;
+
+        if (totalItems > 0) {
+          const predKg = d.expectedTotalWasteKg !== undefined ? Number(d.expectedTotalWasteKg).toFixed(1) : '0.0';
+          const moneyVal = d.estimatedMoneyLost !== undefined ? Number(d.estimatedMoneyLost).toLocaleString() : '0';
+
+          this.data.kpis.predictedTomorrow = `${predKg} kg`;
+          this.data.kpis.predictedTrend = `Evaluated across ${totalItems} item(s)`;
+          this.data.kpis.moneyLost = `${moneyVal} MMK`;
+
+          if (d.items && d.items.length > 0) {
+            this.data.highRiskFoods = d.items.map(item => ({
+              name: item.foodName,
+              riskPct: Math.round(item.riskPercentage),
+              riskLevel: item.riskLevel,
+              category: 'Kitchen Item',
+              stock: `${Number(item.stock).toFixed(1)} kg`,
+              demand: `${Number(item.expectedDemand).toFixed(1)} kg`,
+              expiry: `${item.expiryDays} Day(s)`
+            }));
+          } else {
+            this.data.highRiskFoods = [];
+          }
+        } else {
+          this.data.kpis.predictedTomorrow = '0.0 kg';
+          this.data.kpis.predictedTrend = 'No prediction available';
+          this.data.kpis.moneyLost = '0 MMK';
+          this.data.highRiskFoods = [];
         }
       }
+
+      // 2. Fetch live waste records for today's metrics
+      const wasteRes = await API.get('/api/waste');
+      if (wasteRes && wasteRes.data && Array.isArray(wasteRes.data)) {
+        const wasteLogs = wasteRes.data;
+        const todayStr = new Date().toISOString().split('T')[0];
+
+        let todayKg = 0;
+        let todayLoss = 0;
+
+        wasteLogs.forEach(w => {
+          if (w.wasteDate && w.wasteDate.startsWith(todayStr)) {
+            todayKg += Number(w.quantity) || 0;
+            todayLoss += Number(w.financialLoss) || 0;
+          }
+        });
+
+        if (wasteLogs.length > 0) {
+          const totalWasteKg = wasteLogs.reduce((acc, curr) => acc + (Number(curr.quantity) || 0), 0);
+          const carbonKg = (totalWasteKg * 2.5).toFixed(1);
+
+          this.data.kpis.todayWaste = `${todayKg.toFixed(1)} kg`;
+          this.data.kpis.todayWasteSub = todayKg > 0 ? `Logged today` : `No waste logged today`;
+          this.data.kpis.carbonImpact = `${carbonKg} kg CO₂e`;
+          this.data.kpis.carbonSub = `Based on logged waste`;
+
+          if (todayLoss > 0) {
+            this.data.kpis.moneyLost = `${todayLoss.toLocaleString()} MMK`;
+          }
+
+          // Generate 7-day trend from real logs
+          this.buildTrendFromLogs(wasteLogs);
+        } else {
+          this.data.trend7Days = [];
+        }
+      }
+
+      // 3. Fetch live recommendations
+      const recRes = await API.get('/api/recommendations');
+      if (recRes && recRes.data && Array.isArray(recRes.data) && recRes.data.length > 0) {
+        this.data.recommendations = recRes.data.map(r => ({
+          id: r.id,
+          food: r.foodName || 'Kitchen Item',
+          category: r.category || 'IMPORTANT',
+          riskLevel: r.riskLevel || 'HIGH',
+          title: r.title || 'AI Action Directive',
+          text: r.description || 'Actionable recommendation generated by SWI-Prolog reasoning.',
+          savings: Number(r.estimatedSavings || 0).toLocaleString() + ' MMK',
+          rawSavings: Number(r.estimatedSavings || 0),
+          prologRule: r.prologRuleClause || 'assess_waste_risk/6'
+        }));
+        this.data.totalProjectedSavings = this.data.recommendations.reduce((acc, curr) => acc + curr.rawSavings, 0);
+      } else {
+        this.data.recommendations = [];
+        this.data.totalProjectedSavings = 0;
+      }
+
     } catch (e) {
-      console.debug('Dashboard using default initial stats');
+      console.debug('Live data initialization complete:', e);
+    } finally {
+      this.renderKPIs();
+      this.renderChart();
+      this.renderHighRiskList();
+      this.renderRecommendations();
     }
+  },
+
+  buildTrendFromLogs(wasteLogs) {
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const now = new Date();
+    const result = [];
+
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(now.getDate() - i);
+      const dateStr = d.toISOString().split('T')[0];
+      const dayName = days[d.getDay()];
+
+      const dayLogs = wasteLogs.filter(w => w.wasteDate && w.wasteDate.startsWith(dateStr));
+      const totalDayWaste = dayLogs.reduce((acc, curr) => acc + (Number(curr.quantity) || 0), 0);
+
+      result.push({
+        day: i === 0 ? `${dayName} (Today)` : dayName,
+        actual: totalDayWaste > 0 ? Number(totalDayWaste.toFixed(1)) : 0,
+        predicted: null
+      });
+    }
+
+    this.data.trend7Days = result;
   },
 
   renderKPIs() {
     const k = this.data.kpis;
+    const isMm = typeof I18n !== 'undefined' && I18n.getLanguage() === 'mm';
+
     const elToday = document.getElementById('kpi-today-waste');
     const elPred = document.getElementById('kpi-predicted-tomorrow');
     const elMoney = document.getElementById('kpi-money-lost');
     const elCarbon = document.getElementById('kpi-carbon-impact');
 
+    const elTodaySub = document.getElementById('kpi-today-sub');
+    const elPredSub = document.getElementById('kpi-pred-sub');
+    const elMoneySub = document.getElementById('kpi-money-sub');
+    const elCarbonSub = document.getElementById('kpi-carbon-sub');
+
     if (elToday) elToday.textContent = k.todayWaste;
     if (elPred) elPred.textContent = k.predictedTomorrow;
     if (elMoney) elMoney.textContent = k.moneyLost;
     if (elCarbon) elCarbon.textContent = k.carbonImpact;
+
+    if (elTodaySub) elTodaySub.textContent = isMm ? (k.todayWaste === '0.0 kg' ? 'ယနေ့ အလေအလွင့် မရှိသေးပါ' : 'ယနေ့ မှတ်တမ်းတင်ထားသော ပမာဏ') : k.todayWasteSub;
+    if (elPredSub) elPredSub.textContent = isMm ? (k.predictedTomorrow === '0.0 kg' ? 'ခန့်မှန်းချက် မရှိသေးပါ' : 'SWI-Prolog ယုတ္တိဗေဒ ခန့်မှန်းချက်') : k.predictedTrend;
+    if (elMoneySub) elMoneySub.textContent = isMm ? 'ယနေ့ ငွေကြေးဆုံးရှုံးမှု' : k.moneyLostSub;
+    if (elCarbonSub) elCarbonSub.textContent = isMm ? 'သဘာဝပတ်ဝန်းကျင် သက်ရောက်မှု' : k.carbonSub;
   },
 
   renderChart() {
     const container = document.getElementById('waste-chart-container');
     if (!container) return;
 
-    const maxVal = 25; // max scale kg
+    const isMm = typeof I18n !== 'undefined' && I18n.getLanguage() === 'mm';
+
+    if (!this.data.trend7Days || this.data.trend7Days.length === 0) {
+      container.innerHTML = `
+        <div style="height: 220px; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:1.5rem; background:rgba(255,255,255,0.4); border-radius:var(--radius-lg); border:1px dashed var(--glass-border);">
+          <div style="font-size:2rem; margin-bottom:0.5rem;">📊</div>
+          <div style="font-weight:700; font-size:0.95rem; color:var(--text-main);">
+            ${isMm ? '၇ ရက်တာ အလေအလွင့် မှတ်တမ်း မရှိသေးပါ' : 'No 7-Day Waste Logs Recorded Yet'}
+          </div>
+          <div style="font-size:0.8rem; color:var(--text-muted); margin-top:0.25rem; max-width:320px;">
+            ${isMm ? 'မီးဖိုချောင် ကုန်ပစ္စည်းများနှင့် နေ့စဉ် အလေအလွင့်များကို စာရင်းသွင်း၍ ဇယားကြည့်ရှုပါ' : 'Add inventory items and record daily waste logs to visualize 7-day trend analytics.'}
+          </div>
+        </div>
+      `;
+      return;
+    }
+
+    const maxVal = Math.max(25, ...this.data.trend7Days.map(d => d.actual || 0));
     let html = `
-      <div style="display:flex; align-items:flex-end; justify-content:space-between; height:240px; padding:1.5rem 0.5rem 0.5rem 0.5rem; gap:12px;">
+      <div style="display:flex; align-items:flex-end; justify-content:space-between; height:220px; padding:1.5rem 0.5rem 0.5rem 0.5rem; gap:12px;">
     `;
 
     this.data.trend7Days.forEach((item) => {
       const isPredictedOnly = item.actual === null;
-      const heightActual = !isPredictedOnly ? (item.actual / maxVal) * 190 : 0;
-      const heightPred = (item.predicted / maxVal) * 190;
+      const heightActual = !isPredictedOnly ? Math.max(8, (item.actual / maxVal) * 170) : 0;
 
-      if (isPredictedOnly) {
-        // AI Predicted Bar for Tomorrow (Yellow dashed glowing bubble bar)
-        html += `
-          <div style="flex:1; display:flex; flex-direction:column; align-items:center; height:100%; justify-content:flex-end; cursor:pointer;" 
-               title="${item.day}: Predicted ${item.predicted} kg">
-            <span style="font-size:0.75rem; font-weight:800; color:var(--accent-yellow-dark); margin-bottom:6px;">${item.predicted}k</span>
-            <div style="width:100%; max-width:38px; height:${heightPred}px; background:linear-gradient(180deg, rgba(254, 240, 138, 0.9) 0%, rgba(250, 204, 21, 0.6) 100%); border:2px dashed #eab308; border-radius:12px; box-shadow:0 8px 18px rgba(234, 179, 8, 0.35); transition:transform 0.2s;" onmouseover="this.style.transform='scaleY(1.05)'" onmouseout="this.style.transform='scaleY(1)'"></div>
-            <span style="font-size:0.75rem; font-weight:700; color:var(--accent-yellow-dark); margin-top:8px; white-space:nowrap;">${item.day}</span>
-          </div>
-        `;
-      } else {
-        // Actual Waste Bar (Golden Yellow Glass Bar)
-        html += `
-          <div style="flex:1; display:flex; flex-direction:column; align-items:center; height:100%; justify-content:flex-end; cursor:pointer;" 
-               title="${item.day}: Actual ${item.actual} kg">
-            <span style="font-size:0.75rem; font-weight:700; color:var(--text-muted); margin-bottom:6px;">${item.actual}k</span>
-            <div style="width:100%; max-width:38px; height:${heightActual}px; background:linear-gradient(180deg, #facc15 0%, #eab308 100%); border-radius:12px; box-shadow:0 6px 14px rgba(234, 179, 8, 0.25); border:1px solid rgba(255,255,255,0.8); transition:transform 0.2s;" onmouseover="this.style.transform='scaleY(1.05)'" onmouseout="this.style.transform='scaleY(1)'"></div>
-            <span style="font-size:0.75rem; font-weight:600; color:var(--text-body); margin-top:8px; white-space:nowrap;">${item.day}</span>
-          </div>
-        `;
-      }
+      html += `
+        <div style="flex:1; display:flex; flex-direction:column; align-items:center; height:100%; justify-content:flex-end; cursor:pointer;" 
+             title="${item.day}: ${item.actual} kg">
+          <span style="font-size:0.75rem; font-weight:700; color:var(--text-muted); margin-bottom:6px;">${item.actual}k</span>
+          <div style="width:100%; max-width:38px; height:${heightActual}px; background:linear-gradient(180deg, #facc15 0%, #eab308 100%); border-radius:12px; box-shadow:0 6px 14px rgba(234, 179, 8, 0.25); border:1px solid rgba(255,255,255,0.8); transition:transform 0.2s;" onmouseover="this.style.transform='scaleY(1.05)'" onmouseout="this.style.transform='scaleY(1)'"></div>
+          <span style="font-size:0.75rem; font-weight:600; color:var(--text-body); margin-top:8px; white-space:nowrap;">${item.day}</span>
+        </div>
+      `;
     });
 
     html += `</div>`;
@@ -149,15 +238,40 @@ const Dashboard = {
     const tbody = document.getElementById('high-risk-tbody');
     if (!tbody) return;
 
+    const isMm = typeof I18n !== 'undefined' && I18n.getLanguage() === 'mm';
+
+    if (!this.data.highRiskFoods || this.data.highRiskFoods.length === 0) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="3" style="text-align:center; padding:2.5rem 1rem; color:var(--text-muted);">
+            <div style="font-size:1.8rem; margin-bottom:0.4rem;">🌱</div>
+            <div style="font-weight:700; color:var(--text-main); font-size:0.92rem;">
+              ${isMm ? 'အန္တရာယ်မြင့် ကုန်ပစ္စည်း မရှိသေးပါ' : 'No At-Risk Inventory Items'}
+            </div>
+            <div style="font-size:0.78rem; margin-top:0.25rem;">
+              ${isMm ? 'SWI-Prolog ဖြင့် ဆန်းစစ်ရန် ကုန်ပစ္စည်းလက်ကျန် အသစ်ထည့်သွင်းပါ' : 'Add inventory items to run SWI-Prolog risk assessment.'}
+            </div>
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
     tbody.innerHTML = this.data.highRiskFoods.map(item => {
       let badgeClass = 'badge-risk-low';
       let barColor = 'var(--risk-low-text)';
+      let levelText = item.riskLevel;
+
       if (item.riskLevel === 'HIGH') {
         badgeClass = 'badge-risk-high';
         barColor = 'var(--risk-high-text)';
+        levelText = isMm ? 'အန္တရာယ်မြင့်' : 'HIGH';
       } else if (item.riskLevel === 'MEDIUM') {
         badgeClass = 'badge-risk-medium';
         barColor = 'var(--risk-med-text)';
+        levelText = isMm ? 'အလယ်အလတ်' : 'MEDIUM';
+      } else {
+        levelText = isMm ? 'အန္တရာယ်နည်း' : 'LOW';
       }
 
       return `
@@ -165,7 +279,7 @@ const Dashboard = {
           <td>
             <div style="font-weight:700; color:var(--text-main); font-size:0.92rem;">${item.name}</div>
             <div style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">
-              Stock: <strong>${item.stock}</strong> &bull; Expiry: <strong>${item.expiry}</strong>
+              ${isMm ? 'လက်ကျန်:' : 'Stock:'} <strong>${item.stock}</strong> &bull; ${isMm ? 'သက်တမ်းကုန်ရက်:' : 'Expiry:'} <strong>${item.expiry}</strong>
             </div>
           </td>
           <td style="width:35%;">
@@ -177,7 +291,7 @@ const Dashboard = {
             </div>
           </td>
           <td style="text-align:right;">
-            <span class="badge-bubble ${badgeClass}">${item.riskLevel}</span>
+            <span class="badge-bubble ${badgeClass}">${levelText}</span>
           </td>
         </tr>
       `;
@@ -186,7 +300,29 @@ const Dashboard = {
 
   renderRecommendations() {
     const container = document.getElementById('dashboard-rec-container');
+    const footerSavings = document.getElementById('dashboard-savings-val');
     if (!container) return;
+
+    const isMm = typeof I18n !== 'undefined' && I18n.getLanguage() === 'mm';
+
+    if (footerSavings) {
+      footerSavings.textContent = `${this.data.totalProjectedSavings.toLocaleString()} MMK`;
+    }
+
+    if (!this.data.recommendations || this.data.recommendations.length === 0) {
+      container.innerHTML = `
+        <div style="grid-column: 1 / -1; text-align:center; padding:2.5rem 1.5rem; background:rgba(255,255,255,0.6); border-radius:var(--radius-lg); border:1px dashed var(--glass-border);">
+          <div style="font-size:2rem; margin-bottom:0.5rem;">✨</div>
+          <div style="font-weight:800; font-size:1rem; color:var(--text-main);">
+            ${isMm ? 'လုပ်ဆောင်ရန် အရေးပေါ် အကြံပြုချက် မရှိသေးပါ' : 'No Active Action Directives Needed'}
+          </div>
+          <div style="font-size:0.85rem; color:var(--text-muted); margin-top:0.25rem;">
+            ${isMm ? 'မီးဖိုချောင် ကုန်ပစ္စည်းလက်ကျန်များကို ပုံမှန်အတိုင်း စီမံခန့်ခွဲနိုင်ပါသည်' : 'Kitchen inventory is operating cleanly within safety thresholds.'}
+          </div>
+        </div>
+      `;
+      return;
+    }
 
     container.innerHTML = this.data.recommendations.map(r => `
       <div class="rec-card-bubble" id="rec-bubble-${r.id}">
@@ -205,8 +341,8 @@ const Dashboard = {
           <strong>🧠 Prolog Logic:</strong> <code>${r.prologRule}</code>
         </div>
         <div class="rec-footer-actions">
-          <button class="btn-bubble btn-glass btn-sm-bubble" onclick="Dashboard.dismissRec(${r.id})">Dismiss</button>
-          <button class="btn-bubble btn-yellow btn-sm-bubble" onclick="Dashboard.applyRec(${r.id}, '${r.savings}')">Accept & Apply</button>
+          <button class="btn-bubble btn-glass btn-sm-bubble" onclick="Dashboard.dismissRec(${r.id})">${isMm ? 'ကျော်သွားမည်' : 'Dismiss'}</button>
+          <button class="btn-bubble btn-yellow btn-sm-bubble" onclick="Dashboard.applyRec(${r.id}, '${r.savings}')">${isMm ? 'လက်ခံဆောင်ရွက်မည်' : 'Accept & Apply'}</button>
         </div>
       </div>
     `).join('');
@@ -214,28 +350,30 @@ const Dashboard = {
 
   applyRec(id, savings) {
     const card = document.getElementById(`rec-bubble-${id}`);
+    const isMm = typeof I18n !== 'undefined' && I18n.getLanguage() === 'mm';
     if (card) {
       card.style.opacity = '0.5';
       card.style.pointerEvents = 'none';
       card.innerHTML = `
         <div style="text-align:center; padding:1.5rem 0; color:var(--accent-yellow-dark);">
           <div style="font-size:2rem; margin-bottom:0.5rem;">✨</div>
-          <div style="font-weight:800; font-size:1rem;">Recommendation Applied!</div>
-          <div style="font-size:0.85rem; margin-top:0.25rem;">Saved approximately <strong>${savings}</strong> for tomorrow's batch.</div>
+          <div style="font-weight:800; font-size:1rem;">${isMm ? 'အကြံပြုချက်ကို လက်ခံဆောင်ရွက်ပြီးပါပြီ!' : 'Recommendation Applied!'}</div>
+          <div style="font-size:0.85rem; margin-top:0.25rem;">${isMm ? `မနက်ဖြန်အတွက် ခန့်မှန်း <strong>${savings}</strong> သက်သာစေပါမည်။` : `Saved approximately <strong>${savings}</strong> for tomorrow.`}</div>
         </div>
       `;
-      API.showToast(`Applied recommendation! Saved ${savings}`, 'success');
+      API.showToast(isMm ? `အကြံပြုချက် အတည်ပြုပြီး (${savings} သက်သာ)` : `Applied recommendation! Saved ${savings}`, 'success');
     }
   },
 
   dismissRec(id) {
     const card = document.getElementById(`rec-bubble-${id}`);
+    const isMm = typeof I18n !== 'undefined' && I18n.getLanguage() === 'mm';
     if (card) {
       card.style.transition = 'all 0.3s ease';
       card.style.transform = 'scale(0.9)';
       card.style.opacity = '0';
       setTimeout(() => card.remove(), 300);
-      API.showToast('Recommendation dismissed', 'info');
+      API.showToast(isMm ? 'အကြံပြုချက် ပယ်ဖျက်ပြီး' : 'Recommendation dismissed', 'info');
     }
   }
 };
