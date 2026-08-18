@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FoodWaste AI - Actionable Recommendations</title>
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<div class="app-container">
+  <aside class="sidebar-float">
+    <div class="sidebar-header">
+      <div class="brand-bubble-logo">🍃</div>
+      <div class="brand-title-group">
+        <div class="brand-main-title">FoodWaste AI</div>
+        <span class="brand-sub-badge">iOS 26 Bubble Edition</span>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav-scroll">
+      <div class="nav-bubble-section-title">Core Operations</div>
+      <a href="dashboard.html" class="nav-bubble-link">
+        <span class="nav-bubble-icon">📊</span> Dashboard
+      </a>
+      <a href="inventory.html" class="nav-bubble-link">
+        <span class="nav-bubble-icon">📦</span> Inventory
+      </a>
+      <a href="sales.html" class="nav-bubble-link">
+        <span class="nav-bubble-icon">💰</span> Sales Entry
+      </a>
+      <a href="waste.html" class="nav-bubble-link">
+        <span class="nav-bubble-icon">🗑️</span> Waste Records
+      </a>
+
+      <div class="nav-section-title">AI & Intelligence</div>
+      <a href="prediction.html" class="nav-bubble-link">
+        <span class="nav-bubble-icon">🔮</span> AI Prediction
+      </a>
+      <a href="recommendations.html" class="nav-bubble-link active">
+        <span class="nav-bubble-icon">💡</span> Recommendations
+      </a>
+      <a href="redistribution.html" class="nav-bubble-link">
+        <span class="nav-bubble-icon">🤝</span> Redistribution
+      </a>
+
+      <div class="nav-section-title admin-only">Management</div>
+      <a href="reports.html" class="nav-bubble-link">
+        <span class="nav-bubble-icon">📈</span> Reports
+      </a>
+      <a href="users.html" class="nav-bubble-link admin-only">
+        <span class="nav-bubble-icon">👥</span> Users
+      </a>
+      <a href="settings.html" class="nav-bubble-link admin-only">
+        <span class="nav-bubble-icon">⚙️</span> Settings
+      </a>
+    </nav>
+
+    <div class="sidebar-user-pill">
+      <div class="user-profile-meta">
+        <div class="user-avatar-bubble" id="current-user-avatar">A</div>
+        <div class="user-text-box">
+          <div class="user-name-text" id="current-user-name">Manager</div>
+          <div class="user-role-badge" id="current-user-role">ADMIN</div>
+        </div>
+      </div>
+      <button class="btn-bubble btn-glass-subtle btn-sm-bubble" onclick="Auth.logout()" title="Sign Out">
+        🚪
+      </button>
+    </div>
+  </aside>
+
+  <div class="main-wrapper-float">
+    <header class="topbar-glass">
+      <div class="topbar-left">
+        <h1 class="page-headline-glass">AI Recommendations</h1>
+      </div>
+      <div class="topbar-right">
+        <div class="system-status-bubble">
+          <span class="status-dot-yellow"></span>
+          <span>4 Active Directives</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="content-body-float">
+      <!-- Category Filter Pills -->
+      <div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-bottom:1.25rem;">
+        <button class="btn-bubble btn-yellow btn-sm-bubble" onclick="Recommendations.filter('ALL')">All Directives (4)</button>
+        <button class="btn-bubble btn-glass btn-sm-bubble" onclick="Recommendations.filter('URGENT')">Urgent (1)</button>
+        <button class="btn-bubble btn-glass btn-sm-bubble" onclick="Recommendations.filter('IMPORTANT')">Important (1)</button>
+        <button class="btn-bubble btn-glass btn-sm-bubble" onclick="Recommendations.filter('OPTIMIZATION')">Optimization (1)</button>
+        <button class="btn-bubble btn-glass btn-sm-bubble" onclick="Recommendations.filter('REDISTRIBUTION')">Redistribution (1)</button>
+      </div>
+
+      <div class="recommendations-grid" id="rec-grid-container">
+        <!-- Urgent -->
+        <div class="rec-card-bubble" data-category="URGENT" style="border-top: 4px solid #dc2626;">
+          <div class="rec-header-row">
+            <div style="display:flex; gap:0.4rem; align-items:center;">
+              <span class="badge-bubble badge-urgent">URGENT</span>
+              <span class="badge-bubble badge-risk-high">HIGH RISK (82%)</span>
+            </div>
+            <span style="font-weight:800; color:var(--accent-yellow-dark); background:var(--accent-yellow-100); padding:0.25rem 0.75rem; border-radius:var(--radius-pill);">
+              +25,000 MMK
+            </span>
+          </div>
+          <h3 class="rec-title-text">Reduce Tomorrow's Chicken Production by 15%</h3>
+          <p class="rec-desc-text">
+            Current chicken breast stock is 50 kg against 30 kg forecasted demand with 1-day expiry. Reducing scheduled morning prep exhausts stock safely.
+          </p>
+          <div class="rec-prolog-pill">
+            <strong>🧠 Prolog Reason:</strong> <code>recommend_production(50, 30, high, RecProd, Action)</code>
+          </div>
+          <div class="rec-footer-actions">
+            <button class="btn-bubble btn-glass btn-sm-bubble" onclick="API.showToast('Recommendation dismissed', 'info')">Dismiss</button>
+            <button class="btn-bubble btn-yellow btn-sm-bubble" onclick="API.showToast('Applied! Production reduced by 15%', 'success')">Accept & Apply</button>
+          </div>
+        </div>
+
+        <!-- Important -->
+        <div class="rec-card-bubble" data-category="IMPORTANT" style="border-top: 4px solid #ea580c;">
+          <div class="rec-header-row">
+            <div style="display:flex; gap:0.4rem; align-items:center;">
+              <span class="badge-bubble badge-important">IMPORTANT</span>
+              <span class="badge-bubble badge-risk-high">HIGH RISK (71%)</span>
+            </div>
+            <span style="font-weight:800; color:var(--accent-yellow-dark); background:var(--accent-yellow-100); padding:0.25rem 0.75rem; border-radius:var(--radius-pill);">
+              +10,000 MMK
+            </span>
+          </div>
+          <h3 class="rec-title-text">Prioritize Salad in Tomorrow's Lunch Menu Specials</h3>
+          <p class="rec-desc-text">
+            18.5 kg fresh garden salad mix expires in 2 days. Feature salad combo specials during lunch rush to accelerate kitchen turnover.
+          </p>
+          <div class="rec-prolog-pill">
+            <strong>🧠 Prolog Reason:</strong> <code>evaluate_priority_use(2, high, IMMEDIATE_USE)</code>
+          </div>
+          <div class="rec-footer-actions">
+            <button class="btn-bubble btn-glass btn-sm-bubble" onclick="API.showToast('Recommendation dismissed', 'info')">Dismiss</button>
+            <button class="btn-bubble btn-yellow btn-sm-bubble" onclick="API.showToast('Applied! Salad prioritized in menu specials', 'success')">Accept & Apply</button>
+          </div>
+        </div>
+
+        <!-- Redistribution -->
+        <div class="rec-card-bubble" data-category="REDISTRIBUTION" style="border-top: 4px solid #7e22ce;">
+          <div class="rec-header-row">
+            <div style="display:flex; gap:0.4rem; align-items:center;">
+              <span class="badge-bubble badge-redistribution">REDISTRIBUTION</span>
+              <span class="badge-bubble badge-risk-medium">RESCUE</span>
+            </div>
+            <span style="font-weight:800; color:#7e22ce; background:rgba(168, 85, 247, 0.15); padding:0.25rem 0.75rem; border-radius:var(--radius-pill);">
+              15 kg Rescued
+            </span>
+          </div>
+          <h3 class="rec-title-text">Dispatch Surplus Chicken to Hope Food Bank</h3>
+          <p class="rec-desc-text">
+            If 10+ kg portion remains by 16:00, dispatch verified charity donation batch to Hope Community Food Bank before expiry.
+          </p>
+          <div class="rec-prolog-pill">
+            <strong>🧠 Prolog Reason:</strong> <code>evaluate_redistribution(50, 30, 1, 20, true, Reason)</code>
+          </div>
+          <div class="rec-footer-actions">
+            <button class="btn-bubble btn-glass btn-sm-bubble" onclick="API.showToast('Redistribution scheduled', 'info')">Dismiss</button>
+            <a href="redistribution.html" class="btn-bubble btn-yellow btn-sm-bubble">Schedule Dispatch →</a>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<nav class="mobile-bottom-dock">
+  <a href="dashboard.html" class="dock-item">
+    <span class="dock-icon">📊</span>
+    <span>Home</span>
+  </a>
+  <a href="inventory.html" class="dock-item">
+    <span class="dock-icon">📦</span>
+    <span>Inventory</span>
+  </a>
+  <a href="prediction.html" class="dock-item">
+    <span class="dock-icon">🔮</span>
+    <span>Predict</span>
+  </a>
+  <a href="recommendations.html" class="dock-item active">
+    <span class="dock-icon">💡</span>
+    <span>Actions</span>
+  </a>
+  <a href="reports.html" class="dock-item">
+    <span class="dock-icon">📈</span>
+    <span>Reports</span>
+  </a>
+</nav>
+
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/recommendations.js"></script>
+</body>
+</html>

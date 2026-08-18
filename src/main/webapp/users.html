@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FoodWaste AI - User Management</title>
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div class="sidebar-backdrop"></div>
+<div class="app-container">
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">🍃</div>
+      <div class="sidebar-title-box">
+        <div class="sidebar-title">FoodWaste AI</div>
+        <div class="sidebar-subtitle">Predict &bull; Prevent &bull; Save</div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-title">Core Operations</div>
+      <a href="dashboard.html" class="nav-link"><span class="nav-icon">📊</span> Dashboard</a>
+      <a href="inventory.html" class="nav-link"><span class="nav-icon">📦</span> Inventory</a>
+      <a href="sales.html" class="nav-link"><span class="nav-icon">💰</span> Sales Entry</a>
+      <a href="waste.html" class="nav-link"><span class="nav-icon">🗑️</span> Waste Records</a>
+      <div class="nav-section-title">AI & Intelligence</div>
+      <a href="prediction.html" class="nav-link"><span class="nav-icon">🔮</span> AI Prediction</a>
+      <a href="recommendations.html" class="nav-link"><span class="nav-icon">💡</span> Recommendations</a>
+      <a href="redistribution.html" class="nav-link"><span class="nav-icon">🤝</span> Redistribution</a>
+      <div class="nav-section-title admin-only">Management</div>
+      <a href="reports.html" class="nav-link"><span class="nav-icon">📈</span> Reports</a>
+      <a href="users.html" class="nav-link active admin-only"><span class="nav-icon">👥</span> Users</a>
+      <a href="settings.html" class="nav-link admin-only"><span class="nav-icon">⚙️</span> Settings</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-badge">
+        <div class="user-avatar" id="current-user-avatar">A</div>
+        <div class="user-info">
+          <div class="user-name" id="current-user-name">Manager</div>
+          <div class="user-role" id="current-user-role">ADMIN</div>
+        </div>
+      </div>
+      <button class="btn btn-sm" onclick="Auth.logout()" style="background:transparent;color:var(--sidebar-text-muted);border:none;cursor:pointer;">🚪</button>
+    </div>
+  </aside>
+
+  <div class="main-wrapper">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="mobile-menu-toggle" id="mobile-toggle-btn">☰</button>
+        <h1 class="page-headline">User & Staff Roles</h1>
+      </div>
+      <div class="topbar-right">
+        <button class="btn btn-primary" onclick="alert('Add User Modal will open in Phase 2')">+ Add New User</button>
+      </div>
+    </header>
+
+    <main class="content-body">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Authorized System Accounts</h2>
+        </div>
+        <div class="card-body" style="padding:0;">
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Full Name</th>
+                  <th>Username</th>
+                  <th>Email</th>
+                  <th>Role</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Restaurant Manager (Admin)</strong></td>
+                  <td><code>admin</code></td>
+                  <td>manager@foodwaste.ai</td>
+                  <td><span class="badge badge-urgent">ADMIN</span></td>
+                  <td><span class="badge badge-risk-low">ACTIVE</span></td>
+                  <td><button class="btn btn-sm btn-secondary">Edit</button></td>
+                </tr>
+                <tr>
+                  <td><strong>Sarah Jenkins (Kitchen Staff)</strong></td>
+                  <td><code>staff_sarah</code></td>
+                  <td>sarah@foodwaste.ai</td>
+                  <td><span class="badge badge-optimization">STAFF</span></td>
+                  <td><span class="badge badge-risk-low">ACTIVE</span></td>
+                  <td><button class="btn btn-sm btn-secondary">Edit</button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+</body>
+</html>

@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FoodWaste AI - Waste Records</title>
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<div class="app-container">
+  <aside class="sidebar-float">
+    <div class="sidebar-header">
+      <div class="brand-bubble-logo">🍃</div>
+      <div class="brand-title-group">
+        <div class="brand-main-title">FoodWaste AI</div>
+        <span class="brand-sub-badge">iOS 26 Bubble Edition</span>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav-scroll">
+      <div class="nav-bubble-section-title">Core Operations</div>
+      <a href="dashboard.html" class="nav-bubble-link">
+        <span class="nav-bubble-icon">📊</span> Dashboard
+      </a>
+      <a href="inventory.html" class="nav-bubble-link">
+        <span class="nav-bubble-icon">📦</span> Inventory
+      </a>
+      <a href="sales.html" class="nav-bubble-link">
+        <span class="nav-bubble-icon">💰</span> Sales Entry
+      </a>
+      <a href="waste.html" class="nav-bubble-link active">
+        <span class="nav-bubble-icon">🗑️</span> Waste Records
+      </a>
+
+      <div class="nav-bubble-section-title">AI & Intelligence</div>
+      <a href="prediction.html" class="nav-bubble-link">
+        <span class="nav-bubble-icon">🔮</span> AI Prediction
+      </a>
+      <a href="recommendations.html" class="nav-bubble-link">
+        <span class="nav-bubble-icon">💡</span> Recommendations
+      </a>
+      <a href="redistribution.html" class="nav-bubble-link">
+        <span class="nav-bubble-icon">🤝</span> Redistribution
+      </a>
+
+      <div class="nav-section-title admin-only">Management</div>
+      <a href="reports.html" class="nav-bubble-link">
+        <span class="nav-bubble-icon">📈</span> Reports
+      </a>
+      <a href="users.html" class="nav-bubble-link admin-only">
+        <span class="nav-bubble-icon">👥</span> Users
+      </a>
+      <a href="settings.html" class="nav-bubble-link admin-only">
+        <span class="nav-bubble-icon">⚙️</span> Settings
+      </a>
+    </nav>
+
+    <div class="sidebar-user-pill">
+      <div class="user-profile-meta">
+        <div class="user-avatar-bubble" id="current-user-avatar">A</div>
+        <div class="user-text-box">
+          <div class="user-name-text" id="current-user-name">Manager</div>
+          <div class="user-role-badge" id="current-user-role">ADMIN</div>
+        </div>
+      </div>
+      <button class="btn-bubble btn-glass-subtle btn-sm-bubble" onclick="Auth.logout()" title="Sign Out">
+        🚪
+      </button>
+    </div>
+  </aside>
+
+  <div class="main-wrapper-float">
+    <header class="topbar-glass">
+      <div class="topbar-left">
+        <h1 class="page-headline-glass">Waste Logging & Loss Tracking</h1>
+      </div>
+      <div class="topbar-right">
+        <button class="btn-bubble btn-yellow btn-sm-bubble" onclick="Waste.openModal()">+ Log Food Waste</button>
+      </div>
+    </header>
+
+    <main class="content-body-float">
+      <section class="kpi-grid">
+        <div class="kpi-bubble-card">
+          <div class="kpi-bubble-top">
+            <span class="kpi-bubble-label">Logged Waste Today</span>
+            <div class="kpi-bubble-icon kpi-icon-red">🗑️</div>
+          </div>
+          <div>
+            <div class="kpi-bubble-value">17.2 kg</div>
+            <div class="kpi-bubble-sub" style="color:var(--risk-high-text);">5 separate kitchen incidents</div>
+          </div>
+        </div>
+
+        <div class="kpi-bubble-card">
+          <div class="kpi-bubble-top">
+            <span class="kpi-bubble-label">Direct Financial Loss</span>
+            <div class="kpi-bubble-icon kpi-icon-red">💸</div>
+          </div>
+          <div>
+            <div class="kpi-bubble-value">87,890 MMK</div>
+            <div class="kpi-bubble-sub">Direct inventory cost</div>
+          </div>
+        </div>
+
+        <div class="kpi-bubble-card">
+          <div class="kpi-bubble-top">
+            <span class="kpi-bubble-label">Primary Driver</span>
+            <div class="kpi-bubble-icon kpi-icon-yellow">⚠️</div>
+          </div>
+          <div>
+            <div class="kpi-bubble-value" style="font-size:1.5rem;">Overproduction</div>
+            <div class="kpi-bubble-sub">48% of total volume</div>
+          </div>
+        </div>
+      </section>
+
+      <div class="card-glass">
+        <div class="card-header-glass">
+          <div>
+            <h2 class="card-title-glass">🗑️ Waste Incidents Log</h2>
+            <div class="card-subtitle-glass">Categorized by reason for Prolog rule evaluation</div>
+          </div>
+          <select class="form-select-bubble" style="width:auto; padding:0.4rem 1rem; font-size:0.85rem;">
+            <option value="">All Reasons</option>
+            <option value="OVERPRODUCTION">Overproduction</option>
+            <option value="EXPIRED">Expired</option>
+            <option value="UNSOLD">Unsold</option>
+            <option value="SPOILED">Spoiled</option>
+            <option value="DAMAGED">Damaged</option>
+            <option value="PREPARATION_WASTE">Preparation Waste</option>
+          </select>
+        </div>
+        <div class="card-body-glass" style="padding:0.75rem 1.25rem 1.25rem 1.25rem;">
+          <div class="table-responsive">
+            <table class="data-table-glass">
+              <thead>
+                <tr>
+                  <th>Timestamp</th>
+                  <th>Food Item</th>
+                  <th>Quantity Wasted</th>
+                  <th>Reason</th>
+                  <th>Monetary Loss</th>
+                  <th>Notes</th>
+                </tr>
+              </thead>
+              <tbody id="waste-tbody">
+                <tr>
+                  <td>Yesterday, 22:00</td>
+                  <td><strong>Fresh Chicken Breast</strong></td>
+                  <td><strong style="color:var(--risk-high-text);">4.50 kg</strong></td>
+                  <td><span class="badge-bubble badge-urgent">OVERPRODUCTION</span></td>
+                  <td><strong>29,250 MMK</strong></td>
+                  <td>Prepared chicken surplus from dinner service</td>
+                </tr>
+                <tr>
+                  <td>Yesterday, 21:30</td>
+                  <td><strong>Organic Garden Salad Mix</strong></td>
+                  <td><strong style="color:var(--risk-high-text);">3.20 kg</strong></td>
+                  <td><span class="badge-bubble badge-risk-high">EXPIRED</span></td>
+                  <td><strong>13,440 MMK</strong></td>
+                  <td>Wilted beyond presentation standard</td>
+                </tr>
+                <tr>
+                  <td>2 days ago, 22:15</td>
+                  <td><strong>Artisan Sliced Bread</strong></td>
+                  <td><strong>6.00 units</strong></td>
+                  <td><span class="badge-bubble badge-important">UNSOLD</span></td>
+                  <td><strong>13,200 MMK</strong></td>
+                  <td>End of day bakery leftovers</td>
+                </tr>
+                <tr>
+                  <td>3 days ago, 14:00</td>
+                  <td><strong>Atlantic Salmon Fillet</strong></td>
+                  <td><strong style="color:var(--risk-high-text);">1.50 kg</strong></td>
+                  <td><span class="badge-bubble badge-urgent">SPOILED</span></td>
+                  <td><strong>27,000 MMK</strong></td>
+                  <td>Storage chill drawer malfunction</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- Modal for Logging Waste -->
+<div class="modal-glass-backdrop" id="log-waste-modal">
+  <div class="modal-glass-dialog">
+    <div class="modal-glass-header">
+      <h3 style="font-size:1.15rem; font-weight:800; color:var(--text-main);">+ Log Food Waste</h3>
+      <button class="btn-bubble btn-glass-subtle btn-sm-bubble" onclick="Waste.closeModal()">✕</button>
+    </div>
+    <form onsubmit="Waste.saveWaste(event)">
+      <div class="modal-glass-body">
+        <div class="form-group-bubble">
+          <label class="form-label-bubble">Select Food Item</label>
+          <select class="form-select-bubble" id="waste-food-id">
+            <option value="1">Fresh Chicken Breast</option>
+            <option value="2">Organic Garden Salad Mix</option>
+            <option value="3">Atlantic Salmon Fillet</option>
+            <option value="6">Artisan Sliced Bread</option>
+          </select>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
+          <div class="form-group-bubble">
+            <label class="form-label-bubble">Quantity Wasted</label>
+            <input class="form-input-bubble" type="number" step="0.1" id="waste-qty" required placeholder="3.5">
+          </div>
+          <div class="form-group-bubble">
+            <label class="form-label-bubble">Reason</label>
+            <select class="form-select-bubble" id="waste-reason">
+              <option value="OVERPRODUCTION">Overproduction</option>
+              <option value="EXPIRED">Expired</option>
+              <option value="UNSOLD">Unsold</option>
+              <option value="SPOILED">Spoiled</option>
+              <option value="DAMAGED">Damaged</option>
+              <option value="PREPARATION_WASTE">Preparation Waste</option>
+              <option value="OTHER">Other</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group-bubble">
+          <label class="form-label-bubble">Notes / Kitchen Context</label>
+          <input class="form-input-bubble" type="text" id="waste-notes" placeholder="e.g. Cooked batch surplus">
+        </div>
+      </div>
+      <div class="modal-glass-footer">
+        <button type="button" class="btn-bubble btn-glass" onclick="Waste.closeModal()">Cancel</button>
+        <button type="submit" class="btn-bubble btn-yellow">Record Waste</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<button class="fab-btn" onclick="Waste.openModal()" title="Log Waste">+</button>
+
+<nav class="mobile-bottom-dock">
+  <a href="dashboard.html" class="dock-item">
+    <span class="dock-icon">📊</span>
+    <span>Home</span>
+  </a>
+  <a href="inventory.html" class="dock-item">
+    <span class="dock-icon">📦</span>
+    <span>Inventory</span>
+  </a>
+  <a href="sales.html" class="dock-item">
+    <span class="dock-icon">💰</span>
+    <span>Sales</span>
+  </a>
+  <a href="waste.html" class="dock-item active">
+    <span class="dock-icon">🗑️</span>
+    <span>Waste</span>
+  </a>
+  <a href="reports.html" class="dock-item">
+    <span class="dock-icon">📈</span>
+    <span>Reports</span>
+  </a>
+</nav>
+
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/waste.js"></script>
+</body>
+</html>

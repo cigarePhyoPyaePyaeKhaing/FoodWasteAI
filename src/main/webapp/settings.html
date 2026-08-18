@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FoodWaste AI - System Settings</title>
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div class="sidebar-backdrop"></div>
+<div class="app-container">
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">🍃</div>
+      <div class="sidebar-title-box">
+        <div class="sidebar-title">FoodWaste AI</div>
+        <div class="sidebar-subtitle">Predict &bull; Prevent &bull; Save</div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-title">Core Operations</div>
+      <a href="dashboard.html" class="nav-link"><span class="nav-icon">📊</span> Dashboard</a>
+      <a href="inventory.html" class="nav-link"><span class="nav-icon">📦</span> Inventory</a>
+      <a href="sales.html" class="nav-link"><span class="nav-icon">💰</span> Sales Entry</a>
+      <a href="waste.html" class="nav-link"><span class="nav-icon">🗑️</span> Waste Records</a>
+      <div class="nav-section-title">AI & Intelligence</div>
+      <a href="prediction.html" class="nav-link"><span class="nav-icon">🔮</span> AI Prediction</a>
+      <a href="recommendations.html" class="nav-link"><span class="nav-icon">💡</span> Recommendations</a>
+      <a href="redistribution.html" class="nav-link"><span class="nav-icon">🤝</span> Redistribution</a>
+      <div class="nav-section-title admin-only">Management</div>
+      <a href="reports.html" class="nav-link"><span class="nav-icon">📈</span> Reports</a>
+      <a href="users.html" class="nav-link admin-only"><span class="nav-icon">👥</span> Users</a>
+      <a href="settings.html" class="nav-link active admin-only"><span class="nav-icon">⚙️</span> Settings</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-badge">
+        <div class="user-avatar" id="current-user-avatar">A</div>
+        <div class="user-info">
+          <div class="user-name" id="current-user-name">Manager</div>
+          <div class="user-role" id="current-user-role">ADMIN</div>
+        </div>
+      </div>
+      <button class="btn btn-sm" onclick="Auth.logout()" style="background:transparent;color:var(--sidebar-text-muted);border:none;cursor:pointer;">🚪</button>
+    </div>
+  </aside>
+
+  <div class="main-wrapper">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="mobile-menu-toggle" id="mobile-toggle-btn">☰</button>
+        <h1 class="page-headline">System Configuration & Environment</h1>
+      </div>
+      <div class="topbar-right">
+        <button class="btn btn-primary" onclick="checkHealth()">Test System Diagnostics</button>
+      </div>
+    </header>
+
+    <main class="content-body">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Database Configuration (Aiven MySQL)</h2>
+          <span class="badge badge-optimization" id="db-badge">Configured via ENV</span>
+        </div>
+        <div class="card-body">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">DB Host</label>
+              <input class="form-input" type="text" value="mysql-example-aivencloud.com" readonly>
+            </div>
+            <div class="form-group">
+              <label class="form-label">DB Port</label>
+              <input class="form-input" type="text" value="3306" readonly>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Database Name</label>
+              <input class="form-input" type="text" value="foodwaste_ai" readonly>
+            </div>
+          </div>
+          <p style="font-size:0.8rem; color:var(--text-subtle);">
+            🔒 Passwords and sensitive credentials are encrypted and injected via environment variables (<code>.env</code> / Railway Config Vars).
+          </p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">SWI-Prolog Expert Engine Integration</h2>
+          <span class="badge badge-optimization" id="prolog-badge">Subprocess Engine</span>
+        </div>
+        <div class="card-body">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">SWI-Prolog Executable Path</label>
+              <input class="form-input" type="text" value="swipl (or SWIPL_PATH env var)" readonly>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Rules Knowledge Base</label>
+              <input class="form-input" type="text" value="foodwaste_rules.pl" readonly>
+            </div>
+          </div>
+          <div id="diagnostic-output" style="margin-top:1rem; padding:0.75rem; background:var(--bg-surface-secondary); border-radius:var(--radius-md); font-family:monospace; font-size:0.85rem; display:none;"></div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script>
+  async function checkHealth() {
+    const out = document.getElementById('diagnostic-output');
+    out.style.display = 'block';
+    out.textContent = 'Querying /api/health...';
+    try {
+      const res = await API.get('/api/health');
+      out.textContent = JSON.stringify(res, null, 2);
+    } catch (err) {
+      out.textContent = 'Health check response: ' + err.message;
+    }
+  }
+</script>
+</body>
+</html>

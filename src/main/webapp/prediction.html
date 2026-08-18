@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FoodWaste AI - AI Predictions & Reasoning</title>
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<div class="app-container">
+  <aside class="sidebar-float">
+    <div class="sidebar-header">
+      <div class="brand-bubble-logo">🍃</div>
+      <div class="brand-title-group">
+        <div class="brand-main-title">FoodWaste AI</div>
+        <span class="brand-sub-badge">iOS 26 Bubble Edition</span>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav-scroll">
+      <div class="nav-bubble-section-title">Core Operations</div>
+      <a href="dashboard.html" class="nav-bubble-link">
+        <span class="nav-bubble-icon">📊</span> Dashboard
+      </a>
+      <a href="inventory.html" class="nav-bubble-link">
+        <span class="nav-bubble-icon">📦</span> Inventory
+      </a>
+      <a href="sales.html" class="nav-bubble-link">
+        <span class="nav-bubble-icon">💰</span> Sales Entry
+      </a>
+      <a href="waste.html" class="nav-bubble-link">
+        <span class="nav-bubble-icon">🗑️</span> Waste Records
+      </a>
+
+      <div class="nav-section-title">AI & Intelligence</div>
+      <a href="prediction.html" class="nav-bubble-link active">
+        <span class="nav-bubble-icon">🔮</span> AI Prediction
+      </a>
+      <a href="recommendations.html" class="nav-bubble-link">
+        <span class="nav-bubble-icon">💡</span> Recommendations
+      </a>
+      <a href="redistribution.html" class="nav-bubble-link">
+        <span class="nav-bubble-icon">🤝</span> Redistribution
+      </a>
+
+      <div class="nav-section-title admin-only">Management</div>
+      <a href="reports.html" class="nav-bubble-link">
+        <span class="nav-bubble-icon">📈</span> Reports
+      </a>
+      <a href="users.html" class="nav-bubble-link admin-only">
+        <span class="nav-bubble-icon">👥</span> Users
+      </a>
+      <a href="settings.html" class="nav-bubble-link admin-only">
+        <span class="nav-bubble-icon">⚙️</span> Settings
+      </a>
+    </nav>
+
+    <div class="sidebar-user-pill">
+      <div class="user-profile-meta">
+        <div class="user-avatar-bubble" id="current-user-avatar">A</div>
+        <div class="user-text-box">
+          <div class="user-name-text" id="current-user-name">Manager</div>
+          <div class="user-role-badge" id="current-user-role">ADMIN</div>
+        </div>
+      </div>
+      <button class="btn-bubble btn-glass-subtle btn-sm-bubble" onclick="Auth.logout()" title="Sign Out">
+        🚪
+      </button>
+    </div>
+  </aside>
+
+  <div class="main-wrapper-float">
+    <header class="topbar-glass">
+      <div class="topbar-left">
+        <h1 class="page-headline-glass">AI Waste Prediction & Reasoning</h1>
+      </div>
+      <div class="topbar-right">
+        <button class="btn-bubble btn-yellow btn-sm-bubble" onclick="Prediction.runPrologInference()">⚡ Run Expert Evaluation</button>
+      </div>
+    </header>
+
+    <main class="content-body-float">
+      <section class="kpi-grid">
+        <div class="kpi-bubble-card">
+          <div class="kpi-bubble-top">
+            <span class="kpi-bubble-label">Target Shift</span>
+            <div class="kpi-bubble-icon kpi-icon-yellow">📅</div>
+          </div>
+          <div>
+            <div class="kpi-bubble-value" style="font-size:1.6rem;">Tomorrow</div>
+            <div class="kpi-bubble-sub">Next Lunch & Dinner Service</div>
+          </div>
+        </div>
+
+        <div class="kpi-bubble-card">
+          <div class="kpi-bubble-top">
+            <span class="kpi-bubble-label">Predicted Waste Volume</span>
+            <div class="kpi-bubble-icon kpi-icon-red">⚖️</div>
+          </div>
+          <div>
+            <div class="kpi-bubble-value" style="color:var(--risk-high-text);">18.2 kg</div>
+            <div class="kpi-bubble-sub">Without proactive mitigation</div>
+          </div>
+        </div>
+
+        <div class="kpi-bubble-card">
+          <div class="kpi-bubble-top">
+            <span class="kpi-bubble-label">Composite Risk Level</span>
+            <div class="kpi-bubble-icon kpi-icon-red">⚠️</div>
+          </div>
+          <div>
+            <div class="kpi-bubble-value" style="color:var(--risk-high-text);">HIGH (68%)</div>
+            <div class="kpi-bubble-sub">2 items in imminent expiry window</div>
+          </div>
+        </div>
+
+        <div class="kpi-bubble-card">
+          <div class="kpi-bubble-top">
+            <span class="kpi-bubble-label">Potential Financial Savings</span>
+            <div class="kpi-bubble-icon kpi-icon-green">💰</div>
+          </div>
+          <div>
+            <div class="kpi-bubble-value">35,000 MMK</div>
+            <div class="kpi-bubble-sub" style="color:#047857; font-weight:700;">By executing AI actions</div>
+          </div>
+        </div>
+      </section>
+
+      <div class="dashboard-grid-columns">
+        <!-- Predicted Breakdown Card -->
+        <div class="card-glass">
+          <div class="card-header-glass">
+            <div>
+              <h2 class="card-title-glass">📊 Predicted Waste Breakdown</h2>
+              <div class="card-subtitle-glass">Projected share of waste by food item</div>
+            </div>
+            <span class="badge-bubble badge-urgent">Action Required</span>
+          </div>
+          <div class="card-body-glass">
+            <div style="display:flex; flex-direction:column; gap:1.4rem;">
+              <!-- Chicken -->
+              <div>
+                <div style="display:flex; justify-content:space-between; margin-bottom:0.4rem; font-weight:700;">
+                  <span>🍗 Fresh Chicken Breast</span>
+                  <span style="color:var(--risk-high-text);">8.5 kg (47%) &bull; HIGH</span>
+                </div>
+                <div style="background:rgba(0,0,0,0.06); height:12px; border-radius:9999px; overflow:hidden;">
+                  <div style="width:47%; height:100%; background:var(--risk-high-text); border-radius:9999px;"></div>
+                </div>
+              </div>
+
+              <!-- Salad -->
+              <div>
+                <div style="display:flex; justify-content:space-between; margin-bottom:0.4rem; font-weight:700;">
+                  <span>🥗 Organic Garden Salad Mix</span>
+                  <span style="color:var(--risk-high-text);">4.2 kg (23%) &bull; HIGH</span>
+                </div>
+                <div style="background:rgba(0,0,0,0.06); height:12px; border-radius:9999px; overflow:hidden;">
+                  <div style="width:23%; height:100%; background:var(--risk-high-text); border-radius:9999px;"></div>
+                </div>
+              </div>
+
+              <!-- Rice -->
+              <div>
+                <div style="display:flex; justify-content:space-between; margin-bottom:0.4rem; font-weight:700;">
+                  <span>🍚 Jasmine Rice Surplus</span>
+                  <span style="color:var(--accent-yellow-dark);">3.8 kg (21%) &bull; LOW</span>
+                </div>
+                <div style="background:rgba(0,0,0,0.06); height:12px; border-radius:9999px; overflow:hidden;">
+                  <div style="width:21%; height:100%; background:linear-gradient(90deg, #facc15, #eab308); border-radius:9999px;"></div>
+                </div>
+              </div>
+
+              <!-- Others -->
+              <div>
+                <div style="display:flex; justify-content:space-between; margin-bottom:0.4rem; font-weight:700;">
+                  <span>🍞 Others (Bread & Dairy)</span>
+                  <span style="color:var(--risk-med-text);">1.7 kg (9%) &bull; MED</span>
+                </div>
+                <div style="background:rgba(0,0,0,0.06); height:12px; border-radius:9999px; overflow:hidden;">
+                  <div style="width:9%; height:100%; background:var(--risk-med-text); border-radius:9999px;"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- "Why?" Section Bubble Card -->
+        <div class="card-glass">
+          <div class="card-header-glass">
+            <div>
+              <h2 class="card-title-glass">🔍 "Why?" &mdash; Expert Reasoning</h2>
+              <div class="card-subtitle-glass">Prolog rule explanations</div>
+            </div>
+            <span class="badge-bubble badge-optimization">SWI-Prolog</span>
+          </div>
+          <div class="card-body-glass">
+            <div style="display:flex; flex-direction:column; gap:1.25rem;">
+              <div style="background:rgba(254, 226, 226, 0.4); border:1px solid var(--risk-high-border); padding:1rem; border-radius:var(--radius-md);">
+                <div style="font-weight:800; color:var(--risk-high-text); font-size:0.95rem;">Why is Chicken Breast HIGH Risk?</div>
+                <ul style="font-size:0.85rem; color:var(--text-body); margin-top:0.4rem; padding-left:1.2rem; line-height:1.6;">
+                  <li><strong>Stock exceeds demand:</strong> 50 kg stock vs 30 kg expected (+66% buffer).</li>
+                  <li><strong>Near Expiry:</strong> 1 day remaining before shelf-life cutoff.</li>
+                  <li><strong>High Historical Waste:</strong> 22% rate recorded in previous week.</li>
+                </ul>
+              </div>
+
+              <div style="background:rgba(254, 243, 199, 0.4); border:1px solid var(--risk-med-border); padding:1rem; border-radius:var(--radius-md);">
+                <div style="font-weight:800; color:var(--risk-med-text); font-size:0.95rem;">Why is Salad Mix HIGH Risk?</div>
+                <ul style="font-size:0.85rem; color:var(--text-body); margin-top:0.4rem; padding-left:1.2rem; line-height:1.6;">
+                  <li>Expires in 2 days with 154% buffer over expected orders.</li>
+                  <li>Produce category has high wilting susceptibility.</li>
+                </ul>
+              </div>
+
+              <div style="background:rgba(209, 250, 229, 0.4); border:1px solid var(--risk-low-border); padding:1rem; border-radius:var(--radius-md);">
+                <div style="font-weight:800; color:var(--risk-low-text); font-size:0.95rem;">Why is Jasmine Rice LOW Risk?</div>
+                <ul style="font-size:0.85rem; color:var(--text-body); margin-top:0.4rem; padding-left:1.2rem; line-height:1.6;">
+                  <li>Shelf-life safe (> 60 days). Consumption is regular.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<button class="fab-btn" onclick="Prediction.runPrologInference()" title="Run AI Inference">⚡</button>
+
+<nav class="mobile-bottom-dock">
+  <a href="dashboard.html" class="dock-item">
+    <span class="dock-icon">📊</span>
+    <span>Home</span>
+  </a>
+  <a href="inventory.html" class="dock-item">
+    <span class="dock-icon">📦</span>
+    <span>Inventory</span>
+  </a>
+  <a href="prediction.html" class="dock-item active">
+    <span class="dock-icon">🔮</span>
+    <span>Predict</span>
+  </a>
+  <a href="recommendations.html" class="dock-item">
+    <span class="dock-icon">💡</span>
+    <span>Actions</span>
+  </a>
+  <a href="reports.html" class="dock-item">
+    <span class="dock-icon">📈</span>
+    <span>Reports</span>
+  </a>
+</nav>
+
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/prediction.js"></script>
+</body>
+</html>

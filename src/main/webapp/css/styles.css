@@ -1,0 +1,400 @@
+/* ==========================================================================
+   FoodWaste AI - Main Layout & Responsive Styles
+   iOS 26 Inspired Floating Glass Bubble System
+   ========================================================================== */
+
+@import url('./variables.css');
+@import url('./components.css');
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  font-family: var(--font-family);
+  background-color: var(--bg-app);
+  background-image: 
+    radial-gradient(circle at 12% 15%, rgba(254, 240, 138, 0.22) 0%, transparent 35%),
+    radial-gradient(circle at 88% 85%, rgba(253, 224, 71, 0.16) 0%, transparent 38%),
+    radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.8) 0%, transparent 100%);
+  background-attachment: fixed;
+  color: var(--text-main);
+  line-height: 1.5;
+  min-height: 100vh;
+  display: flex;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* --- Main Layout Grid --- */
+.app-container {
+  display: flex;
+  width: 100vw;
+  min-height: 100vh;
+  padding: 1rem;
+  gap: 1.25rem;
+  box-sizing: border-box;
+}
+
+/* --- Floating Glass Sidebar (Desktop) --- */
+.sidebar-float {
+  width: var(--sidebar-width);
+  background: var(--bg-surface-glass);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-highlight), var(--shadow-glass-float);
+  border-radius: var(--radius-xl);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  height: calc(100vh - 2rem);
+  position: sticky;
+  top: 1rem;
+  z-index: 50;
+  transition: transform var(--transition-bounce), opacity var(--transition-smooth);
+}
+
+.sidebar-header {
+  padding: 1.35rem 1.4rem 1rem 1.4rem;
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.brand-bubble-logo {
+  width: 44px;
+  height: 44px;
+  background: linear-gradient(135deg, #fde047 0%, #facc15 100%);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.8), var(--shadow-yellow-btn);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  flex-shrink: 0;
+}
+
+.brand-title-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.brand-main-title {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--text-main);
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+}
+
+.brand-sub-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--accent-yellow-dark);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: var(--accent-yellow-100);
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--radius-pill);
+  display: inline-block;
+  margin-top: 0.2rem;
+  width: fit-content;
+}
+
+.sidebar-nav-scroll {
+  flex: 1;
+  padding: 0.75rem 0.9rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.sidebar-nav-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+.sidebar-nav-scroll::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.08);
+  border-radius: 4px;
+}
+
+.nav-bubble-section-title {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-subtle);
+  padding: 0.75rem 0.85rem 0.25rem 0.85rem;
+  font-weight: 800;
+}
+
+.nav-bubble-link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 0.95rem;
+  color: var(--text-body);
+  text-decoration: none;
+  border-radius: var(--radius-pill);
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: all var(--transition-bounce);
+}
+
+.nav-bubble-link:hover {
+  background: rgba(254, 240, 138, 0.35);
+  color: var(--text-main);
+  transform: translateX(3px);
+}
+
+.nav-bubble-link.active {
+  background: linear-gradient(135deg, #fef08a 0%, #fde047 100%);
+  color: var(--accent-yellow-dark);
+  font-weight: 800;
+  box-shadow: 0 4px 12px rgba(234, 179, 8, 0.25);
+}
+
+.nav-bubble-icon {
+  font-size: 1.15rem;
+  width: 22px;
+  text-align: center;
+}
+
+.sidebar-user-pill {
+  margin: 0.75rem 0.9rem 1rem 0.9rem;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-bubble);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.user-profile-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.user-avatar-bubble {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #facc15 0%, #eab308 100%);
+  color: var(--text-yellow-btn);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  font-weight: 800;
+  box-shadow: 0 2px 6px rgba(234, 179, 8, 0.3);
+}
+
+.user-text-box {
+  display: flex;
+  flex-direction: column;
+}
+
+.user-name-text {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-main);
+  line-height: 1.2;
+}
+
+.user-role-badge {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+/* --- Main Content Surface --- */
+.main-wrapper-float {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  height: calc(100vh - 2rem);
+  overflow-y: auto;
+  border-radius: var(--radius-xl);
+}
+
+.main-wrapper-float::-webkit-scrollbar {
+  width: 6px;
+}
+.main-wrapper-float::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.08);
+  border-radius: 6px;
+}
+
+/* --- Floating Glass Topbar --- */
+.topbar-glass {
+  height: var(--topbar-height);
+  background: var(--bg-surface-glass);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-highlight), var(--shadow-bubble);
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.6rem;
+  margin-bottom: 1.25rem;
+  position: sticky;
+  top: 0;
+  z-index: 40;
+}
+
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.page-headline-glass {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--text-main);
+  letter-spacing: -0.02em;
+}
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.system-status-bubble {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.4rem 0.95rem;
+  border-radius: var(--radius-pill);
+  background: rgba(254, 240, 138, 0.5);
+  color: var(--accent-yellow-dark);
+  border: 1px solid rgba(250, 204, 21, 0.6);
+  backdrop-filter: blur(10px);
+}
+
+.status-dot-yellow {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #eab308;
+  box-shadow: 0 0 0 3px rgba(234, 179, 8, 0.25);
+}
+
+/* --- Content Body --- */
+.content-body-float {
+  flex: 1;
+  padding-bottom: 2rem;
+}
+
+/* --- Grid Section Layouts --- */
+.dashboard-grid-columns {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 1.25rem;
+}
+
+.recommendations-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
+  gap: 1.25rem;
+}
+
+/* --- Mobile Bottom Navigation Dock (iPhone Style) --- */
+.mobile-bottom-dock {
+  display: none;
+  position: fixed;
+  bottom: 16px;
+  left: 16px;
+  right: 16px;
+  height: var(--mobile-bottom-nav-height);
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: var(--glass-blur-heavy);
+  -webkit-backdrop-filter: var(--glass-blur-heavy);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-pill);
+  box-shadow: var(--glass-highlight), 0 16px 36px -6px rgba(0, 0, 0, 0.12);
+  z-index: 90;
+  align-items: center;
+  justify-content: space-around;
+  padding: 0 0.5rem;
+}
+
+.dock-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 0.68rem;
+  font-weight: 700;
+  gap: 3px;
+  padding: 0.35rem 0.65rem;
+  border-radius: var(--radius-pill);
+  transition: all var(--transition-bounce);
+}
+
+.dock-item.active {
+  color: var(--accent-yellow-dark);
+  background: var(--accent-yellow-100);
+}
+
+.dock-item .dock-icon {
+  font-size: 1.3rem;
+}
+
+/* --- Responsive Media Queries --- */
+@media (max-width: 992px) {
+  .dashboard-grid-columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .app-container {
+    padding: 0.65rem;
+    gap: 0;
+  }
+
+  .sidebar-float {
+    display: none; /* Replaced by iPhone Bottom Dock */
+  }
+
+  .main-wrapper-float {
+    height: auto;
+    min-height: 100vh;
+    padding-bottom: 90px;
+  }
+
+  .topbar-glass {
+    border-radius: var(--radius-md);
+    margin-bottom: 0.85rem;
+    padding: 0 1rem;
+  }
+
+  .page-headline-glass {
+    font-size: 1.15rem;
+  }
+
+  .mobile-bottom-dock {
+    display: flex;
+  }
+
+  .fab-btn {
+    display: flex;
+  }
+}

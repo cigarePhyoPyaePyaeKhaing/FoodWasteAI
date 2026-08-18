@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FoodWaste AI - Sign In</title>
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 1.5rem;
+    }
+
+    .login-glass-container {
+      width: 100%;
+      max-width: 440px;
+      position: relative;
+    }
+
+    .login-bubble-card {
+      background: var(--bg-surface-glass-elevated);
+      backdrop-filter: var(--glass-blur-heavy);
+      -webkit-backdrop-filter: var(--glass-blur-heavy);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--glass-highlight), 0 25px 50px -12px rgba(234, 179, 8, 0.15), 0 12px 30px -4px rgba(0, 0, 0, 0.06);
+      padding: 2.8rem 2.4rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .brand-hero-box {
+      text-align: center;
+      margin-bottom: 2.2rem;
+    }
+
+    .brand-glow-bubble {
+      width: 68px;
+      height: 68px;
+      background: linear-gradient(135deg, #fde047 0%, #facc15 100%);
+      border-radius: var(--radius-lg);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.2rem;
+      box-shadow: inset 0 2px 2px rgba(255, 255, 255, 0.8), var(--shadow-yellow-btn);
+      border: 1px solid rgba(255, 255, 255, 0.9);
+      margin-bottom: 1.25rem;
+      animation: floatBadge 3s ease-in-out infinite;
+    }
+
+    @keyframes floatBadge {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-4px); }
+    }
+
+    .brand-headline-text {
+      font-size: 1.85rem;
+      font-weight: 800;
+      color: var(--text-main);
+      letter-spacing: -0.03em;
+      line-height: 1.2;
+    }
+
+    .brand-tagline-pill {
+      display: inline-block;
+      margin-top: 0.5rem;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--accent-yellow-dark);
+      background: var(--accent-yellow-100);
+      padding: 0.3rem 0.9rem;
+      border-radius: var(--radius-pill);
+      border: 1px solid var(--accent-yellow-300);
+    }
+  </style>
+</head>
+<body>
+
+<div class="login-glass-container">
+  <div class="login-bubble-card">
+    <div class="brand-hero-box">
+      <div class="brand-glow-bubble">🍃</div>
+      <h1 class="brand-headline-text">FoodWaste AI</h1>
+      <div class="brand-tagline-pill">Predict → Prevent → Redistribute → Reduce Waste</div>
+    </div>
+
+    <form id="login-form" onsubmit="handleLogin(event)">
+      <div class="form-group-bubble">
+        <label class="form-label-bubble" for="username">Username</label>
+        <input class="form-input-bubble" type="text" id="username" value="admin" required placeholder="e.g. admin">
+      </div>
+
+      <div class="form-group-bubble">
+        <label class="form-label-bubble" for="password">Password</label>
+        <input class="form-input-bubble" type="password" id="password" value="admin123" required placeholder="••••••••">
+      </div>
+
+      <div class="form-group-bubble">
+        <label class="form-label-bubble" for="role-select">Select Demonstration Role</label>
+        <select class="form-select-bubble" id="role-select">
+          <option value="ADMIN">Restaurant Manager (Admin Role)</option>
+          <option value="STAFF">Kitchen Staff Member (Staff Role)</option>
+        </select>
+      </div>
+
+      <button type="submit" class="btn-bubble btn-yellow" style="width: 100%; margin-top: 1.25rem; padding: 0.85rem; font-size: 0.95rem;">
+        Sign In to Portal →
+      </button>
+    </form>
+
+    <div style="margin-top: 2rem; text-align: center; font-size: 0.78rem; color: var(--text-muted); font-weight: 500;">
+      iOS 26 Bubble System &bull; University Competition Edition
+    </div>
+  </div>
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script>
+  function handleLogin(e) {
+    e.preventDefault();
+    const username = document.getElementById('username').value.trim();
+    const role = document.getElementById('role-select').value;
+    const fullName = role === 'ADMIN' ? 'Restaurant Manager' : 'Sarah Jenkins';
+
+    Auth.setUser({ username, fullName, role }, 'demo-session-token');
+    API.showToast(`Welcome back, ${fullName}!`, 'success');
+    setTimeout(() => {
+      window.location.href = 'dashboard.html';
+    }, 400);
+  }
+</script>
+</body>
+</html>
