@@ -5,28 +5,38 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Encapsulates structured reasoning results returned from SWI-Prolog expert system.
+ * Encapsulates structured Explainable AI reasoning results returned from SWI-Prolog expert system.
  */
 public class PrologAssessment implements Serializable {
     private static final long serialVersionUID = 1L;
 
+    private Long foodItemId;
     private String foodName;
     private double stock;
     private double expectedDemand;
     private int expiryDays;
     private double historicalWasteRate;
     private String riskLevel; // HIGH, MEDIUM, LOW
-    private double riskPercentage; // e.g., 85%
+    private double riskPercentage; // e.g., 82.0%
     private List<String> reasons = new ArrayList<>();
+    private String recommendation; // Actionable summary recommendation
     private double recommendedProduction;
     private String recommendedAction;
     private String priorityUsage; // IMMEDIATE_USE, HIGH_PRIORITY, MODERATE_PRIORITY, STANDARD
     private boolean recommendRedistribution;
-    private String engineUsed; // "SWI-Prolog Subprocess" or "Development Safe Fallback"
+    private String engineUsed; // "SWI-Prolog Expert Engine" or "Development Safe Fallback"
 
     public PrologAssessment() {}
 
     // Getters and Setters
+    public Long getFoodItemId() {
+        return foodItemId;
+    }
+
+    public void setFoodItemId(Long foodItemId) {
+        this.foodItemId = foodItemId;
+    }
+
     public String getFoodName() {
         return foodName;
     }
@@ -95,6 +105,15 @@ public class PrologAssessment implements Serializable {
         this.reasons.add(reason);
     }
 
+    public String getRecommendation() {
+        if (recommendation != null) return recommendation;
+        return recommendedAction;
+    }
+
+    public void setRecommendation(String recommendation) {
+        this.recommendation = recommendation;
+    }
+
     public double getRecommendedProduction() {
         return recommendedProduction;
     }
@@ -109,6 +128,7 @@ public class PrologAssessment implements Serializable {
 
     public void setRecommendedAction(String recommendedAction) {
         this.recommendedAction = recommendedAction;
+        this.recommendation = recommendedAction;
     }
 
     public String getPriorityUsage() {

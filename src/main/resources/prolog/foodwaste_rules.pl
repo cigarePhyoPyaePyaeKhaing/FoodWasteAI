@@ -1,6 +1,6 @@
 % =====================================================================
 % FoodWaste AI - SWI-Prolog Expert System Knowledge Base
-% Rule-based Reasoning Engine for Food Waste Prediction, Prevention & Redistribution
+% Explainable AI Decision Engine for Food Waste Prediction, Prevention & Redistribution
 % =====================================================================
 
 :- module(foodwaste_rules, [
@@ -23,17 +23,18 @@ assess_item(Stock, ExpectedDemand, ExpiryDays, HistWasteRate, CurrentProduction,
     evaluate_redistribution(Stock, ExpectedDemand, ExpiryDays, Surplus, Redistribute, _).
 
 % ---------------------------------------------------------------------
-% RISK LEVEL ASSESSMENT RULES
-% Risk levels: high, medium, low
+% 1. WASTE RISK ASSESSMENT RULES
+% Risk Levels: high, medium, low
+% Evaluates: Expiry Risk, Overstock Risk, Demand Mismatch, Historical Rate
 % ---------------------------------------------------------------------
 
-% High Risk Rule 1: Expiry imminent (<= 1 day) and stock > 0
-assess_waste_risk(Stock, _, ExpiryDays, _, high, ['Expiry is imminent (within 1 day)', 'Stock remaining requires immediate consumption']) :-
+% High Risk Rule 1: Expiry is imminent (<= 1 day) and positive stock remains
+assess_waste_risk(Stock, _, ExpiryDays, _, high, ['Expiry is near (within 1-2 days)', 'Stock remaining requires immediate consumption']) :-
     ExpiryDays =< 1,
     Stock > 0,
     !.
 
-% High Risk Rule 2: Stock significantly exceeds demand (>130%) AND (near expiry <= 3 days OR high historical waste >= 0.20)
+% High Risk Rule 2: Overstock + Demand Mismatch (Stock >= 130% of demand) with Near Expiry (<= 3 days) or High Waste History (>= 20%)
 assess_waste_risk(Stock, ExpectedDemand, ExpiryDays, HistWasteRate, high, Reasons) :-
     ExpectedDemand > 0,
     Ratio is Stock / ExpectedDemand,
@@ -42,20 +43,20 @@ assess_waste_risk(Stock, ExpectedDemand, ExpiryDays, HistWasteRate, high, Reason
     build_high_reasons(Ratio, ExpiryDays, HistWasteRate, Reasons),
     !.
 
-% High Risk Rule 3: Historical waste rate is severe (>= 30%) with excess stock
-assess_waste_risk(Stock, ExpectedDemand, _, HistWasteRate, high, ['Historical waste rate is critically high (>= 30%)', 'Stock exceeds expected demand']) :-
+% High Risk Rule 3: Severe historical waste pattern (>= 30%) and stock exceeds demand
+assess_waste_risk(Stock, ExpectedDemand, _, HistWasteRate, high, ['Historical waste rate is high (>= 30%)', 'Stock exceeds expected demand']) :-
     HistWasteRate >= 0.30,
     Stock > ExpectedDemand,
     !.
 
-% Medium Risk Rule 1: Expiry approaching (2-3 days) with positive stock
+% Medium Risk Rule 1: Expiry approaching within 2 to 3 days with positive stock
 assess_waste_risk(Stock, _, ExpiryDays, _, medium, ['Expiry approaching within 3 days', 'Requires monitoring to prevent spoilage']) :-
     ExpiryDays > 1,
     ExpiryDays =< 3,
     Stock > 0,
     !.
 
-% Medium Risk Rule 2: Stock moderately exceeds expected demand (110% - 130%)
+% Medium Risk Rule 2: Moderate overstock / demand mismatch (110% - 130% of demand)
 assess_waste_risk(Stock, ExpectedDemand, _, HistWasteRate, medium, Reasons) :-
     ExpectedDemand > 0,
     Ratio is Stock / ExpectedDemand,
@@ -64,13 +65,13 @@ assess_waste_risk(Stock, ExpectedDemand, _, HistWasteRate, medium, Reasons) :-
     build_medium_reasons(Ratio, HistWasteRate, Reasons),
     !.
 
-% Medium Risk Rule 3: Moderate historical waste rate (15% - 30%)
+% Medium Risk Rule 3: Moderate historical waste rate (15% - 30%) with non-zero stock
 assess_waste_risk(Stock, ExpectedDemand, _, HistWasteRate, medium, ['Moderate historical waste rate recorded', 'Potential over-ordering pattern']) :-
     HistWasteRate >= 0.15,
     Stock >= ExpectedDemand,
     !.
 
-% Low Risk Rule: Well-balanced stock, safe expiry, and low historical waste
+% Low Risk Rule 1: Well-balanced stock, safe shelf-life (> 3 days), low waste history (< 15%)
 assess_waste_risk(_, _, ExpiryDays, HistWasteRate, low, ['Stock is balanced with expected demand', 'Safe shelf life remaining', 'Low historical waste rate']) :-
     ExpiryDays > 3,
     HistWasteRate < 0.15,
@@ -80,14 +81,14 @@ assess_waste_risk(_, _, ExpiryDays, HistWasteRate, low, ['Stock is balanced with
 assess_waste_risk(_, _, _, _, low, ['Standard operational parameters', 'Normal consumption expected']).
 
 % ---------------------------------------------------------------------
-% HELPER REASON BUILDERS
+% HELPER REASON BUILDERS (Explainable AI clauses)
 % ---------------------------------------------------------------------
 build_high_reasons(Ratio, ExpiryDays, HistWasteRate, Reasons) :-
     findall(R, high_reason_item(Ratio, ExpiryDays, HistWasteRate, R), Reasons).
 
-high_reason_item(Ratio, _, _, 'Current stock substantially exceeds expected demand') :- Ratio >= 1.30.
-high_reason_item(_, ExpiryDays, _, 'Expiry date is near (within 3 days)') :- ExpiryDays =< 3.
-high_reason_item(_, _, HistWasteRate, 'Historical waste rate is elevated (>= 20%)') :- HistWasteRate >= 0.20.
+high_reason_item(Ratio, _, _, 'Stock exceeds expected demand') :- Ratio >= 1.30.
+high_reason_item(_, ExpiryDays, _, 'Expiry is near (within 1-3 days)') :- ExpiryDays =< 3.
+high_reason_item(_, _, HistWasteRate, 'Historical waste is high') :- HistWasteRate >= 0.20.
 
 build_medium_reasons(Ratio, HistWasteRate, Reasons) :-
     findall(R, medium_reason_item(Ratio, HistWasteRate, R), Reasons).
@@ -96,10 +97,10 @@ medium_reason_item(Ratio, _, 'Current stock moderately exceeds forecasted demand
 medium_reason_item(_, HistWasteRate, 'Historical waste rate indicates slight overproduction') :- HistWasteRate >= 0.15.
 
 % ---------------------------------------------------------------------
-% PRODUCTION RECOMMENDATION RULES
+% 2. PRODUCTION REDUCTION RECOMMENDATION RULES
 % ---------------------------------------------------------------------
-% If High Risk with large surplus -> recommend reduction by surplus or 20-30%
-recommend_production(Stock, ExpectedDemand, CurrentProduction, high, RecProduction, 'Reduce production by 25% to exhaust existing inventory') :-
+% High Risk & Excess Stock -> Reduce production by 20-30%
+recommend_production(Stock, ExpectedDemand, CurrentProduction, high, RecProduction, 'Reduce tomorrow production by 15-25% to exhaust existing inventory') :-
     Stock > ExpectedDemand,
     CurrentProduction > 0,
     RecProduction is max(0, round(CurrentProduction * 0.75)),
@@ -110,14 +111,14 @@ recommend_production(Stock, ExpectedDemand, CurrentProduction, high, RecProducti
     RecProduction is max(0, round(CurrentProduction * 0.50)),
     !.
 
-% If Medium Risk -> recommend slight reduction (10-15%)
+% Medium Risk -> Slightly reduce by 10%
 recommend_production(Stock, ExpectedDemand, CurrentProduction, medium, RecProduction, 'Slightly reduce production by 10% to prevent excess buffer') :-
     Stock > ExpectedDemand,
     CurrentProduction > 0,
     RecProduction is max(0, round(CurrentProduction * 0.90)),
     !.
 
-% If Low Risk and Demand is higher than stock -> maintain or adjust to demand
+% Low Risk & Demand exceeds stock -> Maintain or scale up to match demand
 recommend_production(Stock, ExpectedDemand, CurrentProduction, low, RecProduction, 'Maintain optimal production aligned with customer demand') :-
     Stock < ExpectedDemand,
     Deficit is ExpectedDemand - Stock,
@@ -127,7 +128,7 @@ recommend_production(Stock, ExpectedDemand, CurrentProduction, low, RecProductio
 recommend_production(_, _, CurrentProduction, low, CurrentProduction, 'Maintain standard scheduled production batch').
 
 % ---------------------------------------------------------------------
-% PRIORITY USAGE RULES
+% 3. PRIORITY USAGE RECOMMENDATION RULES
 % ---------------------------------------------------------------------
 evaluate_priority_use(ExpiryDays, high, 'IMMEDIATE_USE') :-
     ExpiryDays =< 2,
@@ -140,9 +141,8 @@ evaluate_priority_use(_, medium, 'MODERATE_PRIORITY') :- !.
 evaluate_priority_use(_, low, 'STANDARD').
 
 % ---------------------------------------------------------------------
-% REDISTRIBUTION RULES
+% 4. REDISTRIBUTION RECOMMENDATION RULES
 % ---------------------------------------------------------------------
-% Redistribute if surplus >= 5 units and expiry between 1 and 3 days (safe for consumption, won't sell in time)
 evaluate_redistribution(Stock, ExpectedDemand, ExpiryDays, Surplus, true, 'Surplus exceeds daily demand and is within safe redistribution window') :-
     Surplus >= 5,
     ExpiryDays >= 1,

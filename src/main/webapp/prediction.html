@@ -101,7 +101,7 @@
             <div class="kpi-bubble-icon kpi-icon-red">⚖️</div>
           </div>
           <div>
-            <div class="kpi-bubble-value" style="color:var(--risk-high-text);">18.2 kg</div>
+            <div class="kpi-bubble-value" id="kpi-pred-waste" style="color:var(--risk-high-text);">18.2 kg</div>
             <div class="kpi-bubble-sub">Without proactive mitigation</div>
           </div>
         </div>
@@ -112,7 +112,7 @@
             <div class="kpi-bubble-icon kpi-icon-red">⚠️</div>
           </div>
           <div>
-            <div class="kpi-bubble-value" style="color:var(--risk-high-text);">HIGH (68%)</div>
+            <div class="kpi-bubble-value" id="kpi-pred-risk" style="color:var(--risk-high-text);">68%</div>
             <div class="kpi-bubble-sub">2 items in imminent expiry window</div>
           </div>
         </div>
@@ -123,7 +123,7 @@
             <div class="kpi-bubble-icon kpi-icon-green">💰</div>
           </div>
           <div>
-            <div class="kpi-bubble-value">35,000 MMK</div>
+            <div class="kpi-bubble-value" id="kpi-pred-savings">35,000 MMK</div>
             <div class="kpi-bubble-sub" style="color:#047857; font-weight:700;">By executing AI actions</div>
           </div>
         </div>
@@ -140,50 +140,8 @@
             <span class="badge-bubble badge-urgent">Action Required</span>
           </div>
           <div class="card-body-glass">
-            <div style="display:flex; flex-direction:column; gap:1.4rem;">
-              <!-- Chicken -->
-              <div>
-                <div style="display:flex; justify-content:space-between; margin-bottom:0.4rem; font-weight:700;">
-                  <span>🍗 Fresh Chicken Breast</span>
-                  <span style="color:var(--risk-high-text);">8.5 kg (47%) &bull; HIGH</span>
-                </div>
-                <div style="background:rgba(0,0,0,0.06); height:12px; border-radius:9999px; overflow:hidden;">
-                  <div style="width:47%; height:100%; background:var(--risk-high-text); border-radius:9999px;"></div>
-                </div>
-              </div>
-
-              <!-- Salad -->
-              <div>
-                <div style="display:flex; justify-content:space-between; margin-bottom:0.4rem; font-weight:700;">
-                  <span>🥗 Organic Garden Salad Mix</span>
-                  <span style="color:var(--risk-high-text);">4.2 kg (23%) &bull; HIGH</span>
-                </div>
-                <div style="background:rgba(0,0,0,0.06); height:12px; border-radius:9999px; overflow:hidden;">
-                  <div style="width:23%; height:100%; background:var(--risk-high-text); border-radius:9999px;"></div>
-                </div>
-              </div>
-
-              <!-- Rice -->
-              <div>
-                <div style="display:flex; justify-content:space-between; margin-bottom:0.4rem; font-weight:700;">
-                  <span>🍚 Jasmine Rice Surplus</span>
-                  <span style="color:var(--accent-yellow-dark);">3.8 kg (21%) &bull; LOW</span>
-                </div>
-                <div style="background:rgba(0,0,0,0.06); height:12px; border-radius:9999px; overflow:hidden;">
-                  <div style="width:21%; height:100%; background:linear-gradient(90deg, #facc15, #eab308); border-radius:9999px;"></div>
-                </div>
-              </div>
-
-              <!-- Others -->
-              <div>
-                <div style="display:flex; justify-content:space-between; margin-bottom:0.4rem; font-weight:700;">
-                  <span>🍞 Others (Bread & Dairy)</span>
-                  <span style="color:var(--risk-med-text);">1.7 kg (9%) &bull; MED</span>
-                </div>
-                <div style="background:rgba(0,0,0,0.06); height:12px; border-radius:9999px; overflow:hidden;">
-                  <div style="width:9%; height:100%; background:var(--risk-med-text); border-radius:9999px;"></div>
-                </div>
-              </div>
+            <div id="pred-breakdown-list" style="display:flex; flex-direction:column; gap:1.4rem;">
+              <!-- Dynamically populated from /api/prediction -->
             </div>
           </div>
         </div>
@@ -198,30 +156,8 @@
             <span class="badge-bubble badge-optimization">SWI-Prolog</span>
           </div>
           <div class="card-body-glass">
-            <div style="display:flex; flex-direction:column; gap:1.25rem;">
-              <div style="background:rgba(254, 226, 226, 0.4); border:1px solid var(--risk-high-border); padding:1rem; border-radius:var(--radius-md);">
-                <div style="font-weight:800; color:var(--risk-high-text); font-size:0.95rem;">Why is Chicken Breast HIGH Risk?</div>
-                <ul style="font-size:0.85rem; color:var(--text-body); margin-top:0.4rem; padding-left:1.2rem; line-height:1.6;">
-                  <li><strong>Stock exceeds demand:</strong> 50 kg stock vs 30 kg expected (+66% buffer).</li>
-                  <li><strong>Near Expiry:</strong> 1 day remaining before shelf-life cutoff.</li>
-                  <li><strong>High Historical Waste:</strong> 22% rate recorded in previous week.</li>
-                </ul>
-              </div>
-
-              <div style="background:rgba(254, 243, 199, 0.4); border:1px solid var(--risk-med-border); padding:1rem; border-radius:var(--radius-md);">
-                <div style="font-weight:800; color:var(--risk-med-text); font-size:0.95rem;">Why is Salad Mix HIGH Risk?</div>
-                <ul style="font-size:0.85rem; color:var(--text-body); margin-top:0.4rem; padding-left:1.2rem; line-height:1.6;">
-                  <li>Expires in 2 days with 154% buffer over expected orders.</li>
-                  <li>Produce category has high wilting susceptibility.</li>
-                </ul>
-              </div>
-
-              <div style="background:rgba(209, 250, 229, 0.4); border:1px solid var(--risk-low-border); padding:1rem; border-radius:var(--radius-md);">
-                <div style="font-weight:800; color:var(--risk-low-text); font-size:0.95rem;">Why is Jasmine Rice LOW Risk?</div>
-                <ul style="font-size:0.85rem; color:var(--text-body); margin-top:0.4rem; padding-left:1.2rem; line-height:1.6;">
-                  <li>Shelf-life safe (> 60 days). Consumption is regular.</li>
-                </ul>
-              </div>
+            <div id="pred-reasoning-list" style="display:flex; flex-direction:column; gap:1.25rem;">
+              <!-- Dynamically populated from /api/prediction -->
             </div>
           </div>
         </div>

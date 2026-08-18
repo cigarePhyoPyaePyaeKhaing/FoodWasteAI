@@ -104,7 +104,12 @@ public class App {
         ctx.addServletMappingDecoded("/api/waste", "WasteServlet");
         ctx.addServletMappingDecoded("/api/waste/*", "WasteServlet");
 
-        logger.info("Servlets registered: /api/health, /api/inventory/*, /api/sales/*, /api/waste/*");
+        // Prediction & AI Reasoning Servlet
+        Tomcat.addServlet(ctx, "PredictionServlet", new com.foodwasteai.controller.PredictionServlet());
+        ctx.addServletMappingDecoded("/api/prediction", "PredictionServlet");
+        ctx.addServletMappingDecoded("/api/prediction/*", "PredictionServlet");
+
+        logger.info("Servlets registered: /api/health, /api/inventory/*, /api/sales/*, /api/waste/*, /api/prediction/*");
     }
 
     private static void printBanner(int port) {
