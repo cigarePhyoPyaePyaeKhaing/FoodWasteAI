@@ -90,7 +90,7 @@
             <div class="kpi-bubble-icon kpi-icon-green">🤝</div>
           </div>
           <div>
-            <div class="kpi-bubble-value">128.5 kg</div>
+            <div class="kpi-bubble-value" id="kpi-redist-rescued">128.5 kg</div>
             <div class="kpi-bubble-sub" style="color:#047857; font-weight:700;">Diverted from landfill waste</div>
           </div>
         </div>
@@ -101,7 +101,7 @@
             <div class="kpi-bubble-icon kpi-icon-blue">🏢</div>
           </div>
           <div>
-            <div class="kpi-bubble-value">4 Charities</div>
+            <div class="kpi-bubble-value" id="kpi-redist-partners">4 Charities</div>
             <div class="kpi-bubble-sub">Verified NGOs & Community Kitchens</div>
           </div>
         </div>
@@ -112,7 +112,7 @@
             <div class="kpi-bubble-icon kpi-icon-yellow">🚚</div>
           </div>
           <div>
-            <div class="kpi-bubble-value">2 Batches</div>
+            <div class="kpi-bubble-value" id="kpi-redist-pending">2 Batches</div>
             <div class="kpi-bubble-sub" style="color:var(--accent-yellow-dark); font-weight:700;">Awaiting courier pickup</div>
           </div>
         </div>
@@ -124,12 +124,7 @@
             <h2 class="card-title-glass">🚚 Active Redistribution Dispatches</h2>
             <div class="card-subtitle-glass">Coordinating food rescue batches before expiry deadlines</div>
           </div>
-          <select class="form-select-bubble" style="width:auto; padding:0.4rem 1rem; font-size:0.85rem;">
-            <option value="">All Statuses</option>
-            <option value="PENDING">Pending</option>
-            <option value="CONFIRMED">Confirmed</option>
-            <option value="COLLECTED">Collected</option>
-          </select>
+          <button class="btn-bubble btn-glass-subtle btn-sm-bubble" onclick="Redistribution.fetchDispatches()">🔄 Refresh</button>
         </div>
         <div class="card-body-glass" style="padding:0.75rem 1.25rem 1.25rem 1.25rem;">
           <div class="table-responsive">
@@ -139,35 +134,14 @@
                   <th>Food Item</th>
                   <th>Quantity</th>
                   <th>Recipient Organization</th>
-                  <th>Contact Person</th>
+                  <th>Dispatch Notes</th>
                   <th>Scheduled Pickup</th>
                   <th>Status</th>
                   <th style="text-align:right;">Actions</th>
                 </tr>
               </thead>
               <tbody id="redist-tbody">
-                <tr>
-                  <td><strong>Fresh Chicken Breast</strong></td>
-                  <td><strong style="font-size:1rem; color:var(--accent-yellow-dark);">15.00 kg</strong></td>
-                  <td>Hope Community Food Bank</td>
-                  <td>Daw Khin Win (+95 9 450012345)</td>
-                  <td>Tomorrow, 16:30</td>
-                  <td><span class="badge-bubble badge-important">CONFIRMED</span></td>
-                  <td style="text-align:right;">
-                    <button class="btn-bubble btn-yellow btn-sm-bubble" onclick="API.showToast('Marked as Collected!', 'success')">Mark Collected</button>
-                  </td>
-                </tr>
-                <tr>
-                  <td><strong>Artisan Sliced Bread</strong></td>
-                  <td><strong style="font-size:1rem; color:var(--accent-yellow-dark);">12.00 units</strong></td>
-                  <td>City Youth Shelter & Kitchen</td>
-                  <td>U Min Naing (+95 9 790098765)</td>
-                  <td>Today, 21:00</td>
-                  <td><span class="badge-bubble badge-urgent">PENDING</span></td>
-                  <td style="text-align:right;">
-                    <button class="btn-bubble btn-yellow btn-sm-bubble" onclick="API.showToast('Marked as Collected!', 'success')">Mark Collected</button>
-                  </td>
-                </tr>
+                <!-- Dynamically populated via /api/redistribution -->
               </tbody>
             </table>
           </div>
@@ -184,14 +158,12 @@
       <h3 style="font-size:1.15rem; font-weight:800; color:var(--text-main);">+ Schedule Surplus Dispatch</h3>
       <button class="btn-bubble btn-glass-subtle btn-sm-bubble" onclick="Redistribution.closeModal()">✕</button>
     </div>
-    <form onsubmit="Redistribution.saveDispatch(event)">
+    <form id="redist-form" onsubmit="Redistribution.saveDispatch(event)">
       <div class="modal-glass-body">
         <div class="form-group-bubble">
           <label class="form-label-bubble">Food Item</label>
-          <select class="form-select-bubble" id="redist-food-id">
-            <option value="1">Fresh Chicken Breast (50 kg surplus)</option>
-            <option value="2">Organic Garden Salad Mix (18.5 kg surplus)</option>
-            <option value="6">Artisan Sliced Bread (25 units surplus)</option>
+          <select class="form-select-bubble" id="redist-food-id" required>
+            <!-- Dynamically populated from /api/inventory -->
           </select>
         </div>
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
@@ -201,22 +173,19 @@
           </div>
           <div class="form-group-bubble">
             <label class="form-label-bubble">Recipient Charity</label>
-            <select class="form-select-bubble" id="redist-recipient">
-              <option value="1">Hope Community Food Bank</option>
-              <option value="2">City Youth Shelter & Kitchen</option>
-              <option value="3">GreenEarth Animal Sanctuary</option>
-              <option value="4">Circular BioCompost Hub</option>
+            <select class="form-select-bubble" id="redist-recipient" required>
+              <!-- Dynamically populated from /api/redistribution/recipients -->
             </select>
           </div>
         </div>
         <div class="form-group-bubble">
           <label class="form-label-bubble">Pickup Time</label>
-          <input class="form-input-bubble" type="datetime-local" id="redist-time" required>
+          <input class="form-input-bubble" type="datetime-local" id="redist-time">
         </div>
       </div>
       <div class="modal-glass-footer">
         <button type="button" class="btn-bubble btn-glass" onclick="Redistribution.closeModal()">Cancel</button>
-        <button type="submit" class="btn-bubble btn-yellow">Confirm Dispatch</button>
+        <button type="submit" class="btn-bubble btn-yellow">Confirm & Schedule Dispatch</button>
       </div>
     </form>
   </div>
