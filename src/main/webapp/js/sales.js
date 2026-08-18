@@ -1,36 +1,138 @@
 /**
- * FoodWaste AI - Sales Entry Controller
- * iOS 26 Glass Bubble Interactive Features
+ * FoodWaste AI - Sales Controller
+ * Connected with /api/sales and /api/inventory REST endpoints
  */
 const Sales = {
-  sales: [
-    { time: 'Today, 18:30', food: 'Fresh Chicken Breast', qty: '28.00 kg', unitPrice: '6,500 MMK', total: '182,000 MMK', customers: 45 },
-    { time: 'Today, 18:15', food: 'Organic Garden Salad Mix', qty: '14.00 kg', unitPrice: '4,200 MMK', total: '58,800 MMK', customers: 32 },
-    { time: 'Today, 17:45', food: 'Atlantic Salmon Fillet', qty: '8.00 kg', unitPrice: '18,000 MMK', total: '144,000 MMK', customers: 20 },
-    { time: 'Today, 17:30', food: 'Premium Jasmine Rice', qty: '25.00 kg', unitPrice: '2,800 MMK', total: '70,000 MMK', customers: 80 }
-  ],
+  sales: [],
+  foodItems: [],
+  loading: false,
 
-  init() {
-    this.render();
+  async init() {
+    await Promise.all([
+      this.fetchFoodItems(),
+      this.fetchSales()
+    ]);
+  },
+
+  async fetchFoodItems() {
+    try {
+      const res = await API.get('/api/inventory');
+      this.foodItems = (res && res.data) ? res.data : [];
+      this.populateFoodSelect();
+    } catch (err) {
+      console.warn('Error fetching food items for sales dropdown:', err);
+    }
+  },
+
+  populateFoodSelect() {
+    const select = document.getElementById('sale-food-id');
+    if (!select) return;
+
+    if (this.foodItems.length === 0) {
+      select.innerHTML = `<option value="">No food items in inventory</option>`;
+      return;
+    }
+
+    select.innerHTML = this.foodItems.map(f => {
+      const price = Number(f.pricePerUnit || 0).toLocaleString();
+      const qty = Number(f.quantity || 0).toFixed(1);
+      return `<option value="${f.id}" data-price="${f.pricePerUnit}" data-unit="${f.unit || 'kg'}">${f.name} (Stock: ${qty} ${f.unit || 'kg'} @ ${price} MMK)</option>`;
+    }).join('');
+  },
+
+  async fetchSales() {
+    this.loading = true;
+    this.renderLoading();
+    try {
+      const res = await API.get('/api/sales');
+      this.sales = (res && res.data) ? res.data : [];
+    } catch (err) {
+      console.warn('API fetch sales error:', err);
+      API.showToast('Using local sales view', 'info');
+    } finally {
+      this.loading = false;
+      this.render();
+      this.updateKpis();
+    }
+  },
+
+  renderLoading() {
+    const tbody = document.getElementById('sales-tbody');
+    if (!tbody) return;
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="7" style="text-align:center; padding:3rem; color:var(--text-muted);">
+          <div style="font-size:1.5rem; animation: spin 1s linear infinite; display:inline-block;">🍃</div>
+          <div style="margin-top:0.5rem; font-weight:600;">Loading customer sales records...</div>
+        </td>
+      </tr>
+    `;
   },
 
   render() {
     const tbody = document.getElementById('sales-tbody');
     if (!tbody) return;
 
-    tbody.innerHTML = this.sales.map(s => `
-      <tr>
-        <td>${s.time}</td>
-        <td><strong>${s.food}</strong></td>
-        <td><strong>${s.qty}</strong></td>
-        <td>${s.unitPrice}</td>
-        <td><strong style="color:var(--accent-yellow-dark);">${s.total}</strong></td>
-        <td style="text-align:right;"><span class="badge-bubble badge-optimization">${s.customers} Diners</span></td>
-      </tr>
-    `).join('');
+    if (this.loading) {
+      this.renderLoading();
+      return;
+    }
+
+    if (this.sales.length === 0) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="7" style="text-align:center; padding:3rem; color:var(--text-muted);">
+            <div style="font-size:2rem; margin-bottom:0.5rem;">💰</div>
+            <div style="font-weight:700; color:var(--text-main); font-size:1.05rem;">No Sales Recorded Today</div>
+            <div style="font-size:0.85rem; margin-top:0.25rem;">Click "+ Record Sale" to log customer dish purchases.</div>
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
+    tbody.innerHTML = this.sales.map(s => {
+      const qtyFmt = Number(s.quantitySold || 0).toFixed(2) + ' units';
+      const priceFmt = Number(s.unitPrice || 0).toLocaleString() + ' MMK';
+      const totalFmt = Number(s.totalAmount || 0).toLocaleString() + ' MMK';
+      const diners = s.customerCount || 1;
+      const dateFmt = s.saleDate ? s.saleDate.replace('T', ' ').substring(0, 16) : 'Today';
+
+      return `
+        <tr>
+          <td>${dateFmt}</td>
+          <td><strong>${s.foodItemName || ('Food Item #' + s.foodItemId)}</strong></td>
+          <td><strong>${qtyFmt}</strong></td>
+          <td>${priceFmt}</td>
+          <td><strong style="color:var(--accent-yellow-dark);">${totalFmt}</strong></td>
+          <td><span class="badge-bubble badge-optimization">${diners} Diners</span></td>
+          <td style="text-align:right;">
+            <button class="btn-bubble btn-glass-subtle btn-sm-bubble" style="color:var(--risk-high-text);" onclick="Sales.deleteSale(${s.id})">🗑️</button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  },
+
+  updateKpis() {
+    const totalRev = this.sales.reduce((sum, s) => sum + Number(s.totalAmount || 0), 0);
+    const totalVol = this.sales.reduce((sum, s) => sum + Number(s.quantitySold || 0), 0);
+    const totalDiners = this.sales.reduce((sum, s) => sum + Number(s.customerCount || 0), 0);
+
+    const revEl = document.getElementById('kpi-sales-revenue');
+    if (revEl) revEl.textContent = totalRev.toLocaleString() + ' MMK';
+
+    const volEl = document.getElementById('kpi-sales-volume');
+    if (volEl) volEl.textContent = totalVol.toFixed(1) + ' kg';
+
+    const dinersEl = document.getElementById('kpi-sales-diners');
+    if (dinersEl) dinersEl.textContent = totalDiners + ' Diners';
   },
 
   openModal() {
+    this.fetchFoodItems();
+    const form = document.getElementById('sale-form');
+    if (form) form.reset();
     const modal = document.getElementById('record-sale-modal');
     if (modal) modal.classList.add('active');
   },
@@ -40,34 +142,50 @@ const Sales = {
     if (modal) modal.classList.remove('active');
   },
 
-  saveSale(e) {
+  async saveSale(e) {
     e.preventDefault();
     const foodSelect = document.getElementById('sale-food-id');
-    const foodText = foodSelect.options[foodSelect.selectedIndex].text.split('(')[0].trim();
-    const qty = document.getElementById('sale-qty').value;
-    const customers = document.getElementById('sale-customers').value;
+    const foodItemId = parseInt(foodSelect.value);
+    const quantitySold = parseFloat(document.getElementById('sale-qty').value);
+    const customerCount = parseInt(document.getElementById('sale-customers').value) || 1;
 
-    const unitPriceMap = {
-      '1': 6500,
-      '2': 4200,
-      '3': 18000,
-      '4': 2800
+    if (!foodItemId || isNaN(quantitySold) || quantitySold <= 0) {
+      API.showToast('Please select a food item and enter a valid quantity', 'warning');
+      return;
+    }
+
+    const selectedOption = foodSelect.options[foodSelect.selectedIndex];
+    const unitPrice = parseFloat(selectedOption.getAttribute('data-price')) || 5000;
+
+    const payload = {
+      foodItemId,
+      quantitySold,
+      unitPrice,
+      customerCount
     };
-    const price = unitPriceMap[foodSelect.value] || 5000;
-    const total = Number(qty) * price;
 
-    this.sales.unshift({
-      time: 'Just now',
-      food: foodText,
-      qty: `${qty} kg`,
-      unitPrice: `${price.toLocaleString()} MMK`,
-      total: `${total.toLocaleString()} MMK`,
-      customers: Number(customers)
-    });
+    try {
+      await API.post('/api/sales', payload);
+      API.showToast(`Recorded sale for ${selectedOption.text.split('(')[0].trim()}!`, 'success');
+      this.closeModal();
+      await this.fetchSales();
+    } catch (err) {
+      console.error('Error saving sale:', err);
+      API.showToast('Failed to record sale: ' + err.message, 'error');
+    }
+  },
 
-    this.closeModal();
-    this.render();
-    API.showToast(`Recorded sale for ${foodText} (${total.toLocaleString()} MMK)`, 'success');
+  async deleteSale(id) {
+    if (!confirm('Are you sure you want to delete this sales record?')) return;
+
+    try {
+      await API.delete(`/api/sales/${id}`);
+      API.showToast('Sale record deleted', 'info');
+      await this.fetchSales();
+    } catch (err) {
+      console.error('Error deleting sale:', err);
+      API.showToast('Failed to delete sale: ' + err.message, 'error');
+    }
   }
 };
 

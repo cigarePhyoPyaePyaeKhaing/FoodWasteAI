@@ -47,7 +47,7 @@
         <span class="nav-bubble-icon">🤝</span> Redistribution
       </a>
 
-      <div class="nav-bubble-section-title admin-only">Management</div>
+      <div class="nav-section-title admin-only">Management</div>
       <a href="reports.html" class="nav-bubble-link">
         <span class="nav-bubble-icon">📈</span> Reports
       </a>
@@ -106,6 +106,7 @@
             <option value="OK">OK</option>
             <option value="NEAR_EXPIRY">Near Expiry</option>
             <option value="LOW_STOCK">Low Stock</option>
+            <option value="EXPIRED">Expired</option>
           </select>
         </div>
       </div>
@@ -128,66 +129,7 @@
                 </tr>
               </thead>
               <tbody id="inventory-tbody">
-                <tr>
-                  <td>
-                    <strong>Fresh Chicken Breast</strong>
-                    <div style="font-size:0.75rem; color:var(--text-muted);">Batch #CHK-9021</div>
-                  </td>
-                  <td><span class="badge-bubble badge-optimization">Poultry</span></td>
-                  <td><strong style="font-size:1rem;">50.00 kg</strong></td>
-                  <td>6,500 MMK</td>
-                  <td>Tomorrow (<strong style="color:var(--risk-high-text);">1 Day</strong>)</td>
-                  <td>15.00 kg</td>
-                  <td><span class="badge-bubble badge-risk-high">NEAR EXPIRY</span></td>
-                  <td style="text-align:right;">
-                    <button class="btn-bubble btn-glass-subtle btn-sm-bubble" onclick="API.showToast('Edit mode available in Phase 4', 'info')">Edit</button>
-                  </td>
-                </tr>
-                <tr>
-                  <td>
-                    <strong>Organic Garden Salad Mix</strong>
-                    <div style="font-size:0.75rem; color:var(--text-muted);">Batch #SLD-4410</div>
-                  </td>
-                  <td><span class="badge-bubble badge-optimization">Produce</span></td>
-                  <td><strong style="font-size:1rem;">18.50 kg</strong></td>
-                  <td>4,200 MMK</td>
-                  <td>In 2 Days</td>
-                  <td>5.00 kg</td>
-                  <td><span class="badge-bubble badge-risk-high">NEAR EXPIRY</span></td>
-                  <td style="text-align:right;">
-                    <button class="btn-bubble btn-glass-subtle btn-sm-bubble" onclick="API.showToast('Edit mode available in Phase 4', 'info')">Edit</button>
-                  </td>
-                </tr>
-                <tr>
-                  <td>
-                    <strong>Atlantic Salmon Fillet</strong>
-                    <div style="font-size:0.75rem; color:var(--text-muted);">Batch #SLM-1022</div>
-                  </td>
-                  <td><span class="badge-bubble badge-optimization">Seafood</span></td>
-                  <td><strong style="font-size:1rem;">12.00 kg</strong></td>
-                  <td>18,000 MMK</td>
-                  <td>In 3 Days</td>
-                  <td>4.00 kg</td>
-                  <td><span class="badge-bubble badge-risk-medium">OK</span></td>
-                  <td style="text-align:right;">
-                    <button class="btn-bubble btn-glass-subtle btn-sm-bubble" onclick="API.showToast('Edit mode available in Phase 4', 'info')">Edit</button>
-                  </td>
-                </tr>
-                <tr>
-                  <td>
-                    <strong>Premium Jasmine Rice</strong>
-                    <div style="font-size:0.75rem; color:var(--text-muted);">Batch #RIC-8831</div>
-                  </td>
-                  <td><span class="badge-bubble badge-optimization">Grains</span></td>
-                  <td><strong style="font-size:1rem;">120.00 kg</strong></td>
-                  <td>2,800 MMK</td>
-                  <td>In 60 Days</td>
-                  <td>25.00 kg</td>
-                  <td><span class="badge-bubble badge-risk-low">OK</span></td>
-                  <td style="text-align:right;">
-                    <button class="btn-bubble btn-glass-subtle btn-sm-bubble" onclick="API.showToast('Edit mode available in Phase 4', 'info')">Edit</button>
-                  </td>
-                </tr>
+                <!-- Dynamically populated via /api/inventory -->
               </tbody>
             </table>
           </div>
@@ -197,14 +139,14 @@
   </div>
 </div>
 
-<!-- Add Item Modal -->
+<!-- Add / Edit Item Modal -->
 <div class="modal-glass-backdrop" id="add-item-modal">
   <div class="modal-glass-dialog">
     <div class="modal-glass-header">
-      <h3 style="font-size:1.15rem; font-weight:800; color:var(--text-main);">+ Add Food Item</h3>
+      <h3 id="modal-food-title" style="font-size:1.15rem; font-weight:800; color:var(--text-main);">+ Add Food Item</h3>
       <button class="btn-bubble btn-glass-subtle btn-sm-bubble" onclick="Inventory.closeModal()">✕</button>
     </div>
-    <form onsubmit="Inventory.saveItem(event)">
+    <form id="inventory-form" onsubmit="Inventory.saveItem(event)">
       <div class="modal-glass-body">
         <div class="form-group-bubble">
           <label class="form-label-bubble">Food Name</label>
@@ -230,21 +172,27 @@
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
           <div class="form-group-bubble">
             <label class="form-label-bubble">Quantity</label>
-            <input class="form-input-bubble" type="number" step="0.1" id="new-food-qty" required placeholder="50.0">
+            <input class="form-input-bubble" type="number" step="0.01" id="new-food-qty" required placeholder="50.0">
           </div>
           <div class="form-group-bubble">
             <label class="form-label-bubble">Price Per Unit (MMK)</label>
-            <input class="form-input-bubble" type="number" id="new-food-price" required placeholder="6500">
+            <input class="form-input-bubble" type="number" step="0.01" id="new-food-price" required placeholder="6500">
           </div>
         </div>
-        <div class="form-group-bubble">
-          <label class="form-label-bubble">Expiry Date</label>
-          <input class="form-input-bubble" type="date" id="new-food-expiry" required>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
+          <div class="form-group-bubble">
+            <label class="form-label-bubble">Expiry Date</label>
+            <input class="form-input-bubble" type="date" id="new-food-expiry" required>
+          </div>
+          <div class="form-group-bubble">
+            <label class="form-label-bubble">Min Stock Threshold</label>
+            <input class="form-input-bubble" type="number" step="0.01" id="new-food-threshold" value="5.0" required>
+          </div>
         </div>
       </div>
       <div class="modal-glass-footer">
         <button type="button" class="btn-bubble btn-glass" onclick="Inventory.closeModal()">Cancel</button>
-        <button type="submit" class="btn-bubble btn-yellow">Save Item</button>
+        <button type="submit" class="btn-bubble btn-yellow">Save Food Item</button>
       </div>
     </form>
   </div>

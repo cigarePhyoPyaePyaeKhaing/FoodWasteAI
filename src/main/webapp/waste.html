@@ -35,7 +35,7 @@
         <span class="nav-bubble-icon">🗑️</span> Waste Records
       </a>
 
-      <div class="nav-bubble-section-title">AI & Intelligence</div>
+      <div class="nav-section-title">AI & Intelligence</div>
       <a href="prediction.html" class="nav-bubble-link">
         <span class="nav-bubble-icon">🔮</span> AI Prediction
       </a>
@@ -75,7 +75,7 @@
   <div class="main-wrapper-float">
     <header class="topbar-glass">
       <div class="topbar-left">
-        <h1 class="page-headline-glass">Waste Logging & Loss Tracking</h1>
+        <h1 class="page-headline-glass">Food Waste Incident Logging</h1>
       </div>
       <div class="topbar-right">
         <button class="btn-bubble btn-yellow btn-sm-bubble" onclick="Waste.openModal()">+ Log Food Waste</button>
@@ -86,34 +86,34 @@
       <section class="kpi-grid">
         <div class="kpi-bubble-card">
           <div class="kpi-bubble-top">
-            <span class="kpi-bubble-label">Logged Waste Today</span>
-            <div class="kpi-bubble-icon kpi-icon-red">🗑️</div>
-          </div>
-          <div>
-            <div class="kpi-bubble-value">17.2 kg</div>
-            <div class="kpi-bubble-sub" style="color:var(--risk-high-text);">5 separate kitchen incidents</div>
-          </div>
-        </div>
-
-        <div class="kpi-bubble-card">
-          <div class="kpi-bubble-top">
-            <span class="kpi-bubble-label">Direct Financial Loss</span>
+            <span class="kpi-bubble-label">Today's Waste Cost</span>
             <div class="kpi-bubble-icon kpi-icon-red">💸</div>
           </div>
           <div>
-            <div class="kpi-bubble-value">87,890 MMK</div>
-            <div class="kpi-bubble-sub">Direct inventory cost</div>
+            <div class="kpi-bubble-value" id="kpi-waste-loss" style="color:var(--risk-high-text);">98,500 MMK</div>
+            <div class="kpi-bubble-sub">Direct inventory loss</div>
           </div>
         </div>
 
         <div class="kpi-bubble-card">
           <div class="kpi-bubble-top">
-            <span class="kpi-bubble-label">Primary Driver</span>
-            <div class="kpi-bubble-icon kpi-icon-yellow">⚠️</div>
+            <span class="kpi-bubble-label">Total Waste Weight</span>
+            <div class="kpi-bubble-icon kpi-icon-red">🗑️</div>
           </div>
           <div>
-            <div class="kpi-bubble-value" style="font-size:1.5rem;">Overproduction</div>
-            <div class="kpi-bubble-sub">48% of total volume</div>
+            <div class="kpi-bubble-value" id="kpi-waste-kg">18.2 kg</div>
+            <div class="kpi-bubble-sub">Divertable organic mass</div>
+          </div>
+        </div>
+
+        <div class="kpi-bubble-card">
+          <div class="kpi-bubble-top">
+            <span class="kpi-bubble-label">GHG Equivalent</span>
+            <div class="kpi-bubble-icon kpi-icon-yellow">🌱</div>
+          </div>
+          <div>
+            <div class="kpi-bubble-value" id="kpi-waste-co2">45.5 kg CO₂e</div>
+            <div class="kpi-bubble-sub">Landfill methane impact factor</div>
           </div>
         </div>
       </section>
@@ -121,18 +121,10 @@
       <div class="card-glass">
         <div class="card-header-glass">
           <div>
-            <h2 class="card-title-glass">🗑️ Waste Incidents Log</h2>
-            <div class="card-subtitle-glass">Categorized by reason for Prolog rule evaluation</div>
+            <h2 class="card-title-glass">🗑️ Food Waste Log & Reason Breakdown</h2>
+            <div class="card-subtitle-glass">Historical data feed used to train and calibrate SWI-Prolog risk rules</div>
           </div>
-          <select class="form-select-bubble" style="width:auto; padding:0.4rem 1rem; font-size:0.85rem;">
-            <option value="">All Reasons</option>
-            <option value="OVERPRODUCTION">Overproduction</option>
-            <option value="EXPIRED">Expired</option>
-            <option value="UNSOLD">Unsold</option>
-            <option value="SPOILED">Spoiled</option>
-            <option value="DAMAGED">Damaged</option>
-            <option value="PREPARATION_WASTE">Preparation Waste</option>
-          </select>
+          <button class="btn-bubble btn-glass-subtle btn-sm-bubble" onclick="Waste.fetchWaste()">🔄 Refresh</button>
         </div>
         <div class="card-body-glass" style="padding:0.75rem 1.25rem 1.25rem 1.25rem;">
           <div class="table-responsive">
@@ -145,41 +137,11 @@
                   <th>Reason</th>
                   <th>Monetary Loss</th>
                   <th>Notes</th>
+                  <th style="text-align:right;">Actions</th>
                 </tr>
               </thead>
               <tbody id="waste-tbody">
-                <tr>
-                  <td>Yesterday, 22:00</td>
-                  <td><strong>Fresh Chicken Breast</strong></td>
-                  <td><strong style="color:var(--risk-high-text);">4.50 kg</strong></td>
-                  <td><span class="badge-bubble badge-urgent">OVERPRODUCTION</span></td>
-                  <td><strong>29,250 MMK</strong></td>
-                  <td>Prepared chicken surplus from dinner service</td>
-                </tr>
-                <tr>
-                  <td>Yesterday, 21:30</td>
-                  <td><strong>Organic Garden Salad Mix</strong></td>
-                  <td><strong style="color:var(--risk-high-text);">3.20 kg</strong></td>
-                  <td><span class="badge-bubble badge-risk-high">EXPIRED</span></td>
-                  <td><strong>13,440 MMK</strong></td>
-                  <td>Wilted beyond presentation standard</td>
-                </tr>
-                <tr>
-                  <td>2 days ago, 22:15</td>
-                  <td><strong>Artisan Sliced Bread</strong></td>
-                  <td><strong>6.00 units</strong></td>
-                  <td><span class="badge-bubble badge-important">UNSOLD</span></td>
-                  <td><strong>13,200 MMK</strong></td>
-                  <td>End of day bakery leftovers</td>
-                </tr>
-                <tr>
-                  <td>3 days ago, 14:00</td>
-                  <td><strong>Atlantic Salmon Fillet</strong></td>
-                  <td><strong style="color:var(--risk-high-text);">1.50 kg</strong></td>
-                  <td><span class="badge-bubble badge-urgent">SPOILED</span></td>
-                  <td><strong>27,000 MMK</strong></td>
-                  <td>Storage chill drawer malfunction</td>
-                </tr>
+                <!-- Dynamically populated via /api/waste -->
               </tbody>
             </table>
           </div>
@@ -193,52 +155,49 @@
 <div class="modal-glass-backdrop" id="log-waste-modal">
   <div class="modal-glass-dialog">
     <div class="modal-glass-header">
-      <h3 style="font-size:1.15rem; font-weight:800; color:var(--text-main);">+ Log Food Waste</h3>
+      <h3 style="font-size:1.15rem; font-weight:800; color:var(--text-main);">+ Log Food Waste Incident</h3>
       <button class="btn-bubble btn-glass-subtle btn-sm-bubble" onclick="Waste.closeModal()">✕</button>
     </div>
-    <form onsubmit="Waste.saveWaste(event)">
+    <form id="waste-form" onsubmit="Waste.saveWaste(event)">
       <div class="modal-glass-body">
         <div class="form-group-bubble">
           <label class="form-label-bubble">Select Food Item</label>
-          <select class="form-select-bubble" id="waste-food-id">
-            <option value="1">Fresh Chicken Breast</option>
-            <option value="2">Organic Garden Salad Mix</option>
-            <option value="3">Atlantic Salmon Fillet</option>
-            <option value="6">Artisan Sliced Bread</option>
+          <select class="form-select-bubble" id="waste-food-id" required>
+            <!-- Dynamically populated from /api/inventory -->
           </select>
         </div>
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
           <div class="form-group-bubble">
-            <label class="form-label-bubble">Quantity Wasted</label>
-            <input class="form-input-bubble" type="number" step="0.1" id="waste-qty" required placeholder="3.5">
+            <label class="form-label-bubble">Quantity Wasted (kg/unit)</label>
+            <input class="form-input-bubble" type="number" step="0.1" id="waste-qty" required placeholder="4.5">
           </div>
           <div class="form-group-bubble">
-            <label class="form-label-bubble">Reason</label>
+            <label class="form-label-bubble">Reason for Waste</label>
             <select class="form-select-bubble" id="waste-reason">
               <option value="OVERPRODUCTION">Overproduction</option>
-              <option value="EXPIRED">Expired</option>
-              <option value="UNSOLD">Unsold</option>
-              <option value="SPOILED">Spoiled</option>
-              <option value="DAMAGED">Damaged</option>
-              <option value="PREPARATION_WASTE">Preparation Waste</option>
-              <option value="OTHER">Other</option>
+              <option value="EXPIRED">Expired Shelf-Life</option>
+              <option value="UNSOLD">Unsold Evening Stock</option>
+              <option value="SPOILED">Spoiled / Storage Fail</option>
+              <option value="DAMAGED">Damaged in Handling</option>
+              <option value="PREPARATION_WASTE">Preparation Trim/Waste</option>
+              <option value="OTHER">Other Reason</option>
             </select>
           </div>
         </div>
         <div class="form-group-bubble">
-          <label class="form-label-bubble">Notes / Kitchen Context</label>
-          <input class="form-input-bubble" type="text" id="waste-notes" placeholder="e.g. Cooked batch surplus">
+          <label class="form-label-bubble">Incident Notes (Optional)</label>
+          <input class="form-input-bubble" type="text" id="waste-notes" placeholder="e.g. Over-prepped chicken during dinner rush">
         </div>
       </div>
       <div class="modal-glass-footer">
         <button type="button" class="btn-bubble btn-glass" onclick="Waste.closeModal()">Cancel</button>
-        <button type="submit" class="btn-bubble btn-yellow">Record Waste</button>
+        <button type="submit" class="btn-bubble btn-yellow">Save Waste Log</button>
       </div>
     </form>
   </div>
 </div>
 
-<button class="fab-btn" onclick="Waste.openModal()" title="Log Waste">+</button>
+<button class="fab-btn" onclick="Waste.openModal()" title="Log Food Waste">+</button>
 
 <nav class="mobile-bottom-dock">
   <a href="dashboard.html" class="dock-item">
