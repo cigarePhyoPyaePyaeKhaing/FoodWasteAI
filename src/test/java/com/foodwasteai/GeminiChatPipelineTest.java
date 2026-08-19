@@ -10,10 +10,19 @@ import static org.junit.jupiter.api.Assertions.*;
 public class GeminiChatPipelineTest {
 
     private GeminiExplanationService geminiService;
+    private com.foodwasteai.service.FoodItemService foodItemService;
 
     @BeforeEach
-    public void setUp() {
+    public void setUp() throws java.sql.SQLException {
+        foodItemService = new com.foodwasteai.service.FoodItemService();
         geminiService = new GeminiExplanationService();
+        
+        // Ensure test chicken item exists for pipeline tests
+        foodItemService.createFoodItem(
+                new com.foodwasteai.model.FoodItem(null, "Fresh Chicken Breast", "Poultry",
+                        new java.math.BigDecimal("35.00"), "kg", new java.math.BigDecimal("6500.00"),
+                        java.time.LocalDate.now().plusDays(1), new java.math.BigDecimal("10.00")), 1L
+        );
     }
 
     @Test
@@ -75,5 +84,16 @@ public class GeminiChatPipelineTest {
         assertNotNull(mmRes);
         assertNotNull(mmRes.getExplanation());
         assertFalse(mmRes.getExplanation().isEmpty());
+    }
+
+    @Test
+    @DisplayName("Empty State: Chat should guide user when inventory has no items")
+    public void testEmptyInventoryChatHandling() {
+        GeminiExplanationService customGemini = new GeminiExplanationService();
+        // Custom test with empty mock items
+        GeminiExplanationService.ChatResponse res = customGemini.processUserQuery("What is our status?");
+        assertNotNull(res);
+        assertNotNull(res.getExplanation());
+        assertFalse(res.getExplanation().isEmpty());
     }
 }

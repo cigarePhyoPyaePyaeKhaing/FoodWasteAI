@@ -44,9 +44,13 @@ public class RecommendationAndRedistributionWorkflowTest {
     @Test
     @DisplayName("Data Flow: food_items -> SWI-Prolog prediction -> prediction_items -> recommendations table")
     public void testCompleteDataFlowPersistence() throws SQLException {
-        // 1. Ensure inventory food items exist
-        List<FoodItem> items = foodItemService.getAllFoodItems();
-        assertFalse(items.isEmpty(), "food_items must contain inventory records");
+        // 1. Create a test item for evaluation
+        FoodItem testItem = foodItemService.createFoodItem(
+                new FoodItem(null, "Test Workflow Item " + System.currentTimeMillis(), "Poultry",
+                        new BigDecimal("40.00"), "kg", new BigDecimal("6500.00"),
+                        LocalDate.now().plusDays(1), new BigDecimal("10.00")), 1L
+        );
+        assertNotNull(testItem.getId());
 
         // 2. Execute SWI-Prolog batch evaluation
         Map<String, Object> predReport = predictionService.assessAllInventory();
@@ -74,6 +78,23 @@ public class RecommendationAndRedistributionWorkflowTest {
     @Test
     @DisplayName("Verify HIGH, MEDIUM, LOW Risk Generated Directives Exact Rules")
     public void testRiskLevelRecommendationRules() throws SQLException {
+        // Create HIGH, MEDIUM, LOW test items
+        foodItemService.createFoodItem(
+                new FoodItem(null, "Test Fresh Milk " + System.currentTimeMillis(), "Dairy",
+                        new BigDecimal("40.00"), "kg", new BigDecimal("2800.00"),
+                        LocalDate.now().plusDays(1), new BigDecimal("10.00")), 1L
+        );
+        foodItemService.createFoodItem(
+                new FoodItem(null, "Test Vegetables " + System.currentTimeMillis(), "Produce",
+                        new BigDecimal("50.00"), "kg", new BigDecimal("1800.00"),
+                        LocalDate.now().plusDays(3), new BigDecimal("10.00")), 1L
+        );
+        foodItemService.createFoodItem(
+                new FoodItem(null, "Test Rice " + System.currentTimeMillis(), "Grains",
+                        new BigDecimal("80.00"), "kg", new BigDecimal("3500.00"),
+                        LocalDate.now().plusDays(30), new BigDecimal("20.00")), 1L
+        );
+
         List<Recommendation> recs = recommendationService.generateRecommendationsFromProlog();
 
         // 1. Verify HIGH Risk Directives (Fresh Milk or Fresh Fish)

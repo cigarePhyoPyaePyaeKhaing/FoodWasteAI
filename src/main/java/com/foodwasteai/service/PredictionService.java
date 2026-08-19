@@ -164,7 +164,20 @@ public class PredictionService {
                 Prediction savedPred = predictionDao.savePrediction(pred);
 
                 List<PredictionItem> pItems = new ArrayList<>();
+                TranslationService translator = TranslationService.getInstance();
                 for (PrologAssessment a : assessments) {
+                    String reasoningEn = (a.getReasons() != null && !a.getReasons().isEmpty())
+                            ? String.join(" | ", a.getReasons())
+                            : (a.getReason() != null ? a.getReason() : "Prolog risk reasoning");
+                    String reasoningMy = translator.translateToMyanmar(reasoningEn);
+
+                    a.setReasonEn(reasoningEn);
+                    a.setReasonMy(reasoningMy);
+                    if (a.getRecommendation() != null) {
+                        a.setRecommendationEn(a.getRecommendation());
+                        a.setRecommendationMy(translator.translateToMyanmar(a.getRecommendation()));
+                    }
+
                     PredictionItem pi = new PredictionItem();
                     pi.setPredictionId(savedPred.getId());
                     pi.setFoodItemId(a.getFoodItemId());
@@ -177,7 +190,9 @@ public class PredictionService {
                     pi.setPredictedWasteQty(BigDecimal.valueOf(Math.max(0, a.getStock() - a.getExpectedDemand())).setScale(2, RoundingMode.HALF_UP));
                     pi.setRecommendedProduction(BigDecimal.valueOf(a.getRecommendedProduction()).setScale(2, RoundingMode.HALF_UP));
                     pi.setPriorityUsage(a.getPriorityUsage());
-                    pi.setReasoningText(a.getReasons() != null ? String.join(" | ", a.getReasons()) : "Prolog risk reasoning");
+                    pi.setReasoningText(reasoningEn);
+                    pi.setReasoningTextEn(reasoningEn);
+                    pi.setReasoningTextMy(reasoningMy);
                     pItems.add(pi);
                 }
                 predictionDao.savePredictionItems(savedPred.getId(), pItems);

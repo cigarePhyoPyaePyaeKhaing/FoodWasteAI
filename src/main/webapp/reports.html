@@ -95,34 +95,34 @@
       <section class="kpi-grid">
         <div class="kpi-bubble-card">
           <div class="kpi-bubble-top">
-            <span class="kpi-bubble-label">Total Food Waste (Month)</span>
+            <span class="kpi-bubble-label">Total Food Waste</span>
             <div class="kpi-bubble-icon kpi-icon-red">🗑️</div>
           </div>
           <div>
-            <div class="kpi-bubble-value">142.8 kg</div>
-            <div class="kpi-bubble-sub" style="color:#047857; font-weight:700;">▼ -18% reduction achieved</div>
+            <div class="kpi-bubble-value" id="report-kpi-waste">0.0 kg</div>
+            <div class="kpi-bubble-sub" style="color:var(--text-muted);">Tracked kitchen waste</div>
           </div>
         </div>
 
         <div class="kpi-bubble-card">
           <div class="kpi-bubble-top">
-            <span class="kpi-bubble-label">Food Saved via AI Directives</span>
+            <span class="kpi-bubble-label">Food Saved via AI</span>
             <div class="kpi-bubble-icon kpi-icon-green">🌿</div>
           </div>
           <div>
-            <div class="kpi-bubble-value">84.0 kg</div>
-            <div class="kpi-bubble-sub" style="color:#047857; font-weight:700;">Prevented & redistributed</div>
+            <div class="kpi-bubble-value" id="report-kpi-saved">0.0 kg</div>
+            <div class="kpi-bubble-sub" style="color:#047857; font-weight:700;">Rescued & redistributed</div>
           </div>
         </div>
 
         <div class="kpi-bubble-card">
           <div class="kpi-bubble-top">
-            <span class="kpi-bubble-label">Realized Financial Savings</span>
+            <span class="kpi-bubble-label">Financial Waste Loss</span>
             <div class="kpi-bubble-icon kpi-icon-yellow">💰</div>
           </div>
           <div>
-            <div class="kpi-bubble-value">385,000 MMK</div>
-            <div class="kpi-bubble-sub">Direct inventory cost saved</div>
+            <div class="kpi-bubble-value" id="report-kpi-loss">0 MMK</div>
+            <div class="kpi-bubble-sub">Total recorded loss</div>
           </div>
         </div>
 
@@ -132,8 +132,8 @@
             <div class="kpi-bubble-icon kpi-icon-blue">🎯</div>
           </div>
           <div>
-            <div class="kpi-bubble-value">88.5%</div>
-            <div class="kpi-bubble-sub">23 of 26 rules accepted</div>
+            <div class="kpi-bubble-value" id="report-kpi-adoption">0%</div>
+            <div class="kpi-bubble-sub">Active directives applied</div>
           </div>
         </div>
       </section>
@@ -142,9 +142,9 @@
         <div class="card-header-glass">
           <div>
             <h2 class="card-title-glass">📊 Category Waste & Financial Loss Matrix</h2>
-            <div class="card-subtitle-glass">Comprehensive monthly summary for restaurant management</div>
+            <div class="card-subtitle-glass">Summary based on user-entered inventory & waste logs</div>
           </div>
-          <span class="badge-bubble badge-optimization">Verified Matrix</span>
+          <span class="badge-bubble badge-optimization">Live Matrix</span>
         </div>
         <div class="card-body-glass" style="padding:0.75rem 1.25rem 1.25rem 1.25rem;">
           <div class="table-responsive">
@@ -158,34 +158,13 @@
                   <th>Primary Waste Reason</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody id="reports-matrix-tbody">
                 <tr>
-                  <td><strong>Poultry & Meats</strong></td>
-                  <td>64.5 kg</td>
-                  <td><strong style="color:var(--risk-high-text);">419,250 MMK</strong></td>
-                  <td>45.2%</td>
-                  <td>Overproduction & Short Expiry</td>
-                </tr>
-                <tr>
-                  <td><strong>Fresh Produce & Salads</strong></td>
-                  <td>38.2 kg</td>
-                  <td><strong style="color:var(--risk-high-text);">160,440 MMK</strong></td>
-                  <td>26.7%</td>
-                  <td>Wilting & Presentation Threshold</td>
-                </tr>
-                <tr>
-                  <td><strong>Bakery & Pastries</strong></td>
-                  <td>22.0 kg</td>
-                  <td><strong style="color:var(--risk-med-text);">48,400 MMK</strong></td>
-                  <td>15.4%</td>
-                  <td>Unsold Evening Leftovers</td>
-                </tr>
-                <tr>
-                  <td><strong>Seafood</strong></td>
-                  <td>18.1 kg</td>
-                  <td><strong style="color:var(--risk-high-text);">325,800 MMK</strong></td>
-                  <td>12.7%</td>
-                  <td>Chill Storage Sensitivity</td>
+                  <td colspan="5" style="text-align:center; padding:3rem; color:var(--text-muted);">
+                    <div style="font-size:2rem; margin-bottom:0.5rem;">📈</div>
+                    <div style="font-weight:700; color:var(--text-main); font-size:1.05rem;">No Waste Logs Recorded Yet</div>
+                    <div style="font-size:0.85rem; margin-top:0.25rem;">Log waste events in the Waste Records section to view category analytics.</div>
+                  </td>
                 </tr>
               </tbody>
             </table>

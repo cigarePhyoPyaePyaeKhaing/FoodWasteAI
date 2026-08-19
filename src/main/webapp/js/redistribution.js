@@ -21,6 +21,12 @@ const Redistribution = {
   },
 
   async init() {
+    window.addEventListener('languageChanged', () => {
+      this.renderTable();
+      this.renderRecipientsTable();
+      this.updateKpis();
+    });
+
     await Promise.all([
       this.fetchRecipients(),
       this.fetchFoodItems(),
@@ -177,13 +183,15 @@ const Redistribution = {
       return;
     }
 
+    const isMm = typeof I18n !== 'undefined' && I18n.isMyanmar();
+
     if (!this.dispatches || this.dispatches.length === 0) {
       tbody.innerHTML = `
         <tr>
           <td colspan="7" style="text-align:center; padding:3rem; color:var(--text-muted);">
             <div style="font-size:2rem; margin-bottom:0.5rem;">🤝</div>
-            <div style="font-weight:700; color:var(--text-main); font-size:1.05rem;">No Active Dispatches</div>
-            <div style="font-size:0.85rem; margin-top:0.25rem;">Click "+ Schedule Surplus Dispatch" or trigger via Recommendation Directives.</div>
+            <div style="font-weight:700; color:var(--text-main); font-size:1.05rem;" data-i18n="redist.emptyTitle">${isMm ? 'ပိုလျှံသော အစားအစာ မရှိသေးပါ' : 'No surplus available'}</div>
+            <div style="font-size:0.85rem; margin-top:0.25rem;">${isMm ? '"+ ပိုလျှံစာရင်း အသစ်ထည့်မည်" သို့မဟုတ် AI အကြံပြုချက်များမှတစ်ဆင့် ဆောင်ရွက်ပါ။' : 'Click "+ Schedule Surplus Dispatch" or trigger via AI Recommendation Directives.'}</div>
           </td>
         </tr>
       `;
@@ -204,19 +212,22 @@ const Redistribution = {
         statusLabel = 'PENDING';
       }
 
+      const statusDisplay = typeof I18n !== 'undefined' ? I18n.translateStatus(statusLabel) : statusLabel;
+      const notes = typeof I18n !== 'undefined' ? (I18n.getDynamic(d, 'notes') || d.notes) : (d.notes || 'Surplus rescue dispatch');
+
       const qtyFmt = Number(d.quantity || 0).toFixed(2) + ' ' + (d.unit || 'kg');
-      const pickupFmt = d.pickupTime ? d.pickupTime.replace('T', ' ').substring(0, 16) : 'Scheduled';
+      const pickupFmt = d.pickupTime ? d.pickupTime.replace('T', ' ').substring(0, 16) : (isMm ? 'သတ်မှတ်ဆဲ' : 'Scheduled');
 
       let actionBtns = '';
       if (d.status === 'COLLECTED' || d.status === 'COMPLETED') {
-        actionBtns = `<span class="badge-bubble badge-risk-low">✅ Delivered & Rescued</span>`;
+        actionBtns = `<span class="badge-bubble badge-risk-low">${isMm ? '✅ ပို့ဆောင်လှူဒါန်းပြီး' : '✅ Delivered & Rescued'}</span>`;
       } else if (d.status === 'CANCELLED') {
-        actionBtns = `<span class="badge-bubble badge-risk-high">✕ Cancelled</span>`;
+        actionBtns = `<span class="badge-bubble badge-risk-high">${isMm ? '✕ ပယ်ဖျက်ပြီး' : '✕ Cancelled'}</span>`;
       } else {
         actionBtns = `
           <div style="display:flex; gap:0.4rem; justify-content:flex-end;">
-            <button class="btn-bubble btn-glass-subtle btn-sm-bubble" style="color:#ef4444;" onclick="Redistribution.updateStatus(${d.id}, 'CANCELLED')">Cancel</button>
-            <button class="btn-bubble btn-yellow btn-sm-bubble" onclick="Redistribution.updateStatus(${d.id}, 'COMPLETED')">Mark Completed</button>
+            <button class="btn-bubble btn-glass-subtle btn-sm-bubble" style="color:#ef4444;" onclick="Redistribution.updateStatus(${d.id}, 'CANCELLED')">${isMm ? 'ပယ်ဖျက်မည်' : 'Cancel'}</button>
+            <button class="btn-bubble btn-yellow btn-sm-bubble" onclick="Redistribution.updateStatus(${d.id}, 'COMPLETED')">${isMm ? 'ပြီးစီးကြောင်း မှတ်မည်' : 'Mark Completed'}</button>
           </div>
         `;
       }
@@ -226,9 +237,9 @@ const Redistribution = {
           <td><strong>${this.escapeHtml(d.foodItemName || ('Food Item #' + d.foodItemId))}</strong></td>
           <td><strong style="font-size:1rem; color:var(--accent-yellow-dark);">${this.escapeHtml(qtyFmt)}</strong></td>
           <td>${this.escapeHtml(d.recipientName || ('Recipient #' + d.recipientId))}</td>
-          <td style="color:var(--text-muted); font-size:0.85rem;">${this.escapeHtml(d.notes || 'Surplus rescue dispatch')}</td>
+          <td style="color:var(--text-muted); font-size:0.85rem;">${this.escapeHtml(notes || (isMm ? 'ပိုလျှံအစားအစာ လှူဒါန်းမှု' : 'Surplus rescue dispatch'))}</td>
           <td>${this.escapeHtml(pickupFmt)}</td>
-          <td><span class="badge-bubble ${badgeClass}">${this.escapeHtml(statusLabel)}</span></td>
+          <td><span class="badge-bubble ${badgeClass}">${this.escapeHtml(statusDisplay)}</span></td>
           <td style="text-align:right;">
             ${actionBtns}
           </td>

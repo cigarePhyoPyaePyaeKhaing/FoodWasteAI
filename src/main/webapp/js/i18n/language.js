@@ -7,8 +7,8 @@ const I18n = {
 
   init() {
     const saved = localStorage.getItem('foodwaste_lang');
-    if (saved === 'mm' || saved === 'en') {
-      this.currentLang = saved;
+    if (saved === 'mm' || saved === 'my' || saved === 'en') {
+      this.currentLang = (saved === 'my') ? 'mm' : saved;
     } else {
       this.currentLang = 'en';
     }
@@ -21,19 +21,86 @@ const I18n = {
     return this.currentLang;
   },
 
+  isMyanmar() {
+    return this.currentLang === 'mm' || this.currentLang === 'my';
+  },
+
   setLanguage(lang) {
-    if (lang !== 'en' && lang !== 'mm') return;
-    this.currentLang = lang;
-    localStorage.setItem('foodwaste_lang', lang);
+    if (lang !== 'en' && lang !== 'mm' && lang !== 'my') return;
+    const normalized = (lang === 'my') ? 'mm' : lang;
+    this.currentLang = normalized;
+    localStorage.setItem('foodwaste_lang', normalized);
     this.applyTranslations();
     this.updateSwitcherUI();
 
     // Trigger custom event for dynamic controllers to re-render
-    window.dispatchEvent(new CustomEvent('languageChanged', { detail: { language: lang } }));
+    window.dispatchEvent(new CustomEvent('languageChanged', { detail: { language: normalized } }));
+  },
+
+  /**
+   * Resolves dynamic bilingual field from database objects
+   * e.g. I18n.getDynamic(recommendation, 'title')
+   */
+  getDynamic(obj, field) {
+    if (!obj) return '';
+    if (this.isMyanmar()) {
+      return obj[field + '_my'] || obj[field + 'My'] || obj[field + '_en'] || obj[field + 'En'] || obj[field] || '';
+    }
+    return obj[field + '_en'] || obj[field + 'En'] || obj[field] || '';
+  },
+
+  translateRisk(risk) {
+    if (!risk) return '';
+    const upper = String(risk).toUpperCase();
+    if (this.isMyanmar()) {
+      if (upper === 'HIGH') return 'အန္တရာယ်မြင့်';
+      if (upper === 'MEDIUM' || upper === 'MED') return 'အလယ်အလတ်';
+      if (upper === 'LOW') return 'အန္တရာယ်နည်း';
+    }
+    return upper;
+  },
+
+  translateCategory(cat) {
+    if (!cat) return '';
+    const upper = String(cat).toUpperCase();
+    if (this.isMyanmar()) {
+      if (upper === 'URGENT') return 'အရေးပေါ်';
+      if (upper === 'IMPORTANT') return 'အရေးကြီး';
+      if (upper === 'OPTIMIZATION') return 'စီမံညှိနှိုင်းမှု';
+      if (upper === 'REDISTRIBUTION') return 'ပြန်လည်လှူဒါန်းမှု';
+    }
+    return upper;
+  },
+
+  translateStatus(status) {
+    if (!status) return '';
+    const upper = String(status).toUpperCase();
+    if (this.isMyanmar()) {
+      if (upper === 'PENDING') return 'စောင့်ဆိုင်းဆဲ';
+      if (upper === 'CONFIRMED') return 'အတည်ပြုပြီး';
+      if (upper === 'COLLECTED' || upper === 'COMPLETED') return 'ပြီးစီး';
+      if (upper === 'ACCEPTED') return 'လက်ခံပြီး';
+      if (upper === 'DISMISSED' || upper === 'CANCELLED') return 'ပယ်ဖျက်ပြီး';
+    }
+    return upper;
+  },
+
+  translateError(err) {
+    if (!err) return 'An error occurred';
+    const msg = typeof err === 'string' ? err : (err.message || err.error || JSON.stringify(err));
+    if (this.isMyanmar()) {
+      if (msg.includes('Recipient not found')) return 'ပရဟိတ အဖွဲ့အစည်းကို ရှာမတွေ့ပါ သို့မဟုတ် ပိတ်ထားပါသည်';
+      if (msg.includes('Food item not found')) return 'ကုန်ပစ္စည်းကို ရှာမတွေ့ပါ';
+      if (msg.includes('greater than zero')) return 'ပမာဏသည် သုညထက် ကြီးရပါမည်';
+      if (msg.includes('Invalid credentials')) return 'အသုံးပြုသူအမည် သို့မဟုတ် လျှို့ဝှက်နံပါတ် မှားယွင်းနေပါသည်';
+      if (msg.includes('Unauthorized')) return 'ဝင်ရောက်ခွင့် မရှိပါ';
+      if (msg.includes('Network') || msg.includes('Failed to fetch')) return 'ကွန်ရက် ချိတ်ဆက်မှု မအောင်မြင်ပါ';
+    }
+    return msg;
   },
 
   t(key, defaultText = '') {
-    const dict = this.currentLang === 'mm' ? window.I18N_MM : window.I18N_EN;
+    const dict = this.isMyanmar() ? window.I18N_MM : window.I18N_EN;
     if (dict && dict[key]) {
       return dict[key];
     }

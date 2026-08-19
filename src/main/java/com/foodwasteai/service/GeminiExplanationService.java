@@ -192,13 +192,13 @@ public class GeminiExplanationService {
         } catch (Exception e) {
             logger.error("Error in GeminiExplanationService: {}", e.getMessage(), e);
             if (isMyanmar) {
-                response.setExplanation("ကျွန်ုပ်တို့၏ SWI-Prolog ယုတ္တိဗေဒစနစ်မှ လက်ရှိကုန်ပစ္စည်းများကို ဆန်းစစ်ပြီးဖြစ်ပါသည်။ အန္တရာယ်မြင့် ကြက်သားအတွက် မနက်ဖြန် ထုတ်လုပ်မှု ၂၅% လျှော့ချရန်နှင့် ပိုလျှံပါက ပရဟိတသို့ လှူဒါန်းရန် အကြံပြုပါသည်။");
-                response.setSourceEngine("FoodWaste AI Fallback Reasoner");
-                response.addSmartAction(new SmartAction("ကြက်သား ထုတ်လုပ်မှု ၂၅% လျှော့ချမည်", "REDUCE_PRODUCTION", "အရေးပေါ်", "foodItemId=1"));
+                response.setExplanation("ကျွန်ုပ်တို့၏ SWI-Prolog ယုတ္တိဗေဒစနစ်မှ မီးဖိုချောင် စာရင်းအင်းများကို ဆန်းစစ်ပေးပါသည်။ လက်ရှိတွင် စာရင်းသွင်းထားသော ကုန်ပစ္စည်း မရှိသေးပါက Inventory သို့ သွားရောက် ထည့်သွင်းပေးပါ။");
+                response.setSourceEngine("FoodWaste AI Reasoner");
+                response.addSmartAction(new SmartAction("ကုန်ပစ္စည်းလက်ကျန် ကြည့်ရှုမည်", "VIEW_INVENTORY", "အချက်အလက်", "/inventory.html"));
             } else {
-                response.setExplanation("Our SWI-Prolog expert reasoning system evaluated current inventory. High-risk items include Fresh Chicken Breast (82% waste risk due to 1-day expiry and surplus stock). We recommend reducing tomorrow's prep by 25% and featuring Salad in lunch specials.");
-                response.setSourceEngine("FoodWaste AI Fallback Reasoner");
-                response.addSmartAction(new SmartAction("Reduce Chicken Production by 25%", "REDUCE_PRODUCTION", "URGENT", "foodItemId=1"));
+                response.setExplanation("Our SWI-Prolog expert reasoning system evaluates live kitchen inventory. Please ensure food items are recorded in the Inventory section to generate waste predictions and mitigation directives.");
+                response.setSourceEngine("FoodWaste AI Reasoner");
+                response.addSmartAction(new SmartAction("View Kitchen Inventory", "VIEW_INVENTORY", "INFO", "/inventory.html"));
             }
         }
 
@@ -300,6 +300,54 @@ public class GeminiExplanationService {
         String lowerQuery = query.toLowerCase();
         boolean isMm = "mm".equalsIgnoreCase(lang);
 
+        // Handle completely empty inventory
+        if (inventory == null || inventory.isEmpty() || items == null || items.isEmpty()) {
+            if (lowerQuery.contains("donat") || lowerQuery.contains("redistribut") || lowerQuery.contains("charit") || lowerQuery.contains("ngo") || lowerQuery.contains("လှူဒါန်း")) {
+                StringBuilder recipientBlockMm = new StringBuilder();
+                StringBuilder recipientBlockEn = new StringBuilder();
+
+                if (recipients != null && !recipients.isEmpty()) {
+                    int idx = 1;
+                    for (RedistributionRecipient r : recipients) {
+                        recipientBlockMm.append(String.format("%d. 🏢 **%s** (%s, ဖုန်း: %s)\n", idx, r.getName(), r.getContactPerson(), r.getPhone()));
+                        recipientBlockEn.append(String.format("%d. 🏢 **%s** (%s, Contact: %s, Phone: %s)\n", idx, r.getName(), r.getOrganizationType(), r.getContactPerson(), r.getPhone()));
+                        idx++;
+                    }
+                } else {
+                    recipientBlockMm.append("*(လက်ရှိတွင် စနစ်အတွင်း မှတ်ပုံတင်ထားသော ပရဟိတ မိတ်ဖက်အဖွဲ့အစည်း မရှိသေးပါ)*\n");
+                    recipientBlockEn.append("*(No verified charity partners currently registered in database)*\n");
+                }
+
+                if (isMm) {
+                    return "### 🤝 ပိုလျှံအစားအစာ ပြန်လည်လှူဒါန်းရေး အစီအစဉ်\n\n" +
+                           "လက်ရှိတွင် လှူဒါန်းရန် ပိုလျှံအစားအစာ စာရင်း မရှိသေးပါ။\n\n" +
+                           "**မှတ်ပုံတင်ထားသော ပရဟိတ မိတ်ဖက်အဖွဲ့အစည်းများ:**\n" +
+                           recipientBlockMm.toString() + "\n" +
+                           "💡 *ပိုလျှံအစားအစာများ ရှိလာပါက Redistribution ကဏ္ဍတွင် အချိန်ဇယားဆွဲနိုင်ပါသည်။*";
+                } else {
+                    return "### 🤝 Surplus Food Redistribution Directory\n\n" +
+                           "No surplus food items are currently flagged for donation in your inventory.\n\n" +
+                           "**Verified Charity Partners Available for Pickup:**\n" +
+                           recipientBlockEn.toString() + "\n" +
+                           "💡 *When surplus food is identified, you can schedule dispatches in the Redistribution tab.*";
+                }
+            }
+
+            if (isMm) {
+                return "### 🍃 FoodWaste AI နေ့စဉ် မီးဖိုချောင် အနှစ်ချုပ် အစီရင်ခံစာ\n\n" +
+                       "လက်ရှိ မီးဖိုချောင် စာရင်းအတွင်း ကုန်ပစ္စည်း မရှိသေးပါ။\n\n" +
+                       "**ဆောင်ရွက်ရန်:**\n" +
+                       "၁။ 📦 **Inventory (ကုန်ပစ္စည်းလက်ကျန်)** သို့သွား၍ အစားအစာများကို ထည့်သွင်းပါ။\n" +
+                       "၂။ ⚡ **SWI-Prolog Expert Engine** မှ အလေအလွင့် အန္တရာယ်နှင့် စီမံခန့်ခွဲမှု အကြံပြုချက်များကို အလိုအလျောက် တွက်ချက်ပေးမည် ဖြစ်ပါသည်။";
+            } else {
+                return "### 🍃 FoodWaste AI Daily Intelligence Summary\n\n" +
+                       "No inventory items currently exist in your kitchen inventory.\n\n" +
+                       "**Next Steps:**\n" +
+                       "1. 📦 Navigate to **Inventory** and add your restaurant food items.\n" +
+                       "2. ⚡ The **SWI-Prolog Expert Engine** will automatically evaluate waste risk probabilities and generate intelligent mitigation directives.";
+            }
+        }
+
         // 1. Chicken specific query
         if (lowerQuery.contains("chicken") || lowerQuery.contains("poultry") || lowerQuery.contains("ကြက်သား")) {
             PrologAssessment chicken = items.stream().filter(i -> i.getFoodName().toLowerCase().contains("chicken") || i.getFoodName().contains("ကြက်သား")).findFirst().orElse(null);
@@ -310,19 +358,23 @@ public class GeminiExplanationService {
                 if (isMm) {
                     return String.format(
                             "### 🍗 ကြက်သား အလေအလွင့် အန္တရာယ် ဆန်းစစ်ချက်\n\n" +
-                            "**အန္တရာယ် အဆင့်အတန်း:** အန္တရာယ်မြင့် (၈၂%%)\n\n" +
+                            "**အန္တရာယ် အဆင့်အတန်း:** %s (%d%%)\n\n" +
                             "**Prolog ယုတ္တိဗေဒ အကြောင်းရင်းများ:**\n" +
-                            "- သက်တမ်းကုန်ဆုံးရက် နီးကပ်နေပါသည် (၁-၂ ရက်အတွင်း)\n" +
-                            "- လက်ကျန်ပမာဏသည် ခန့်မှန်းလိုအပ်ချက်ထက် ပိုမိုများပြားနေပါသည်\n\n" +
+                            "%s\n\n" +
                             "**လက်ရှိ စာရင်းအင်း အချက်အလက်များ:**\n" +
-                            "- **လက်ကျန်ပမာဏ:** %.1f kg (သက်တမ်းကုန်ရန် ၁ ရက်သာ ကျန်ရှိ)\n" +
+                            "- **လက်ကျန်ပမာဏ:** %.1f kg (သက်တမ်းကုန်ရန် %d ရက်ကျန်ရှိ)\n" +
                             "- **ခန့်မှန်းလိုအပ်ချက်:** %.1f kg\n" +
                             "- **ပိုလျှံနေသော ပမာဏ:** %.1f kg\n\n" +
                             "**AI အကြံပြုချက်:**\n" +
-                            "💡 မနက်ဖြန် ထုတ်လုပ်မှုပမာဏကို ၁၅-၂၅%% လျှော့ချပါ။ ညနေ ၄:၀၀ နာရီတွင် ပိုလျှံမှု ၁၀ ကီလိုဂရမ်ထက် ကျော်လွန်ပါက %s သို့ လှူဒါန်းရန် အကြံပြုပါသည်။",
+                            "💡 %s။ ပိုလျှံမှုရှိပါက %s သို့ လှူဒါန်းနိုင်ပါသည်။",
+                            chicken.getRiskLevel(),
+                            Math.round(chicken.getRiskPercentage()),
+                            chicken.getReasons().stream().map(r -> "- " + r).reduce((a, b) -> a + "\n" + b).orElse("- သက်တမ်းကုန်ဆုံးရက် နီးကပ်နေပါသည်"),
                             chicken.getStock(),
+                            chicken.getExpiryDays(),
                             chicken.getExpectedDemand(),
                             Math.max(0, chicken.getStock() - chicken.getExpectedDemand()),
+                            chicken.getRecommendation(),
                             partnerNameMm
                     );
                 } else {
@@ -332,15 +384,16 @@ public class GeminiExplanationService {
                             "**Prolog Logical Reasons:**\n" +
                             "%s\n\n" +
                             "**Operational Metrics:**\n" +
-                            "- **Current Stock:** %.1f kg (Expiry: 1 day remaining)\n" +
+                            "- **Current Stock:** %.1f kg (Expiry: %d day(s) remaining)\n" +
                             "- **Expected Demand:** %.1f kg\n" +
                             "- **Surplus Inventory:** %.1f kg\n\n" +
                             "**Smart AI Recommendation:**\n" +
-                            "💡 %s. If surplus exceeds 10 kg by 16:00, dispatch a donation batch to %s.",
+                            "💡 %s. Surplus can be dispatched to %s.",
                             chicken.getRiskLevel(),
                             Math.round(chicken.getRiskPercentage()),
-                            chicken.getReasons().stream().map(r -> "- " + r).reduce((a, b) -> a + "\n" + b).orElse("- Expiry within 24 hours"),
+                            chicken.getReasons().stream().map(r -> "- " + r).reduce((a, b) -> a + "\n" + b).orElse("- Expiry approaching"),
                             chicken.getStock(),
+                            chicken.getExpiryDays(),
                             chicken.getExpectedDemand(),
                             Math.max(0, chicken.getStock() - chicken.getExpectedDemand()),
                             chicken.getRecommendation(),
@@ -367,48 +420,26 @@ public class GeminiExplanationService {
                 recipientBlockEn.append("*(No verified charity partners currently registered in database)*\n");
             }
 
+            long eligibleCount = items.stream().filter(PrologAssessment::isRecommendRedistribution).count();
+
             if (isMm) {
                 return "### 🤝 ပိုလျှံအစားအစာ ပြန်လည်လှူဒါန်းရေး အစီအစဉ်\n\n" +
-                       "SWI-Prolog စည်းမျဉ်း `evaluate_redistribution/6` အရ အောက်ပါပစ္စည်းများကို ချက်ချင်း လှူဒါန်းနိုင်ပါသည်:\n\n" +
-                       "- **ကြက်သား:** ပိုလျှံ ၁၅.၀ ကီလိုဂရမ် (သက်တမ်း ၁ ရက် ကျန်ရှိသဖြင့် လှူဒါန်းရန် သင့်တော်ပါသည်)\n" +
-                       "- **ပေါင်မုန့်:** ပိုလျှံ ၁၂ ခု (ညနေခင်း ပိုလျှံမုန့်များ)\n\n" +
+                       String.format("SWI-Prolog စည်းမျဉ်း `evaluate_redistribution/6` အရ လက်ရှိတွင် လှူဒါန်းရန် သင့်တော်သော ပစ္စည်း %d မျိုး ရှိပါသည်:\n\n", eligibleCount) +
                        "**လက်ခံမည့် ပရဟိတ မိတ်ဖက်အဖွဲ့အစည်းများ:**\n" +
                        recipientBlockMm.toString() + "\n" +
                        "💡 *အောက်ပါ ခလုတ်ကို နှိပ်၍ လှူဒါန်းမှု အချိန်ဇယားဆွဲနိုင်ပါသည်။*";
             } else {
                 return "### 🤝 Surplus Food Redistribution Plan\n\n" +
-                       "Based on SWI-Prolog evaluation rule `evaluate_redistribution/6`, the following items are eligible for immediate food rescue:\n\n" +
-                       "- **Fresh Chicken Breast:** 15.0 kg surplus eligible (Safe donation window: 1 day remaining)\n" +
-                       "- **Artisan Sliced Bread:** 12.0 units evening bakery surplus\n\n" +
+                       String.format("Based on SWI-Prolog evaluation rule `evaluate_redistribution/6`, %d surplus food item(s) are eligible for charity donation:\n\n", eligibleCount) +
                        "**Verified Charity Partners Available for Pickup:**\n" +
                        recipientBlockEn.toString() + "\n" +
-                       "💡 *Click below to schedule courier dispatch.*";
+                       "💡 *Click below or go to Redistribution tab to schedule courier dispatch.*";
             }
         }
 
-        // 3. Rice / Grains query
-        if (lowerQuery.contains("rice") || lowerQuery.contains("grain") || lowerQuery.contains("ဆန်")) {
-            if (isMm) {
-                return "### 🌾 ပေါ်ဆန်းမွှေးဆန် လက်ကျန်အခြေအနေ\n\n" +
-                       "**အန္တရာယ် အဆင့်အတန်း:** အန္တရာယ်နည်း (၂၀%)\n" +
-                       "- **လက်ရှိ ကုန်ပစ္စည်းလက်ကျန်:** ၁၂၀.၀ ကီလိုဂရမ် (သက်တမ်း ၆၀ ရက်ကျော် ကျန်ရှိ)\n" +
-                       "- **ခန့်မှန်း စားသုံးမှုပမာဏ:** ၇၂.၀ ကီလိုဂရမ်\n" +
-                       "- **Prolog တွေ့ရှိချက်:** လက်ကျန်ပမာဏနှင့် ဝယ်လိုအား မျှတနေပြီး အလေအလွင့်နှုန်း အလွန်နည်းပါးပါသည် (၂%)\n\n" +
-                       "💡 **လုပ်ဆောင်ချက်:** ပုံမှန် ချက်ပြုတ်ထုတ်လုပ်မှုအတိုင်း ဆက်လက်ထိန်းသိမ်းနိုင်ပါသည်။ အရေးပေါ် စီမံရန်မလိုပါ။";
-            } else {
-                return "### 🌾 Jasmine Rice Inventory Health\n\n" +
-                       "**Risk Level:** LOW (20%)\n" +
-                       "- **Current Stock:** 120.0 kg (Safe shelf life > 60 days)\n" +
-                       "- **Expected Consumption:** 72.0 kg\n" +
-                       "- **Prolog Finding:** Stock is balanced with customer demand; low historical waste rate (2%).\n\n" +
-                       "💡 **Action:** Maintain standard scheduled production batch. No emergency intervention needed.";
-            }
-        }
-
-        // 4. Default comprehensive overview
+        // 3. Default comprehensive overview
         long highCount = items.stream().filter(i -> "HIGH".equalsIgnoreCase(i.getRiskLevel())).count();
         double totalSurplus = items.stream().mapToDouble(i -> Math.max(0, i.getStock() - i.getExpectedDemand())).sum();
-
         String partnerSummaryMm = (recipients != null && !recipients.isEmpty()) ? recipients.get(0).getName() : "ပရဟိတ အဖွဲ့အစည်း";
         String partnerSummaryEn = (recipients != null && !recipients.isEmpty()) ? recipients.get(0).getName() : "a verified food bank";
 
@@ -417,13 +448,9 @@ public class GeminiExplanationService {
                     "### 🍃 FoodWaste AI နေ့စဉ် မီးဖိုချောင် အနှစ်ချုပ် အစီရင်ခံစာ\n\n" +
                     "ကျွန်ုပ်တို့၏ **SWI-Prolog Expert Engine** မှ မီးဖိုချောင်ရှိ ကုန်ပစ္စည်း %d မျိုးကို ဆန်းစစ်တွက်ချက်ပြီး ဖြစ်ပါသည်:\n\n" +
                     "**အဓိက တွေ့ရှိချက်များ:**\n" +
-                    "- **အန္တရာယ်မြင့် ကုန်ပစ္စည်းများ:** %d မျိုး (ကြက်သား၊ အသီးအရွက်သုပ်)\n" +
-                    "- **ခန့်မှန်း ပိုလျှံအလေအလွင့်:** %.1f kg\n" +
-                    "- **ကာကွယ်နိုင်မည့် ဆုံးရှုံးမှု:** ~၃၅,၀၀၀ ကျပ်\n\n" +
-                    "**ဆောင်ရွက်ရန် အကြံပြုချက်များ:**\n" +
-                    "၁။ ⚡ **ကြက်သား (၈၂%% အန္တရာယ်):** မနက်ဖြန် မနက်ခင်း ပြင်ဆင်ချက်ပြုတ်မှု ၂၅%% လျှော့ချပါ။\n" +
-                    "၂။ 🥗 **အသီးအရွက်သုပ် (၈၂%% အန္တရာယ်):** နေ့လယ်စာ အထူးပရိုမိုးရှင်းတွင် ဦးစားပေး ရောင်းချပါ။\n" +
-                    "၃။ 🤝 **ပိုလျှံအစားအစာ လှူဒါန်းမှု:** ပိုလျှံကြက်သား ၁၅ ကီလိုဂရမ်ကို %s သို့ လှူဒါန်းနိုင်ပါသည်။\n\n" +
+                    "- **အန္တရာယ်မြင့် ကုန်ပစ္စည်းများ:** %d မျိုး\n" +
+                    "- **ခန့်မှန်း ပိုလျှံအလေအလွင့်:** %.1f kg\n\n" +
+                    "**မိတ်ဖက် အဖွဲ့အစည်းများ:** %s\n\n" +
                     "မည်သည့် အစားအစာ သို့မဟုတ် လုပ်ဆောင်ချက်ကို အသေးစိတ် ဆက်လက်စစ်ဆေးလိုပါသလဲ?",
                     inventory.size(), highCount, totalSurplus, partnerSummaryMm
             );
@@ -432,13 +459,9 @@ public class GeminiExplanationService {
                     "### 🍃 FoodWaste AI Daily Intelligence Summary\n\n" +
                     "Our **SWI-Prolog Expert Engine** analyzed %d food items across your live MySQL inventory.\n\n" +
                     "**Key Findings:**\n" +
-                    "- **High Waste Risk Items:** %d items (Fresh Chicken Breast, Salad Mix)\n" +
-                    "- **Estimated Total Surplus:** %.1f kg\n" +
-                    "- **Potential Preventable Loss:** ~35,000 MMK\n\n" +
-                    "**Top Actionable Directives:**\n" +
-                    "1. ⚠️ **Chicken Breast (82%% Risk):** Reduce tomorrow's morning prep batch by 25%%.\n" +
-                    "2. 🥗 **Salad Mix (82%% Risk):** Prioritize in tomorrow's lunch specials combo.\n" +
-                    "3. 🤝 **Food Rescue:** 15 kg surplus chicken eligible for dispatch to %s.\n\n" +
+                    "- **High Waste Risk Items:** %d items\n" +
+                    "- **Estimated Total Surplus:** %.1f kg\n\n" +
+                    "**Partner Directory:** %s\n\n" +
                     "What specific item or operational action would you like to explore?",
                     inventory.size(), highCount, totalSurplus, partnerSummaryEn
             );

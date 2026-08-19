@@ -38,6 +38,11 @@ public class RecommendationRedistributionTest {
     @Test
     @DisplayName("Should retrieve and filter recommendations by category and status")
     public void testRecommendationRetrieval() throws SQLException {
+        foodItemService.createFoodItem(
+                new FoodItem(null, "Test Urgent Item " + System.currentTimeMillis(), "Poultry",
+                        new BigDecimal("50.00"), "kg", new BigDecimal("6500.00"),
+                        LocalDate.now().plusDays(1), new BigDecimal("10.00")), 1L
+        );
         recommendationService.generateRecommendationsFromProlog();
         List<Recommendation> all = recommendationService.getAllRecommendations();
         assertFalse(all.isEmpty(), "Recommendations should not be empty");
@@ -58,6 +63,11 @@ public class RecommendationRedistributionTest {
     @Test
     @DisplayName("Should generate fresh recommendations from Prolog reasoning")
     public void testGenerateFromProlog() throws SQLException {
+        foodItemService.createFoodItem(
+                new FoodItem(null, "Test Urgent Prolog Item " + System.currentTimeMillis(), "Poultry",
+                        new BigDecimal("50.00"), "kg", new BigDecimal("6500.00"),
+                        LocalDate.now().plusDays(1), new BigDecimal("10.00")), 1L
+        );
         List<Recommendation> generated = recommendationService.generateRecommendationsFromProlog();
         assertNotNull(generated);
         assertFalse(generated.isEmpty());

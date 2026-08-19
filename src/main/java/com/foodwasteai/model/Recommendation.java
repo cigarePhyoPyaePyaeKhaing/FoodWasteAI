@@ -36,8 +36,14 @@ public class Recommendation implements Serializable {
     private Category category;
     private RiskLevel riskLevel;
     private String title;
+    private String titleEn;
+    private String titleMy;
     private String description;
+    private String descriptionEn;
+    private String descriptionMy;
     private String reasoningDetails;
+    private String reasoningDetailsEn;
+    private String reasoningDetailsMy;
     private BigDecimal estimatedSavings;
     private Status status;
     private LocalDateTime createdAt;
@@ -92,6 +98,35 @@ public class Recommendation implements Serializable {
 
     public void setTitle(String title) {
         this.title = title;
+        if (this.titleEn == null) {
+            this.titleEn = title;
+        }
+    }
+
+    public String getTitleEn() {
+        return titleEn != null ? titleEn : title;
+    }
+
+    public void setTitleEn(String titleEn) {
+        this.titleEn = titleEn;
+        if (this.title == null) {
+            this.title = titleEn;
+        }
+    }
+
+    public String getTitleMy() {
+        return titleMy;
+    }
+
+    public void setTitleMy(String titleMy) {
+        this.titleMy = titleMy;
+    }
+
+    public String getTitle(String lang) {
+        if ("mm".equalsIgnoreCase(lang) || "my".equalsIgnoreCase(lang)) {
+            return (titleMy != null && !titleMy.isEmpty()) ? titleMy : getTitleEn();
+        }
+        return getTitleEn();
     }
 
     public String getDescription() {
@@ -100,6 +135,35 @@ public class Recommendation implements Serializable {
 
     public void setDescription(String description) {
         this.description = description;
+        if (this.descriptionEn == null) {
+            this.descriptionEn = description;
+        }
+    }
+
+    public String getDescriptionEn() {
+        return descriptionEn != null ? descriptionEn : description;
+    }
+
+    public void setDescriptionEn(String descriptionEn) {
+        this.descriptionEn = descriptionEn;
+        if (this.description == null) {
+            this.description = descriptionEn;
+        }
+    }
+
+    public String getDescriptionMy() {
+        return descriptionMy;
+    }
+
+    public void setDescriptionMy(String descriptionMy) {
+        this.descriptionMy = descriptionMy;
+    }
+
+    public String getDescription(String lang) {
+        if ("mm".equalsIgnoreCase(lang) || "my".equalsIgnoreCase(lang)) {
+            return (descriptionMy != null && !descriptionMy.isEmpty()) ? descriptionMy : getDescriptionEn();
+        }
+        return getDescriptionEn();
     }
 
     public String getReasoningDetails() {
@@ -108,6 +172,35 @@ public class Recommendation implements Serializable {
 
     public void setReasoningDetails(String reasoningDetails) {
         this.reasoningDetails = reasoningDetails;
+        if (this.reasoningDetailsEn == null) {
+            this.reasoningDetailsEn = reasoningDetails;
+        }
+    }
+
+    public String getReasoningDetailsEn() {
+        return reasoningDetailsEn != null ? reasoningDetailsEn : reasoningDetails;
+    }
+
+    public void setReasoningDetailsEn(String reasoningDetailsEn) {
+        this.reasoningDetailsEn = reasoningDetailsEn;
+        if (this.reasoningDetails == null) {
+            this.reasoningDetails = reasoningDetailsEn;
+        }
+    }
+
+    public String getReasoningDetailsMy() {
+        return reasoningDetailsMy;
+    }
+
+    public void setReasoningDetailsMy(String reasoningDetailsMy) {
+        this.reasoningDetailsMy = reasoningDetailsMy;
+    }
+
+    public String getReasoningDetails(String lang) {
+        if ("mm".equalsIgnoreCase(lang) || "my".equalsIgnoreCase(lang)) {
+            return (reasoningDetailsMy != null && !reasoningDetailsMy.isEmpty()) ? reasoningDetailsMy : getReasoningDetailsEn();
+        }
+        return getReasoningDetailsEn();
     }
 
     public BigDecimal getEstimatedSavings() {

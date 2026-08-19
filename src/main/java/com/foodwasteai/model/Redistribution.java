@@ -28,6 +28,8 @@ public class Redistribution implements Serializable {
     private LocalDateTime pickupTime;
     private Status status;
     private String notes;
+    private String notesEn;
+    private String notesMy;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -112,6 +114,35 @@ public class Redistribution implements Serializable {
 
     public void setNotes(String notes) {
         this.notes = notes;
+        if (this.notesEn == null) {
+            this.notesEn = notes;
+        }
+    }
+
+    public String getNotesEn() {
+        return notesEn != null ? notesEn : notes;
+    }
+
+    public void setNotesEn(String notesEn) {
+        this.notesEn = notesEn;
+        if (this.notes == null) {
+            this.notes = notesEn;
+        }
+    }
+
+    public String getNotesMy() {
+        return notesMy;
+    }
+
+    public void setNotesMy(String notesMy) {
+        this.notesMy = notesMy;
+    }
+
+    public String getNotes(String lang) {
+        if ("mm".equalsIgnoreCase(lang) || "my".equalsIgnoreCase(lang)) {
+            return (notesMy != null && !notesMy.isEmpty()) ? notesMy : getNotesEn();
+        }
+        return getNotesEn();
     }
 
     public LocalDateTime getCreatedAt() {

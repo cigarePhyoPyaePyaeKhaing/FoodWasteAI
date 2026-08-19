@@ -30,6 +30,8 @@ public class PredictionItem implements Serializable {
     private BigDecimal recommendedProduction;
     private String priorityUsage;
     private String reasoningText;
+    private String reasoningTextEn;
+    private String reasoningTextMy;
     private LocalDateTime createdAt;
 
     public PredictionItem() {}
@@ -145,6 +147,32 @@ public class PredictionItem implements Serializable {
 
     public void setReasoningText(String reasoningText) {
         this.reasoningText = reasoningText;
+        if (this.reasoningTextEn == null) {
+            this.reasoningTextEn = reasoningText;
+        }
+    }
+
+    public String getReasoningTextEn() {
+        return reasoningTextEn != null ? reasoningTextEn : reasoningText;
+    }
+
+    public void setReasoningTextEn(String reasoningTextEn) {
+        this.reasoningTextEn = reasoningTextEn;
+    }
+
+    public String getReasoningTextMy() {
+        return reasoningTextMy;
+    }
+
+    public void setReasoningTextMy(String reasoningTextMy) {
+        this.reasoningTextMy = reasoningTextMy;
+    }
+
+    public String getReasoningText(String lang) {
+        if ("mm".equalsIgnoreCase(lang) || "my".equalsIgnoreCase(lang)) {
+            return (reasoningTextMy != null && !reasoningTextMy.isEmpty()) ? reasoningTextMy : getReasoningTextEn();
+        }
+        return getReasoningTextEn();
     }
 
     public LocalDateTime getCreatedAt() {

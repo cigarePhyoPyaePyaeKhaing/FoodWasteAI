@@ -16,7 +16,7 @@ public class RedistributionDao extends BaseDao {
     public List<Redistribution> findAllDispatches() throws SQLException {
         List<Redistribution> list = new ArrayList<>();
         String sql = "SELECT r.id, r.food_item_id, f.name AS food_name, r.recipient_id, rc.name AS recipient_name, " +
-                     "r.quantity, r.unit, r.pickup_time, r.status, r.notes, r.created_at, r.updated_at " +
+                     "r.quantity, r.unit, r.pickup_time, r.status, r.notes, r.notes_en, r.notes_my, r.created_at, r.updated_at " +
                      "FROM redistributions r " +
                      "JOIN food_items f ON r.food_item_id = f.id " +
                      "JOIN redistribution_recipients rc ON r.recipient_id = rc.id " +
@@ -115,8 +115,8 @@ public class RedistributionDao extends BaseDao {
     }
 
     public Redistribution saveDispatch(Redistribution d) throws SQLException {
-        String sql = "INSERT INTO redistributions (food_item_id, recipient_id, quantity, unit, pickup_time, status, notes) " +
-                     "VALUES (?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO redistributions (food_item_id, recipient_id, quantity, unit, pickup_time, status, notes, notes_en, notes_my) " +
+                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             stmt.setLong(1, d.getFoodItemId());
@@ -126,6 +126,8 @@ public class RedistributionDao extends BaseDao {
             stmt.setTimestamp(5, d.getPickupTime() != null ? Timestamp.valueOf(d.getPickupTime()) : Timestamp.valueOf(java.time.LocalDateTime.now()));
             stmt.setString(6, d.getStatus() != null ? d.getStatus().name() : Redistribution.Status.PENDING.name());
             stmt.setString(7, d.getNotes());
+            stmt.setString(8, d.getNotesEn());
+            stmt.setString(9, d.getNotesMy());
 
             int affected = stmt.executeUpdate();
             if (affected > 0) {
@@ -181,6 +183,8 @@ public class RedistributionDao extends BaseDao {
             }
         }
         d.setNotes(rs.getString("notes"));
+        d.setNotesEn(rs.getString("notes_en"));
+        d.setNotesMy(rs.getString("notes_my"));
 
         Timestamp created = rs.getTimestamp("created_at");
         if (created != null) d.setCreatedAt(created.toLocalDateTime());

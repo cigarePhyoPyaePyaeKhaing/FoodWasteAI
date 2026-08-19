@@ -80,7 +80,7 @@
       <div class="topbar-right">
         <div class="system-status-bubble" style="margin-right:0.5rem;">
           <span class="status-dot-yellow"></span>
-          <span id="rec-active-count">4 Active Directives</span>
+          <span id="rec-active-count">0 Active Directives</span>
         </div>
         <button class="btn-bubble btn-yellow btn-sm-bubble" onclick="Recommendations.generateFreshDirectives()">⚡ Re-Evaluate Inventory</button>
       </div>
@@ -89,11 +89,11 @@
     <main class="content-body-float">
       <!-- Category Filter Pills -->
       <div class="category-filter-pills" style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-bottom:1.25rem;">
-        <button id="filter-btn-all" class="btn-bubble btn-yellow btn-sm-bubble" onclick="Recommendations.filter('ALL')">All Directives (4)</button>
-        <button id="filter-btn-urgent" class="btn-bubble btn-glass btn-sm-bubble" onclick="Recommendations.filter('URGENT')">Urgent (1)</button>
-        <button id="filter-btn-important" class="btn-bubble btn-glass btn-sm-bubble" onclick="Recommendations.filter('IMPORTANT')">Important (1)</button>
-        <button id="filter-btn-opt" class="btn-bubble btn-glass btn-sm-bubble" onclick="Recommendations.filter('OPTIMIZATION')">Optimization (1)</button>
-        <button id="filter-btn-redist" class="btn-bubble btn-glass btn-sm-bubble" onclick="Recommendations.filter('REDISTRIBUTION')">Redistribution (1)</button>
+        <button id="filter-btn-all" class="btn-bubble btn-yellow btn-sm-bubble" onclick="Recommendations.filter('ALL')">All Directives (0)</button>
+        <button id="filter-btn-urgent" class="btn-bubble btn-glass btn-sm-bubble" onclick="Recommendations.filter('URGENT')">Urgent (0)</button>
+        <button id="filter-btn-important" class="btn-bubble btn-glass btn-sm-bubble" onclick="Recommendations.filter('IMPORTANT')">Important (0)</button>
+        <button id="filter-btn-opt" class="btn-bubble btn-glass btn-sm-bubble" onclick="Recommendations.filter('OPTIMIZATION')">Optimization (0)</button>
+        <button id="filter-btn-redist" class="btn-bubble btn-glass btn-sm-bubble" onclick="Recommendations.filter('REDISTRIBUTION')">Redistribution (0)</button>
       </div>
 
       <div class="recommendations-grid" id="rec-grid-container">

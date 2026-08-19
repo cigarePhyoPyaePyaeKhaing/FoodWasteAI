@@ -42,7 +42,8 @@ public class PredictionDao extends BaseDao {
 
         String sql = "INSERT INTO prediction_items (prediction_id, food_item_id, current_stock, expected_demand, " +
                      "expiry_days, historical_waste_rate, risk_level, risk_percentage, predicted_waste_qty, " +
-                     "recommended_production, priority_usage, reasoning_text) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                     "recommended_production, priority_usage, reasoning_text, reasoning_text_en, reasoning_text_my) " +
+                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -59,6 +60,8 @@ public class PredictionDao extends BaseDao {
                 stmt.setBigDecimal(10, item.getRecommendedProduction());
                 stmt.setString(11, item.getPriorityUsage());
                 stmt.setString(12, item.getReasoningText());
+                stmt.setString(13, item.getReasoningTextEn());
+                stmt.setString(14, item.getReasoningTextMy());
                 stmt.addBatch();
             }
             stmt.executeBatch();
@@ -70,7 +73,7 @@ public class PredictionDao extends BaseDao {
         String sql = "SELECT pi.id, pi.prediction_id, pi.food_item_id, f.name AS food_name, pi.current_stock, " +
                      "pi.expected_demand, pi.expiry_days, pi.historical_waste_rate, pi.risk_level, " +
                      "pi.risk_percentage, pi.predicted_waste_qty, pi.recommended_production, " +
-                     "pi.priority_usage, pi.reasoning_text, pi.created_at " +
+                     "pi.priority_usage, pi.reasoning_text, pi.reasoning_text_en, pi.reasoning_text_my, pi.created_at " +
                      "FROM prediction_items pi " +
                      "JOIN food_items f ON pi.food_item_id = f.id " +
                      "WHERE pi.prediction_id = ? ORDER BY pi.risk_percentage DESC";
@@ -128,6 +131,8 @@ public class PredictionDao extends BaseDao {
         item.setRecommendedProduction(rs.getBigDecimal("recommended_production"));
         item.setPriorityUsage(rs.getString("priority_usage"));
         item.setReasoningText(rs.getString("reasoning_text"));
+        item.setReasoningTextEn(rs.getString("reasoning_text_en"));
+        item.setReasoningTextMy(rs.getString("reasoning_text_my"));
 
         Timestamp ct = rs.getTimestamp("created_at");
         if (ct != null) item.setCreatedAt(ct.toLocalDateTime());

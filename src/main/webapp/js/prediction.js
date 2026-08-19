@@ -8,6 +8,7 @@ const Prediction = {
   loading: false,
 
   async init() {
+    window.addEventListener('languageChanged', () => this.render());
     await this.fetchPredictionReport();
   },
 
@@ -41,32 +42,35 @@ const Prediction = {
   render() {
     if (!this.report) return;
 
+    const items = this.report.items || [];
+    const hasItems = items.length > 0;
+    const isMm = typeof I18n !== 'undefined' && I18n.isMyanmar();
+
     // Update KPIs
     const riskScoreEl = document.getElementById('kpi-pred-risk');
     if (riskScoreEl) {
-      riskScoreEl.textContent = (this.report.overallRiskScore || 68.0) + '%';
+      riskScoreEl.textContent = (hasItems ? (this.report.overallRiskScore || 0) : 0) + '%';
     }
 
     const wasteKgEl = document.getElementById('kpi-pred-waste');
     if (wasteKgEl) {
-      wasteKgEl.textContent = (this.report.expectedTotalWasteKg || 18.2) + ' kg';
+      wasteKgEl.textContent = (hasItems ? Number(this.report.expectedTotalWasteKg || 0).toFixed(1) : '0.0') + ' kg';
     }
 
     const savingsEl = document.getElementById('kpi-pred-savings');
     if (savingsEl) {
-      savingsEl.textContent = Number(this.report.potentialSavings || 35000).toLocaleString() + ' MMK';
+      savingsEl.textContent = Number(hasItems ? (this.report.potentialSavings || 0) : 0).toLocaleString() + ' MMK';
     }
 
     // Render Breakdown Progress Bars
     const breakdownContainer = document.getElementById('pred-breakdown-list');
-    const items = this.report.items || [];
     if (breakdownContainer) {
-      if (items.length === 0) {
+      if (!hasItems) {
         breakdownContainer.innerHTML = `
-          <div style="text-align:center; padding:2rem; color:var(--text-muted);">
-            <div style="font-size:1.8rem; margin-bottom:0.4rem;">🔮</div>
-            <div style="font-weight:700; color:var(--text-main);">No Inventory Items To Evaluate</div>
-            <div style="font-size:0.85rem; margin-top:0.25rem;">Add your restaurant items in the Inventory section to generate waste predictions.</div>
+          <div style="text-align:center; padding:2.5rem 1.5rem; color:var(--text-muted);">
+            <div style="font-size:2rem; margin-bottom:0.5rem;">🔮</div>
+            <div style="font-weight:700; color:var(--text-main); font-size:1.05rem;" data-i18n="pred.emptyTitle">${isMm ? 'ကုန်ပစ္စည်း စာရင်း မရှိသေးပါ' : 'No inventory data available'}</div>
+            <div style="font-size:0.85rem; margin-top:0.25rem;" data-i18n="pred.emptyDesc">${isMm ? 'အလေအလွင့် ခန့်မှန်းချက်များ တွက်ချက်ရန် Inventory တွင် ကုန်ပစ္စည်းများ ထည့်သွင်းပါ။' : 'Add your restaurant items in the Inventory section to generate waste predictions.'}</div>
           </div>
         `;
       } else {
@@ -77,13 +81,13 @@ const Prediction = {
           const sharePct = Math.min(100, Math.round((surplus / totalWaste) * 100)) || Math.round(item.riskPercentage);
           
           let color = '#059669';
-          let badge = 'LOW';
+          let badge = isMm ? 'အန္တရာယ်နည်း' : 'LOW';
           if (item.riskLevel === 'HIGH') {
             color = 'var(--risk-high-text)';
-            badge = 'HIGH';
+            badge = isMm ? 'အန္တရာယ်မြင့်' : 'HIGH';
           } else if (item.riskLevel === 'MEDIUM') {
             color = 'var(--risk-med-text)';
-            badge = 'MED';
+            badge = isMm ? 'အလယ်အလတ်' : 'MED';
           }
 
           return `
@@ -104,11 +108,12 @@ const Prediction = {
     // Render "Why?" Prolog Reasoning Cards
     const reasoningContainer = document.getElementById('pred-reasoning-list');
     if (reasoningContainer) {
-      if (items.length === 0) {
+      if (!hasItems) {
         reasoningContainer.innerHTML = `
-          <div style="text-align:center; padding:2rem; color:var(--text-muted); background:var(--glass-bg); border-radius:var(--radius-md); border:1px solid var(--glass-border);">
-            <div style="font-weight:700; color:var(--text-main);">🧠 No Active Prolog Explanations</div>
-            <div style="font-size:0.85rem; margin-top:0.25rem;">Once ingredients are added to inventory, the first-order logic reasoning engine will provide transparent explanations here.</div>
+          <div style="text-align:center; padding:2.5rem 1.5rem; color:var(--text-muted); background:var(--glass-bg); border-radius:var(--radius-md); border:1px solid var(--glass-border);">
+            <div style="font-size:2rem; margin-bottom:0.5rem;">🧠</div>
+            <div style="font-weight:700; color:var(--text-main); font-size:1.05rem;" data-i18n="pred.emptyTitle">${isMm ? 'ကုန်ပစ္စည်း စာရင်း မရှိသေးပါ' : 'No inventory data available'}</div>
+            <div style="font-size:0.85rem; margin-top:0.25rem;">${isMm ? 'အစားအစာများ ထည့်သွင်းပြီးပါက ပထမအဆင့် ယုတ္တိဗေဒ အင်ဂျင်မှ ရှင်းလင်းချက်များကို ဤနေရာတွင် ဖော်ပြပေးမည်ဖြစ်ပါသည်။' : 'Once ingredients are added to inventory, the first-order logic reasoning engine will provide transparent explanations here.'}</div>
           </div>
         `;
       } else {
@@ -127,15 +132,32 @@ const Prediction = {
             titleColor = 'var(--risk-med-text)';
           }
 
-          const reasonsHtml = (item.reasons || [])
-            .map(r => `<li>${r}</li>`)
-            .join('');
+          const riskBadge = typeof I18n !== 'undefined' ? I18n.translateRisk(item.riskLevel) : item.riskLevel;
+          const cardTitle = isMm
+            ? `${item.foodName} သည် အဘယ့်ကြောင့် ${riskBadge} ဖြစ်ရသနည်း (${Math.round(item.riskPercentage)}%)`
+            : `Why is ${item.foodName} ${item.riskLevel} Risk (${Math.round(item.riskPercentage)}%)?`;
+
+          let reasonsList = item.reasons || [];
+          if (isMm && item.reasonsMy && item.reasonsMy.length > 0) {
+            reasonsList = item.reasonsMy;
+          } else if (isMm && item.reasonMy) {
+            reasonsList = [item.reasonMy];
+          }
+
+          const reasonsHtml = reasonsList.map(r => `<li>${r}</li>`).join('');
+
+          let recText = item.recommendation || item.recommendedAction || 'Maintain scheduled batches.';
+          if (isMm && (item.recommendationMy || item.recommendation_my)) {
+            recText = item.recommendationMy || item.recommendation_my;
+          }
+
+          const recLabel = isMm ? '💡 အကြံပြုချက်:' : '💡 Recommendation:';
 
           return `
             <div style="background:${bg}; border:1px solid ${border}; padding:1rem; border-radius:var(--radius-md);">
               <div style="display:flex; justify-content:space-between; align-items:center;">
                 <span style="font-weight:800; color:${titleColor}; font-size:0.95rem;">
-                  Why is ${item.foodName} ${item.riskLevel} Risk (${Math.round(item.riskPercentage)}%)?
+                  ${cardTitle}
                 </span>
                 <span style="font-size:0.75rem; font-weight:700; background:rgba(255,255,255,0.8); padding:0.15rem 0.5rem; border-radius:9999px;">
                   ${item.priorityUsage || 'STANDARD'}
@@ -145,7 +167,7 @@ const Prediction = {
                 ${reasonsHtml}
               </ul>
               <div style="margin-top:0.6rem; font-size:0.85rem; font-weight:700; color:var(--text-main);">
-                💡 <strong>Recommendation:</strong> ${item.recommendation || item.recommendedAction || 'Maintain scheduled batches.'}
+                <strong>${recLabel}</strong> ${recText}
               </div>
             </div>
           `;

@@ -27,38 +27,7 @@ public class WasteService {
 
     // Memory Store Fallback
     private static final Map<Long, WasteRecord> memoryWaste = new ConcurrentHashMap<>();
-    private static final AtomicLong wasteIdGen = new AtomicLong(10);
-
-    static {
-        initFallbackWaste();
-    }
-
-    private static void initFallbackWaste() {
-        WasteRecord w1 = new WasteRecord(1L, new BigDecimal("4.50"), WasteRecord.Reason.OVERPRODUCTION, new BigDecimal("29250.00"), LocalDateTime.now().minusDays(1), "Dinner service over-prep");
-        w1.setId(1L);
-        w1.setFoodItemName("Fresh Chicken Breast");
-        w1.setCreatedAt(LocalDateTime.now().minusDays(1));
-
-        WasteRecord w2 = new WasteRecord(2L, new BigDecimal("3.20"), WasteRecord.Reason.EXPIRED, new BigDecimal("13440.00"), LocalDateTime.now().minusDays(1), "Wilted salad mix");
-        w2.setId(2L);
-        w2.setFoodItemName("Organic Garden Salad Mix");
-        w2.setCreatedAt(LocalDateTime.now().minusDays(1));
-
-        WasteRecord w3 = new WasteRecord(6L, new BigDecimal("6.00"), WasteRecord.Reason.UNSOLD, new BigDecimal("13200.00"), LocalDateTime.now().minusDays(2), "End of day bakery leftovers");
-        w3.setId(3L);
-        w3.setFoodItemName("Artisan Sliced Bread");
-        w3.setCreatedAt(LocalDateTime.now().minusDays(2));
-
-        WasteRecord w4 = new WasteRecord(3L, new BigDecimal("1.50"), WasteRecord.Reason.SPOILED, new BigDecimal("27000.00"), LocalDateTime.now().minusDays(3), "Chill drawer malfunction");
-        w4.setId(4L);
-        w4.setFoodItemName("Atlantic Salmon Fillet");
-        w4.setCreatedAt(LocalDateTime.now().minusDays(3));
-
-        memoryWaste.put(1L, w1);
-        memoryWaste.put(2L, w2);
-        memoryWaste.put(3L, w3);
-        memoryWaste.put(4L, w4);
-    }
+    private static final AtomicLong wasteIdGen = new AtomicLong(0);
 
     public WasteService() {
         this.wasteDao = new WasteRecordDao();

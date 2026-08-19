@@ -139,6 +139,14 @@ public class PrologReasoningTest {
     @Test
     @DisplayName("Case 6: End-to-end inventory evaluation pulling real items")
     public void testAllInventoryPrediction() throws SQLException {
+        com.foodwasteai.service.FoodItemService foodItemService = new com.foodwasteai.service.FoodItemService();
+        com.foodwasteai.model.FoodItem testItem = foodItemService.createFoodItem(
+                new com.foodwasteai.model.FoodItem(null, "Test Prolog Eval Item " + System.currentTimeMillis(), "Dairy",
+                        new java.math.BigDecimal("30.00"), "kg", new java.math.BigDecimal("4500.00"),
+                        java.time.LocalDate.now().plusDays(1), new java.math.BigDecimal("5.00")), 1L
+        );
+        assertNotNull(testItem.getId());
+
         Map<String, Object> report = predictionService.assessAllInventory();
 
         assertNotNull(report);

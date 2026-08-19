@@ -62,16 +62,40 @@ public class DatabaseConfig {
 
             dataSource = new HikariDataSource(config);
 
-            // Test connection
+            // Test connection and apply migrations
             try (Connection conn = dataSource.getConnection()) {
                 if (conn.isValid(2)) {
                     available = true;
+                    applyBilingualMigrations(conn);
                     logger.info("Database connection established successfully!");
                 }
             }
         } catch (Exception e) {
             logger.warn("Database connection could not be established: {}. Running in offline/mock fallback mode.", e.getMessage());
             available = false;
+        }
+    }
+
+    private static void applyBilingualMigrations(Connection conn) {
+        String[] migrations = {
+            "ALTER TABLE prediction_items ADD COLUMN reasoning_text_en TEXT",
+            "ALTER TABLE prediction_items ADD COLUMN reasoning_text_my TEXT",
+            "ALTER TABLE recommendations ADD COLUMN title_en VARCHAR(200)",
+            "ALTER TABLE recommendations ADD COLUMN title_my VARCHAR(200)",
+            "ALTER TABLE recommendations ADD COLUMN description_en TEXT",
+            "ALTER TABLE recommendations ADD COLUMN description_my TEXT",
+            "ALTER TABLE recommendations ADD COLUMN reasoning_details_en TEXT",
+            "ALTER TABLE recommendations ADD COLUMN reasoning_details_my TEXT",
+            "ALTER TABLE redistributions ADD COLUMN notes_en TEXT",
+            "ALTER TABLE redistributions ADD COLUMN notes_my TEXT"
+        };
+
+        for (String sql : migrations) {
+            try (java.sql.Statement stmt = conn.createStatement()) {
+                stmt.executeUpdate(sql);
+            } catch (SQLException ignored) {
+                // Column already exists or table not yet created
+            }
         }
     }
 

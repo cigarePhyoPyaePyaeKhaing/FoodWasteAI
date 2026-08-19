@@ -172,9 +172,19 @@ public class DatabaseTestingRunner {
         System.out.println("Overall Risk Score: " + predictionReport.get("overallRiskScore") + "%");
         System.out.println("High Risk Item Count: " + predictionReport.get("highRiskItemCount"));
         System.out.println("Expected Total Waste: " + predictionReport.get("expectedTotalWasteKg") + " kg");
-        System.out.println("Potential Savings: " + predictionReport.get("potentialSavings") + " MMK");
-        System.out.println("AI Engine: " + predictionReport.get("engine"));
-        System.out.println("==================================================================================");
+        // Clean up test items so no sample data remains in production database
+        try (Connection conn = DatabaseConfig.getConnection();
+             Statement stmt = conn.createStatement()) {
+            stmt.executeUpdate("DELETE FROM inventory_transactions");
+            stmt.executeUpdate("DELETE FROM sales");
+            stmt.executeUpdate("DELETE FROM waste_records");
+            stmt.executeUpdate("DELETE FROM redistributions");
+            stmt.executeUpdate("DELETE FROM recommendations");
+            stmt.executeUpdate("DELETE FROM prediction_items");
+            stmt.executeUpdate("DELETE FROM predictions");
+            stmt.executeUpdate("DELETE FROM food_items");
+        }
+        System.out.println("Cleaned up temporary test inventory. Production database is zero-state clean.");
     }
 
     private void executeSqlScript(Connection conn, String scriptPath) throws Exception {

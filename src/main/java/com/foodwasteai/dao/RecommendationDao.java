@@ -14,7 +14,8 @@ public class RecommendationDao extends BaseDao {
 
     public Optional<Recommendation> findById(Long id) throws SQLException {
         String sql = "SELECT r.id, r.food_item_id, f.name AS food_name, r.category, r.risk_level, " +
-                     "r.title, r.description, r.reasoning_details, r.estimated_savings, r.status, r.created_at, r.updated_at " +
+                     "r.title, r.title_en, r.title_my, r.description, r.description_en, r.description_my, " +
+                     "r.reasoning_details, r.reasoning_details_en, r.reasoning_details_my, r.estimated_savings, r.status, r.created_at, r.updated_at " +
                      "FROM recommendations r JOIN food_items f ON r.food_item_id = f.id WHERE r.id = ?";
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -31,7 +32,8 @@ public class RecommendationDao extends BaseDao {
     public List<Recommendation> findAll() throws SQLException {
         List<Recommendation> list = new ArrayList<>();
         String sql = "SELECT r.id, r.food_item_id, f.name AS food_name, r.category, r.risk_level, " +
-                     "r.title, r.description, r.reasoning_details, r.estimated_savings, r.status, r.created_at, r.updated_at " +
+                     "r.title, r.title_en, r.title_my, r.description, r.description_en, r.description_my, " +
+                     "r.reasoning_details, r.reasoning_details_en, r.reasoning_details_my, r.estimated_savings, r.status, r.created_at, r.updated_at " +
                      "FROM recommendations r JOIN food_items f ON r.food_item_id = f.id " +
                      "ORDER BY FIELD(r.category, 'URGENT', 'IMPORTANT', 'REDISTRIBUTION', 'OPTIMIZATION'), r.created_at DESC";
         try (Connection conn = getConnection();
@@ -47,7 +49,8 @@ public class RecommendationDao extends BaseDao {
     public List<Recommendation> findByStatus(Recommendation.Status status) throws SQLException {
         List<Recommendation> list = new ArrayList<>();
         String sql = "SELECT r.id, r.food_item_id, f.name AS food_name, r.category, r.risk_level, " +
-                     "r.title, r.description, r.reasoning_details, r.estimated_savings, r.status, r.created_at, r.updated_at " +
+                     "r.title, r.title_en, r.title_my, r.description, r.description_en, r.description_my, " +
+                     "r.reasoning_details, r.reasoning_details_en, r.reasoning_details_my, r.estimated_savings, r.status, r.created_at, r.updated_at " +
                      "FROM recommendations r JOIN food_items f ON r.food_item_id = f.id " +
                      "WHERE r.status = ? ORDER BY r.created_at DESC";
         try (Connection conn = getConnection();
@@ -63,18 +66,26 @@ public class RecommendationDao extends BaseDao {
     }
 
     public Recommendation save(Recommendation rec) throws SQLException {
-        String sql = "INSERT INTO recommendations (food_item_id, category, risk_level, title, description, reasoning_details, estimated_savings, status) " +
-                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO recommendations (food_item_id, category, risk_level, title, title_en, title_my, " +
+                     "description, description_en, description_my, reasoning_details, reasoning_details_en, reasoning_details_my, " +
+                     "estimated_savings, status) " +
+                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             stmt.setLong(1, rec.getFoodItemId());
             stmt.setString(2, rec.getCategory().name());
             stmt.setString(3, rec.getRiskLevel().name());
             stmt.setString(4, rec.getTitle());
-            stmt.setString(5, rec.getDescription());
-            stmt.setString(6, rec.getReasoningDetails());
-            stmt.setBigDecimal(7, rec.getEstimatedSavings());
-            stmt.setString(8, rec.getStatus() != null ? rec.getStatus().name() : Recommendation.Status.PENDING.name());
+            stmt.setString(5, rec.getTitleEn());
+            stmt.setString(6, rec.getTitleMy());
+            stmt.setString(7, rec.getDescription());
+            stmt.setString(8, rec.getDescriptionEn());
+            stmt.setString(9, rec.getDescriptionMy());
+            stmt.setString(10, rec.getReasoningDetails());
+            stmt.setString(11, rec.getReasoningDetailsEn());
+            stmt.setString(12, rec.getReasoningDetailsMy());
+            stmt.setBigDecimal(13, rec.getEstimatedSavings());
+            stmt.setString(14, rec.getStatus() != null ? rec.getStatus().name() : Recommendation.Status.PENDING.name());
 
             int affected = stmt.executeUpdate();
             if (affected > 0) {
@@ -114,8 +125,14 @@ public class RecommendationDao extends BaseDao {
         rec.setCategory(Recommendation.Category.valueOf(rs.getString("category")));
         rec.setRiskLevel(Recommendation.RiskLevel.valueOf(rs.getString("risk_level")));
         rec.setTitle(rs.getString("title"));
+        rec.setTitleEn(rs.getString("title_en"));
+        rec.setTitleMy(rs.getString("title_my"));
         rec.setDescription(rs.getString("description"));
+        rec.setDescriptionEn(rs.getString("description_en"));
+        rec.setDescriptionMy(rs.getString("description_my"));
         rec.setReasoningDetails(rs.getString("reasoning_details"));
+        rec.setReasoningDetailsEn(rs.getString("reasoning_details_en"));
+        rec.setReasoningDetailsMy(rs.getString("reasoning_details_my"));
         rec.setEstimatedSavings(rs.getBigDecimal("estimated_savings"));
         rec.setStatus(Recommendation.Status.valueOf(rs.getString("status")));
 

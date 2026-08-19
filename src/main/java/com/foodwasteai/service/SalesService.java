@@ -27,38 +27,7 @@ public class SalesService {
 
     // Memory Store Fallback
     private static final Map<Long, Sale> memorySales = new ConcurrentHashMap<>();
-    private static final AtomicLong salesIdGen = new AtomicLong(10);
-
-    static {
-        initFallbackSales();
-    }
-
-    private static void initFallbackSales() {
-        Sale s1 = new Sale(1L, new BigDecimal("28.00"), new BigDecimal("6500.00"), new BigDecimal("182000.00"), 45, LocalDateTime.now().minusHours(2));
-        s1.setId(1L);
-        s1.setFoodItemName("Fresh Chicken Breast");
-        s1.setCreatedAt(LocalDateTime.now().minusHours(2));
-
-        Sale s2 = new Sale(2L, new BigDecimal("14.00"), new BigDecimal("4200.00"), new BigDecimal("58800.00"), 32, LocalDateTime.now().minusHours(3));
-        s2.setId(2L);
-        s2.setFoodItemName("Organic Garden Salad Mix");
-        s2.setCreatedAt(LocalDateTime.now().minusHours(3));
-
-        Sale s3 = new Sale(3L, new BigDecimal("8.00"), new BigDecimal("18000.00"), new BigDecimal("144000.00"), 20, LocalDateTime.now().minusHours(4));
-        s3.setId(3L);
-        s3.setFoodItemName("Atlantic Salmon Fillet");
-        s3.setCreatedAt(LocalDateTime.now().minusHours(4));
-
-        Sale s4 = new Sale(4L, new BigDecimal("25.00"), new BigDecimal("2800.00"), new BigDecimal("70000.00"), 80, LocalDateTime.now().minusHours(5));
-        s4.setId(4L);
-        s4.setFoodItemName("Premium Jasmine Rice");
-        s4.setCreatedAt(LocalDateTime.now().minusHours(5));
-
-        memorySales.put(1L, s1);
-        memorySales.put(2L, s2);
-        memorySales.put(3L, s3);
-        memorySales.put(4L, s4);
-    }
+    private static final AtomicLong salesIdGen = new AtomicLong(0);
 
     public SalesService() {
         this.salesDao = new SalesDao();

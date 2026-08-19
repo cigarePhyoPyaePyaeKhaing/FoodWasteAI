@@ -21,8 +21,13 @@ public class PrologAssessment implements Serializable {
     private String risk; // Output alias for riskLevel
     private double riskPercentage; // e.g., 85.0%
     private List<String> reasons = new ArrayList<>();
+    private List<String> reasonsMy = new ArrayList<>();
     private String reason; // Primary explanation reason
+    private String reasonEn;
+    private String reasonMy;
     private String recommendation; // Actionable summary recommendation
+    private String recommendationEn;
+    private String recommendationMy;
     private double recommendedProduction;
     private String recommendedAction;
     private String priorityUsage; // IMMEDIATE_USE, HIGH_PRIORITY, MODERATE_PRIORITY, STANDARD
@@ -30,6 +35,46 @@ public class PrologAssessment implements Serializable {
     private String engineUsed; // "SWI-Prolog Expert Engine" or "Development Safe Fallback"
 
     public PrologAssessment() {}
+
+    public String getReasonEn() {
+        return reasonEn != null ? reasonEn : getReason();
+    }
+
+    public void setReasonEn(String reasonEn) {
+        this.reasonEn = reasonEn;
+    }
+
+    public String getReasonMy() {
+        return reasonMy;
+    }
+
+    public void setReasonMy(String reasonMy) {
+        this.reasonMy = reasonMy;
+    }
+
+    public String getRecommendationEn() {
+        return recommendationEn != null ? recommendationEn : getRecommendation();
+    }
+
+    public void setRecommendationEn(String recommendationEn) {
+        this.recommendationEn = recommendationEn;
+    }
+
+    public String getRecommendationMy() {
+        return recommendationMy;
+    }
+
+    public void setRecommendationMy(String recommendationMy) {
+        this.recommendationMy = recommendationMy;
+    }
+
+    public List<String> getReasonsMy() {
+        return reasonsMy;
+    }
+
+    public void setReasonsMy(List<String> reasonsMy) {
+        this.reasonsMy = reasonsMy;
+    }
 
     // Getters and Setters
     public Long getFoodItemId() {

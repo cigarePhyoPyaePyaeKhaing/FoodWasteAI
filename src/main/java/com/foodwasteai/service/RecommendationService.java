@@ -26,70 +26,7 @@ public class RecommendationService {
 
     // Memory store fallback
     private static final Map<Long, Recommendation> memoryRecs = new ConcurrentHashMap<>();
-    private static final AtomicLong recIdGen = new AtomicLong(10);
-
-    static {
-        initFallbackRecommendations();
-    }
-
-    private static void initFallbackRecommendations() {
-        Recommendation r1 = new Recommendation();
-        r1.setId(1L);
-        r1.setFoodItemId(1L);
-        r1.setFoodItemName("Fresh Chicken Breast");
-        r1.setCategory(Recommendation.Category.URGENT);
-        r1.setRiskLevel(Recommendation.RiskLevel.HIGH);
-        r1.setTitle("Reduce Tomorrow's Chicken Production by 15-25%");
-        r1.setDescription("Current stock is 50.0 kg against 30.0 kg expected demand with 1-day expiry. Reducing scheduled morning prep exhausts stock safely.");
-        r1.setReasoningDetails("Prolog Rule: assess_waste_risk(50, 30, 1, 0.22, high) -> recommend_production(50, 30, 33, high, 25, 'Reduce tomorrow production')");
-        r1.setEstimatedSavings(new BigDecimal("25000.00"));
-        r1.setStatus(Recommendation.Status.PENDING);
-        r1.setCreatedAt(LocalDateTime.now().minusHours(2));
-
-        Recommendation r2 = new Recommendation();
-        r2.setId(2L);
-        r2.setFoodItemId(2L);
-        r2.setFoodItemName("Organic Garden Salad Mix");
-        r2.setCategory(Recommendation.Category.IMPORTANT);
-        r2.setRiskLevel(Recommendation.RiskLevel.HIGH);
-        r2.setTitle("Prioritize Salad in Tomorrow's Lunch Menu Specials");
-        r2.setDescription("18.5 kg fresh salad mix expires in 2 days. Feature salad combo specials during lunch rush to accelerate kitchen turnover.");
-        r2.setReasoningDetails("Prolog Rule: evaluate_priority_use(2, high, IMMEDIATE_USE)");
-        r2.setEstimatedSavings(new BigDecimal("10000.00"));
-        r2.setStatus(Recommendation.Status.PENDING);
-        r2.setCreatedAt(LocalDateTime.now().minusHours(3));
-
-        Recommendation r3 = new Recommendation();
-        r3.setId(3L);
-        r3.setFoodItemId(1L);
-        r3.setFoodItemName("Fresh Chicken Breast");
-        r3.setCategory(Recommendation.Category.REDISTRIBUTION);
-        r3.setRiskLevel(Recommendation.RiskLevel.MEDIUM);
-        r3.setTitle("Dispatch Surplus Chicken to Hope Food Bank");
-        r3.setDescription("If 10+ kg portion remains by 16:00, dispatch verified charity donation batch to Hope Community Food Bank before expiry cutoff.");
-        r3.setReasoningDetails("Prolog Rule: evaluate_redistribution(50, 30, 1, 20, true, Reason)");
-        r3.setEstimatedSavings(new BigDecimal("0.00"));
-        r3.setStatus(Recommendation.Status.PENDING);
-        r3.setCreatedAt(LocalDateTime.now().minusHours(4));
-
-        Recommendation r4 = new Recommendation();
-        r4.setId(4L);
-        r4.setFoodItemId(4L);
-        r4.setFoodItemName("Premium Jasmine Rice");
-        r4.setCategory(Recommendation.Category.OPTIMIZATION);
-        r4.setRiskLevel(Recommendation.RiskLevel.LOW);
-        r4.setTitle("Maintain Standard Production Batches for Jasmine Rice");
-        r4.setDescription("Safe shelf-life (> 60 days) and regular consumption. Reorder point is optimally calibrated.");
-        r4.setReasoningDetails("Prolog Rule: recommend_production(120, 72, 80, low, 80, 'Maintain standard scheduled batch')");
-        r4.setEstimatedSavings(new BigDecimal("5000.00"));
-        r4.setStatus(Recommendation.Status.PENDING);
-        r4.setCreatedAt(LocalDateTime.now().minusHours(5));
-
-        memoryRecs.put(1L, r1);
-        memoryRecs.put(2L, r2);
-        memoryRecs.put(3L, r3);
-        memoryRecs.put(4L, r4);
-    }
+    private static final AtomicLong recIdGen = new AtomicLong(0);
 
     public RecommendationService() {
         this.recommendationDao = new RecommendationDao();
@@ -307,6 +244,28 @@ public class RecommendationService {
     }
 
     private void saveRecommendation(Recommendation r) throws SQLException {
+        TranslationService translator = TranslationService.getInstance();
+        if (r.getTitleEn() == null && r.getTitle() != null) {
+            r.setTitleEn(r.getTitle());
+        }
+        if (r.getTitleMy() == null && r.getTitleEn() != null) {
+            r.setTitleMy(translator.translateToMyanmar(r.getTitleEn()));
+        }
+
+        if (r.getDescriptionEn() == null && r.getDescription() != null) {
+            r.setDescriptionEn(r.getDescription());
+        }
+        if (r.getDescriptionMy() == null && r.getDescriptionEn() != null) {
+            r.setDescriptionMy(translator.translateToMyanmar(r.getDescriptionEn()));
+        }
+
+        if (r.getReasoningDetailsEn() == null && r.getReasoningDetails() != null) {
+            r.setReasoningDetailsEn(r.getReasoningDetails());
+        }
+        if (r.getReasoningDetailsMy() == null && r.getReasoningDetailsEn() != null) {
+            r.setReasoningDetailsMy(translator.translateToMyanmar(r.getReasoningDetailsEn()));
+        }
+
         if (DatabaseConfig.isAvailable()) {
             recommendationDao.save(r);
         } else {

@@ -106,6 +106,21 @@ public class RedistributionService {
             dispatch.setStatus(Redistribution.Status.CONFIRMED);
         }
 
+        TranslationService translator = TranslationService.getInstance();
+        if (dispatch.getNotes() != null && !dispatch.getNotes().trim().isEmpty()) {
+            if (dispatch.getNotesEn() == null) {
+                dispatch.setNotesEn(dispatch.getNotes());
+            }
+            if (dispatch.getNotesMy() == null) {
+                dispatch.setNotesMy(translator.translateToMyanmar(dispatch.getNotesEn()));
+            }
+        } else {
+            String defaultNotesEn = "Surplus food donation of " + dispatch.getQuantity() + " " + dispatch.getUnit() + " to " + dispatch.getRecipientName();
+            dispatch.setNotes(defaultNotesEn);
+            dispatch.setNotesEn(defaultNotesEn);
+            dispatch.setNotesMy(translator.translateToMyanmar(defaultNotesEn));
+        }
+
         if (!DatabaseConfig.isAvailable()) {
             throw new SQLException("Database connection is unavailable to save redistribution record");
         }

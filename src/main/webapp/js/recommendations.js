@@ -67,6 +67,8 @@ const Recommendations = {
       return;
     }
 
+    const isMm = typeof I18n !== 'undefined' && I18n.isMyanmar();
+
     const filtered = this.recommendations.filter(r => {
       if (r.status === 'DISMISSED') return false;
       if (this.currentCategory === 'ALL') return true;
@@ -76,9 +78,9 @@ const Recommendations = {
     if (filtered.length === 0) {
       container.innerHTML = `
         <div style="grid-column: 1 / -1; text-align:center; padding:3rem; color:var(--text-muted); background:var(--glass-bg); border-radius:var(--radius-lg); border:1px solid var(--glass-border);">
-          <div style="font-size:2rem; margin-bottom:0.5rem;">🎉</div>
-          <div style="font-weight:700; color:var(--text-main); font-size:1.05rem;">All Directives Addressed</div>
-          <div style="font-size:0.85rem; margin-top:0.25rem;">No active recommendations in this category. Click "⚡ Re-Evaluate Inventory" to generate fresh directives.</div>
+          <div style="font-size:2rem; margin-bottom:0.5rem;">💡</div>
+          <div style="font-weight:700; color:var(--text-main); font-size:1.05rem;" data-i18n="rec.emptyTitle">${isMm ? 'လက်ရှိ အကြံပြုချက် မရှိသေးပါ' : 'No active recommendations'}</div>
+          <div style="font-size:0.85rem; margin-top:0.25rem;">${isMm ? 'ဤကဏ္ဍတွင် အကြံပြုချက် မရှိသေးပါ။ အကြံပြုချက်အသစ်များ ထုတ်ယူရန် "⚡ Re-Evaluate Inventory" ကို နှိပ်ပါ။' : 'No active recommendations in this category. Click "⚡ Re-Evaluate Inventory" to generate fresh directives.'}</div>
         </div>
       `;
       return;
@@ -102,46 +104,54 @@ const Recommendations = {
       if (r.riskLevel === 'HIGH') riskBadgeClass = 'badge-risk-high';
       else if (r.riskLevel === 'LOW') riskBadgeClass = 'badge-risk-low';
 
+      const catLabel = typeof I18n !== 'undefined' ? I18n.translateCategory(r.category) : r.category;
+      const riskLabel = typeof I18n !== 'undefined' ? I18n.translateRisk(r.riskLevel) : r.riskLevel;
+      const title = typeof I18n !== 'undefined' ? I18n.getDynamic(r, 'title') : (r.title || '');
+      const desc = typeof I18n !== 'undefined' ? I18n.getDynamic(r, 'description') : (r.description || '');
+      const reasoning = typeof I18n !== 'undefined' ? (I18n.getDynamic(r, 'reasoningDetails') || I18n.getDynamic(r, 'reasoning_details') || r.reasoningDetails) : (r.reasoningDetails || '');
+
       const savings = Number(r.estimatedSavings || 0);
       let savingsBadge = '';
       if (r.category === 'REDISTRIBUTION') {
-        savingsBadge = `<span style="font-weight:800; color:#7e22ce; background:rgba(168,85,247,0.15); padding:0.25rem 0.75rem; border-radius:var(--radius-pill);">🤝 Food Rescue</span>`;
+        savingsBadge = `<span style="font-weight:800; color:#7e22ce; background:rgba(168,85,247,0.15); padding:0.25rem 0.75rem; border-radius:var(--radius-pill);">${isMm ? '🤝 အစားအစာ ကယ်ဆယ်ရေး' : '🤝 Food Rescue'}</span>`;
       } else if (savings > 0) {
         savingsBadge = `<span style="font-weight:800; color:var(--accent-yellow-dark); background:var(--accent-yellow-100); padding:0.25rem 0.75rem; border-radius:var(--radius-pill);">+${savings.toLocaleString()} MMK</span>`;
       } else {
-        savingsBadge = `<span style="font-weight:700; color:#047857; background:rgba(209,250,229,0.5); padding:0.25rem 0.75rem; border-radius:var(--radius-pill);">Standard Batch</span>`;
+        savingsBadge = `<span style="font-weight:700; color:#047857; background:rgba(209,250,229,0.5); padding:0.25rem 0.75rem; border-radius:var(--radius-pill);">${isMm ? 'ပုံမှန် ထုတ်လုပ်မှု' : 'Standard Batch'}</span>`;
       }
 
       const isAccepted = r.status === 'ACCEPTED';
       let actionButtons = '';
 
       if (isAccepted) {
-        actionButtons = `<span class="badge-bubble badge-risk-low" style="padding:0.4rem 1rem;">✅ Applied & Active</span>`;
+        actionButtons = `<span class="badge-bubble badge-risk-low" style="padding:0.4rem 1rem;">${isMm ? '✅ လက်ခံဆောင်ရွက်ပြီး' : '✅ Applied & Active'}</span>`;
       } else if (r.category === 'REDISTRIBUTION') {
         actionButtons = `
-          <button class="btn-bubble btn-glass btn-sm-bubble" onclick="Recommendations.dismiss(${r.id})">Dismiss</button>
-          <a href="/redistribution.html?foodItemId=${r.foodItemId}&foodName=${encodeURIComponent(r.foodItemName || '')}" class="btn-bubble btn-yellow btn-sm-bubble" style="text-decoration:none;">🤝 Schedule Redistribution</a>
+          <button class="btn-bubble btn-glass btn-sm-bubble" onclick="Recommendations.dismiss(${r.id})">${isMm ? 'ပယ်ဖျက်မည်' : 'Dismiss'}</button>
+          <a href="/redistribution.html?foodItemId=${r.foodItemId}&foodName=${encodeURIComponent(r.foodItemName || '')}" class="btn-bubble btn-yellow btn-sm-bubble" style="text-decoration:none;">${isMm ? '🤝 လှူဒါန်းမှု အချိန်ဇယားဆွဲမည်' : '🤝 Schedule Redistribution'}</a>
         `;
       } else {
         actionButtons = `
-          <button class="btn-bubble btn-glass btn-sm-bubble" onclick="Recommendations.dismiss(${r.id})">Dismiss</button>
-          <button class="btn-bubble btn-yellow btn-sm-bubble" onclick="Recommendations.accept(${r.id})">Accept & Apply</button>
+          <button class="btn-bubble btn-glass btn-sm-bubble" onclick="Recommendations.dismiss(${r.id})">${isMm ? 'ပယ်ဖျက်မည်' : 'Dismiss'}</button>
+          <button class="btn-bubble btn-yellow btn-sm-bubble" onclick="Recommendations.accept(${r.id})">${isMm ? 'လက်ခံကျင့်သုံးမည်' : 'Accept & Apply'}</button>
         `;
       }
+
+      const reasonLabel = isMm ? '🧠 အကြောင်းရင်း:' : '🧠 Prolog Reason:';
 
       return `
         <div class="rec-card-bubble" data-category="${r.category}" style="border-top: 4px solid ${borderTop};">
           <div class="rec-header-row">
             <div style="display:flex; gap:0.4rem; align-items:center;">
-              <span class="badge-bubble ${badgeClass}">${r.category}</span>
-              <span class="badge-bubble ${riskBadgeClass}">${r.riskLevel} RISK</span>
+              <span class="badge-bubble ${badgeClass}">${catLabel}</span>
+              <span class="badge-bubble ${riskBadgeClass}">${riskLabel} ${isMm ? '' : 'RISK'}</span>
             </div>
             ${savingsBadge}
           </div>
-          <h3 class="rec-title-text">${r.title}</h3>
-          <p class="rec-desc-text">${r.description}</p>
+          <h3 class="rec-title-text">${title}</h3>
+          <p class="rec-desc-text">${desc}</p>
           <div class="rec-prolog-pill">
-            <strong>🧠 Prolog Reason:</strong> <code>${r.reasoningDetails || 'Prolog expert reasoning rule'}</code>
+            <strong>${reasonLabel}</strong> <code>${reasoning || (isMm ? 'Prolog အကြံပြုချက် စည်းမျဉ်း' : 'Prolog expert reasoning rule')}</code>
           </div>
           <div class="rec-footer-actions">
             ${actionButtons}
@@ -157,10 +167,11 @@ const Recommendations = {
     const importantCount = activeRecs.filter(r => r.category === 'IMPORTANT').length;
     const optCount = activeRecs.filter(r => r.category === 'OPTIMIZATION').length;
     const redistCount = activeRecs.filter(r => r.category === 'REDISTRIBUTION').length;
+    const isMm = typeof I18n !== 'undefined' && I18n.isMyanmar();
 
-    const statusBadge = document.getElementById('rec-active-count');
-    if (statusBadge) {
-      statusBadge.textContent = `${activeRecs.length} Active Directives`;
+    const activeCountEl = document.getElementById('rec-active-count');
+    if (activeCountEl) {
+      activeCountEl.textContent = isMm ? `${activeRecs.length} ခု ဆောင်ရွက်ရန်ရှိ` : `${activeRecs.length} Active Directives`;
     }
 
     const btnAll = document.getElementById('filter-btn-all');

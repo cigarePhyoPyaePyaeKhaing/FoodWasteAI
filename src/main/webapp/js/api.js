@@ -72,6 +72,15 @@ const API = {
       document.body.appendChild(container);
     }
 
+    let displayMessage = message;
+    if (typeof I18n !== 'undefined' && I18n.isMyanmar()) {
+      if (type === 'error') {
+        displayMessage = I18n.translateError(message);
+      } else {
+        displayMessage = I18n.t(message, I18n.translateError(message));
+      }
+    }
+
     const toast = document.createElement('div');
     const bgColors = {
       success: '#15803d',
@@ -92,7 +101,7 @@ const API = {
       align-items:center;
       gap:8px;
     `;
-    toast.textContent = message;
+    toast.textContent = displayMessage;
     container.appendChild(toast);
 
     setTimeout(() => {

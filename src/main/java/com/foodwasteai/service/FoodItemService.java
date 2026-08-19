@@ -26,53 +26,9 @@ public class FoodItemService {
     private final FoodItemDao foodItemDao;
     private final InventoryTransactionDao transactionDao;
 
-    // In-memory fallback repository when DB is offline
+    // In-memory store when DB is offline
     private static final Map<Long, FoodItem> memoryStore = new ConcurrentHashMap<>();
-    private static final AtomicLong idGenerator = new AtomicLong(10);
-
-    static {
-        // Seed fallback data
-        initFallbackData();
-    }
-
-    private static void initFallbackData() {
-        FoodItem i1 = new FoodItem(1L, "Fresh Chicken Breast", "Poultry", new BigDecimal("50.00"), "kg",
-                new BigDecimal("6500.00"), LocalDate.now().plusDays(1), new BigDecimal("15.00"));
-        i1.setStatus("NEAR_EXPIRY");
-        i1.setCreatedAt(LocalDateTime.now().minusDays(3));
-
-        FoodItem i2 = new FoodItem(2L, "Organic Garden Salad Mix", "Produce", new BigDecimal("18.50"), "kg",
-                new BigDecimal("4200.00"), LocalDate.now().plusDays(2), new BigDecimal("5.00"));
-        i2.setStatus("NEAR_EXPIRY");
-        i2.setCreatedAt(LocalDateTime.now().minusDays(2));
-
-        FoodItem i3 = new FoodItem(3L, "Atlantic Salmon Fillet", "Seafood", new BigDecimal("12.00"), "kg",
-                new BigDecimal("18000.00"), LocalDate.now().plusDays(3), new BigDecimal("4.00"));
-        i3.setStatus("OK");
-        i3.setCreatedAt(LocalDateTime.now().minusDays(1));
-
-        FoodItem i4 = new FoodItem(4L, "Premium Jasmine Rice", "Grains", new BigDecimal("120.00"), "kg",
-                new BigDecimal("2800.00"), LocalDate.now().plusDays(60), new BigDecimal("25.00"));
-        i4.setStatus("OK");
-        i4.setCreatedAt(LocalDateTime.now().minusDays(10));
-
-        FoodItem i5 = new FoodItem(5L, "Pasteurized Whole Milk", "Dairy", new BigDecimal("30.00"), "liters",
-                new BigDecimal("3500.00"), LocalDate.now().plusDays(4), new BigDecimal("10.00"));
-        i5.setStatus("OK");
-        i5.setCreatedAt(LocalDateTime.now().minusDays(2));
-
-        FoodItem i6 = new FoodItem(6L, "Artisan Sliced Bread", "Bakery", new BigDecimal("25.00"), "units",
-                new BigDecimal("2200.00"), LocalDate.now().plusDays(2), new BigDecimal("8.00"));
-        i6.setStatus("NEAR_EXPIRY");
-        i6.setCreatedAt(LocalDateTime.now().minusDays(1));
-
-        memoryStore.put(1L, i1);
-        memoryStore.put(2L, i2);
-        memoryStore.put(3L, i3);
-        memoryStore.put(4L, i4);
-        memoryStore.put(5L, i5);
-        memoryStore.put(6L, i6);
-    }
+    private static final AtomicLong idGenerator = new AtomicLong(0);
 
     public FoodItemService() {
         this.foodItemDao = new FoodItemDao();
