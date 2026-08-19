@@ -304,6 +304,9 @@ public class GeminiExplanationService {
         if (lowerQuery.contains("chicken") || lowerQuery.contains("poultry") || lowerQuery.contains("ကြက်သား")) {
             PrologAssessment chicken = items.stream().filter(i -> i.getFoodName().toLowerCase().contains("chicken") || i.getFoodName().contains("ကြက်သား")).findFirst().orElse(null);
             if (chicken != null) {
+                String partnerNameMm = (recipients != null && !recipients.isEmpty()) ? "**" + recipients.get(0).getName() + "**" : "ပရဟိတ မိတ်ဖက်အဖွဲ့အစည်း";
+                String partnerNameEn = (recipients != null && !recipients.isEmpty()) ? "**" + recipients.get(0).getName() + "**" : "a verified charity partner";
+
                 if (isMm) {
                     return String.format(
                             "### 🍗 ကြက်သား အလေအလွင့် အန္တရာယ် ဆန်းစစ်ချက်\n\n" +
@@ -316,10 +319,11 @@ public class GeminiExplanationService {
                             "- **ခန့်မှန်းလိုအပ်ချက်:** %.1f kg\n" +
                             "- **ပိုလျှံနေသော ပမာဏ:** %.1f kg\n\n" +
                             "**AI အကြံပြုချက်:**\n" +
-                            "💡 မနက်ဖြန် ထုတ်လုပ်မှုပမာဏကို ၁၅-၂၅%% လျှော့ချပါ။ ညနေ ၄:၀၀ နာရီတွင် ပိုလျှံမှု ၁၀ ကီလိုဂရမ်ထက် ကျော်လွန်ပါက **Hope Community Food Bank** သို့ လှူဒါန်းရန် အကြံပြုပါသည်။",
+                            "💡 မနက်ဖြန် ထုတ်လုပ်မှုပမာဏကို ၁၅-၂၅%% လျှော့ချပါ။ ညနေ ၄:၀၀ နာရီတွင် ပိုလျှံမှု ၁၀ ကီလိုဂရမ်ထက် ကျော်လွန်ပါက %s သို့ လှူဒါန်းရန် အကြံပြုပါသည်။",
                             chicken.getStock(),
                             chicken.getExpectedDemand(),
-                            Math.max(0, chicken.getStock() - chicken.getExpectedDemand())
+                            Math.max(0, chicken.getStock() - chicken.getExpectedDemand()),
+                            partnerNameMm
                     );
                 } else {
                     return String.format(
@@ -332,14 +336,15 @@ public class GeminiExplanationService {
                             "- **Expected Demand:** %.1f kg\n" +
                             "- **Surplus Inventory:** %.1f kg\n\n" +
                             "**Smart AI Recommendation:**\n" +
-                            "💡 %s. If surplus exceeds 10 kg by 16:00, dispatch a donation batch to **Hope Community Food Bank**.",
+                            "💡 %s. If surplus exceeds 10 kg by 16:00, dispatch a donation batch to %s.",
                             chicken.getRiskLevel(),
                             Math.round(chicken.getRiskPercentage()),
                             chicken.getReasons().stream().map(r -> "- " + r).reduce((a, b) -> a + "\n" + b).orElse("- Expiry within 24 hours"),
                             chicken.getStock(),
                             chicken.getExpectedDemand(),
                             Math.max(0, chicken.getStock() - chicken.getExpectedDemand()),
-                            chicken.getRecommendation()
+                            chicken.getRecommendation(),
+                            partnerNameEn
                     );
                 }
             }
@@ -347,14 +352,28 @@ public class GeminiExplanationService {
 
         // 2. Donation / Redistribution query
         if (lowerQuery.contains("donat") || lowerQuery.contains("redistribut") || lowerQuery.contains("charit") || lowerQuery.contains("ngo") || lowerQuery.contains("လှူဒါန်း")) {
+            StringBuilder recipientBlockMm = new StringBuilder();
+            StringBuilder recipientBlockEn = new StringBuilder();
+
+            if (recipients != null && !recipients.isEmpty()) {
+                int idx = 1;
+                for (RedistributionRecipient r : recipients) {
+                    recipientBlockMm.append(String.format("%d. 🏢 **%s** (%s, ဖုန်း: %s)\n", idx, r.getName(), r.getContactPerson(), r.getPhone()));
+                    recipientBlockEn.append(String.format("%d. 🏢 **%s** (%s, Contact: %s, Phone: %s)\n", idx, r.getName(), r.getOrganizationType(), r.getContactPerson(), r.getPhone()));
+                    idx++;
+                }
+            } else {
+                recipientBlockMm.append("*(လက်ရှိတွင် စနစ်အတွင်း မှတ်ပုံတင်ထားသော ပရဟိတ မိတ်ဖက်အဖွဲ့အစည်း မရှိသေးပါ)*\n");
+                recipientBlockEn.append("*(No verified charity partners currently registered in database)*\n");
+            }
+
             if (isMm) {
                 return "### 🤝 ပိုလျှံအစားအစာ ပြန်လည်လှူဒါန်းရေး အစီအစဉ်\n\n" +
                        "SWI-Prolog စည်းမျဉ်း `evaluate_redistribution/6` အရ အောက်ပါပစ္စည်းများကို ချက်ချင်း လှူဒါန်းနိုင်ပါသည်:\n\n" +
                        "- **ကြက်သား:** ပိုလျှံ ၁၅.၀ ကီလိုဂရမ် (သက်တမ်း ၁ ရက် ကျန်ရှိသဖြင့် လှူဒါန်းရန် သင့်တော်ပါသည်)\n" +
                        "- **ပေါင်မုန့်:** ပိုလျှံ ၁၂ ခု (ညနေခင်း ပိုလျှံမုန့်များ)\n\n" +
                        "**လက်ခံမည့် ပရဟိတ မိတ်ဖက်အဖွဲ့အစည်းများ:**\n" +
-                       "1. 🏢 **Hope Community Food Bank** (ဒေါ်ခင်ဝင်း၊ ဖုန်း: +95 9 450012345)\n" +
-                       "2. 🍲 **City Youth Shelter & Kitchen** (ဦးမင်းနိုင်၊ ဖုန်း: +95 9 790098765)\n\n" +
+                       recipientBlockMm.toString() + "\n" +
                        "💡 *အောက်ပါ ခလုတ်ကို နှိပ်၍ လှူဒါန်းမှု အချိန်ဇယားဆွဲနိုင်ပါသည်။*";
             } else {
                 return "### 🤝 Surplus Food Redistribution Plan\n\n" +
@@ -362,8 +381,7 @@ public class GeminiExplanationService {
                        "- **Fresh Chicken Breast:** 15.0 kg surplus eligible (Safe donation window: 1 day remaining)\n" +
                        "- **Artisan Sliced Bread:** 12.0 units evening bakery surplus\n\n" +
                        "**Verified Charity Partners Available for Pickup:**\n" +
-                       "1. 🏢 **Hope Community Food Bank** (Contact: Daw Khin Win, Phone: +95 9 450012345)\n" +
-                       "2. 🍲 **City Youth Shelter & Kitchen** (Contact: U Min Naing, Phone: +95 9 790098765)\n\n" +
+                       recipientBlockEn.toString() + "\n" +
                        "💡 *Click below to schedule courier dispatch.*";
             }
         }
@@ -391,6 +409,9 @@ public class GeminiExplanationService {
         long highCount = items.stream().filter(i -> "HIGH".equalsIgnoreCase(i.getRiskLevel())).count();
         double totalSurplus = items.stream().mapToDouble(i -> Math.max(0, i.getStock() - i.getExpectedDemand())).sum();
 
+        String partnerSummaryMm = (recipients != null && !recipients.isEmpty()) ? recipients.get(0).getName() : "ပရဟိတ အဖွဲ့အစည်း";
+        String partnerSummaryEn = (recipients != null && !recipients.isEmpty()) ? recipients.get(0).getName() : "a verified food bank";
+
         if (isMm) {
             return String.format(
                     "### 🍃 FoodWaste AI နေ့စဉ် မီးဖိုချောင် အနှစ်ချုပ် အစီရင်ခံစာ\n\n" +
@@ -402,9 +423,9 @@ public class GeminiExplanationService {
                     "**ဆောင်ရွက်ရန် အကြံပြုချက်များ:**\n" +
                     "၁။ ⚡ **ကြက်သား (၈၂%% အန္တရာယ်):** မနက်ဖြန် မနက်ခင်း ပြင်ဆင်ချက်ပြုတ်မှု ၂၅%% လျှော့ချပါ။\n" +
                     "၂။ 🥗 **အသီးအရွက်သုပ် (၈၂%% အန္တရာယ်):** နေ့လယ်စာ အထူးပရိုမိုးရှင်းတွင် ဦးစားပေး ရောင်းချပါ။\n" +
-                    "၃။ 🤝 **ပိုလျှံအစားအစာ လှူဒါန်းမှု:** ပိုလျှံကြက်သား ၁၅ ကီလိုဂရမ်ကို Hope Food Bank သို့ လှူဒါန်းနိုင်ပါသည်။\n\n" +
+                    "၃။ 🤝 **ပိုလျှံအစားအစာ လှူဒါန်းမှု:** ပိုလျှံကြက်သား ၁၅ ကီလိုဂရမ်ကို %s သို့ လှူဒါန်းနိုင်ပါသည်။\n\n" +
                     "မည်သည့် အစားအစာ သို့မဟုတ် လုပ်ဆောင်ချက်ကို အသေးစိတ် ဆက်လက်စစ်ဆေးလိုပါသလဲ?",
-                    inventory.size(), highCount, totalSurplus
+                    inventory.size(), highCount, totalSurplus, partnerSummaryMm
             );
         } else {
             return String.format(
@@ -417,9 +438,9 @@ public class GeminiExplanationService {
                     "**Top Actionable Directives:**\n" +
                     "1. ⚠️ **Chicken Breast (82%% Risk):** Reduce tomorrow's morning prep batch by 25%%.\n" +
                     "2. 🥗 **Salad Mix (82%% Risk):** Prioritize in tomorrow's lunch specials combo.\n" +
-                    "3. 🤝 **Food Rescue:** 15 kg surplus chicken eligible for dispatch to Hope Food Bank.\n\n" +
+                    "3. 🤝 **Food Rescue:** 15 kg surplus chicken eligible for dispatch to %s.\n\n" +
                     "What specific item or operational action would you like to explore?",
-                    inventory.size(), highCount, totalSurplus
+                    inventory.size(), highCount, totalSurplus, partnerSummaryEn
             );
         }
     }

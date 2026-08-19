@@ -50,6 +50,18 @@ public class RedistributionServlet extends BaseServlet {
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         try {
+            String path = req.getPathInfo();
+            if (path != null && path.contains("recipients")) {
+                RedistributionRecipient recipient = parseJsonBody(req, RedistributionRecipient.class);
+                if (recipient == null) {
+                    sendBadRequest(resp, "Invalid JSON payload for redistribution recipient");
+                    return;
+                }
+                RedistributionRecipient saved = redistributionService.createRecipient(recipient);
+                sendCreated(resp, "Charity recipient registered successfully", saved);
+                return;
+            }
+
             Redistribution dispatch = parseJsonBody(req, Redistribution.class);
             if (dispatch == null) {
                 sendBadRequest(resp, "Invalid JSON payload for redistribution dispatch");

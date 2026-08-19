@@ -10,6 +10,16 @@ const Redistribution = {
   stats: {},
   loading: false,
 
+  escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  },
+
   async init() {
     await Promise.all([
       this.fetchRecipients(),
@@ -23,28 +33,33 @@ const Redistribution = {
     const foodItemId = params.get('foodItemId');
     const qty = params.get('qty');
     if (foodItemId) {
-      this.openModal(parseInt(foodItemId), qty ? parseFloat(qty) : null);
+      this.openModal(parseInt(foodItemId, 10), qty ? parseFloat(qty) : null);
     }
   },
 
   async fetchRecipients() {
     try {
       const res = await API.get('/api/redistribution/recipients');
-      this.recipients = (res && res.data) ? res.data : [];
-      this.populateRecipientSelect();
-      this.renderRecipientsTable();
+      this.recipients = (res && Array.isArray(res.data)) ? res.data : [];
     } catch (err) {
       console.warn('Error fetching recipients:', err);
+      this.recipients = [];
+    } finally {
+      this.populateRecipientSelect();
+      this.renderRecipientsTable();
+      this.updateKpis();
     }
   },
 
   async fetchFoodItems() {
     try {
       const res = await API.get('/api/inventory');
-      this.foodItems = (res && res.data) ? res.data : [];
-      this.populateFoodSelect();
+      this.foodItems = (res && Array.isArray(res.data)) ? res.data : [];
     } catch (err) {
       console.warn('Error fetching food items for redistribution:', err);
+      this.foodItems = [];
+    } finally {
+      this.populateFoodSelect();
     }
   },
 
@@ -53,10 +68,10 @@ const Redistribution = {
     this.renderLoading();
     try {
       const res = await API.get('/api/redistribution');
-      this.dispatches = (res && res.data) ? res.data : [];
+      this.dispatches = (res && Array.isArray(res.data)) ? res.data : [];
     } catch (err) {
       console.warn('Error fetching dispatches:', err);
-      API.showToast('Using local dispatches', 'info');
+      this.dispatches = [];
     } finally {
       this.loading = false;
       this.render();
@@ -69,10 +84,10 @@ const Redistribution = {
       const res = await API.get('/api/redistribution/stats');
       if (res && res.data) {
         this.stats = res.data;
-        this.updateKpis();
       }
     } catch (err) {
       console.warn('Error fetching redistribution stats:', err);
+    } finally {
       this.updateKpis();
     }
   },
@@ -81,51 +96,57 @@ const Redistribution = {
     const select = document.getElementById('redist-recipient');
     if (!select) return;
 
-    if (this.recipients.length === 0) {
-      select.innerHTML = `<option value="1">Hope Community Food Bank</option>`;
+    if (!this.recipients || this.recipients.length === 0) {
+      select.innerHTML = `<option value="" disabled selected>No recipients available</option>`;
       return;
     }
 
-    select.innerHTML = this.recipients.map(r => {
-      const isSel = (selectedRecipientId && r.id === selectedRecipientId) ? 'selected' : '';
-      return `<option value="${r.id}" ${isSel}>${r.name} (${r.organizationType})</option>`;
+    const defaultPrompt = `<option value="" ${!selectedRecipientId ? 'selected' : ''} disabled>Select recipient charity...</option>`;
+    const options = this.recipients.map(r => {
+      const isSel = (selectedRecipientId && Number(r.id) === Number(selectedRecipientId)) ? 'selected' : '';
+      return `<option value="${r.id}" ${isSel}>${this.escapeHtml(r.name)} (${this.escapeHtml(r.organizationType)})</option>`;
     }).join('');
+
+    select.innerHTML = defaultPrompt + options;
   },
 
   populateFoodSelect(selectedFoodId = null) {
     const select = document.getElementById('redist-food-id');
     if (!select) return;
 
-    if (this.foodItems.length === 0) {
-      select.innerHTML = `<option value="1">Fresh Milk (Stock: 40.0 kg)</option>`;
+    if (!this.foodItems || this.foodItems.length === 0) {
+      select.innerHTML = `<option value="" disabled selected>No food items available</option>`;
       return;
     }
 
-    select.innerHTML = this.foodItems.map(f => {
+    const defaultPrompt = `<option value="" ${!selectedFoodId ? 'selected' : ''} disabled>Select food item...</option>`;
+    const options = this.foodItems.map(f => {
       const qty = Number(f.quantity || 0).toFixed(1);
-      const isSel = (selectedFoodId && f.id === selectedFoodId) ? 'selected' : '';
+      const isSel = (selectedFoodId && Number(f.id) === Number(selectedFoodId)) ? 'selected' : '';
       const nearExpiry = f.status === 'NEAR_EXPIRY' ? ' ⚠️ Near Expiry' : '';
-      return `<option value="${f.id}" data-unit="${f.unit || 'kg'}" ${isSel}>${f.name} (Stock: ${qty} ${f.unit || 'kg'}${nearExpiry})</option>`;
+      return `<option value="${f.id}" data-unit="${this.escapeHtml(f.unit || 'kg')}" ${isSel}>${this.escapeHtml(f.name)} (Stock: ${qty} ${this.escapeHtml(f.unit || 'kg')}${nearExpiry})</option>`;
     }).join('');
+
+    select.innerHTML = defaultPrompt + options;
   },
 
   renderRecipientsTable() {
     const tbody = document.getElementById('recipients-tbody');
     if (!tbody) return;
 
-    if (this.recipients.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:2rem; color:var(--text-muted);">No verified recipients found.</td></tr>`;
+    if (!this.recipients || this.recipients.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:2rem; color:var(--text-muted);">No recipients available</td></tr>`;
       return;
     }
 
     tbody.innerHTML = this.recipients.map(r => {
       return `
         <tr>
-          <td><strong>${r.name}</strong></td>
-          <td><span class="badge-bubble badge-important" style="font-size:0.75rem;">${r.organizationType}</span></td>
-          <td>${r.contactPerson || 'N/A'}</td>
-          <td><code>${r.phone || 'N/A'}</code></td>
-          <td style="font-size:0.85rem; color:var(--text-muted);">${r.address || 'Yangon'}</td>
+          <td><strong>${this.escapeHtml(r.name)}</strong></td>
+          <td><span class="badge-bubble badge-important" style="font-size:0.75rem;">${this.escapeHtml(r.organizationType)}</span></td>
+          <td>${this.escapeHtml(r.contactPerson || 'N/A')}</td>
+          <td><code>${this.escapeHtml(r.phone || 'N/A')}</code></td>
+          <td style="font-size:0.85rem; color:var(--text-muted);">${this.escapeHtml(r.address || '')}</td>
           <td style="text-align:right;">
             <button class="btn-bubble btn-yellow btn-sm-bubble" onclick="Redistribution.openModal(null, null, ${r.id})">+ Dispatch</button>
           </td>
@@ -156,7 +177,7 @@ const Redistribution = {
       return;
     }
 
-    if (this.dispatches.length === 0) {
+    if (!this.dispatches || this.dispatches.length === 0) {
       tbody.innerHTML = `
         <tr>
           <td colspan="7" style="text-align:center; padding:3rem; color:var(--text-muted);">
@@ -185,7 +206,7 @@ const Redistribution = {
 
       const qtyFmt = Number(d.quantity || 0).toFixed(2) + ' ' + (d.unit || 'kg');
       const pickupFmt = d.pickupTime ? d.pickupTime.replace('T', ' ').substring(0, 16) : 'Scheduled';
-      
+
       let actionBtns = '';
       if (d.status === 'COLLECTED' || d.status === 'COMPLETED') {
         actionBtns = `<span class="badge-bubble badge-risk-low">✅ Delivered & Rescued</span>`;
@@ -202,12 +223,12 @@ const Redistribution = {
 
       return `
         <tr>
-          <td><strong>${d.foodItemName || ('Food Item #' + d.foodItemId)}</strong></td>
-          <td><strong style="font-size:1rem; color:var(--accent-yellow-dark);">${qtyFmt}</strong></td>
-          <td>${d.recipientName || ('Recipient #' + d.recipientId)}</td>
-          <td style="color:var(--text-muted); font-size:0.85rem;">${d.notes || 'Surplus rescue dispatch'}</td>
-          <td>${pickupFmt}</td>
-          <td><span class="badge-bubble ${badgeClass}">${statusLabel}</span></td>
+          <td><strong>${this.escapeHtml(d.foodItemName || ('Food Item #' + d.foodItemId))}</strong></td>
+          <td><strong style="font-size:1rem; color:var(--accent-yellow-dark);">${this.escapeHtml(qtyFmt)}</strong></td>
+          <td>${this.escapeHtml(d.recipientName || ('Recipient #' + d.recipientId))}</td>
+          <td style="color:var(--text-muted); font-size:0.85rem;">${this.escapeHtml(d.notes || 'Surplus rescue dispatch')}</td>
+          <td>${this.escapeHtml(pickupFmt)}</td>
+          <td><span class="badge-bubble ${badgeClass}">${this.escapeHtml(statusLabel)}</span></td>
           <td style="text-align:right;">
             ${actionBtns}
           </td>
@@ -222,18 +243,25 @@ const Redistribution = {
     const impactEl = document.getElementById('kpi-redist-impact');
     const partnersEl = document.getElementById('kpi-redist-partners');
 
+    const recipientCount = (this.stats && typeof this.stats.activeCharitiesCount === 'number')
+      ? this.stats.activeCharitiesCount
+      : (this.recipients ? this.recipients.length : 0);
+
+    if (partnersEl) {
+      partnersEl.textContent = `${recipientCount} ${recipientCount === 1 ? 'Charity' : 'Charities'}`;
+    }
+
     if (this.stats && Object.keys(this.stats).length > 0) {
       if (rescuedEl) rescuedEl.textContent = Number(this.stats.quantityRedistributedKg || 0).toFixed(1) + ' kg';
       if (moneyEl) moneyEl.textContent = Number(this.stats.estimatedMoneySaved || 0).toLocaleString() + ' MMK';
       if (impactEl) impactEl.textContent = Number(this.stats.wasteReductionImpactKg || 0).toFixed(1) + ' kg';
-      if (partnersEl) partnersEl.textContent = (this.stats.activeCharitiesCount || this.recipients.length || 4) + ' Charities';
     } else {
-      const totalKg = this.dispatches
+      const totalKg = (this.dispatches || [])
         .filter(d => d.status !== 'CANCELLED')
         .reduce((sum, d) => sum + Number(d.quantity || 0), 0);
       if (rescuedEl) rescuedEl.textContent = totalKg.toFixed(1) + ' kg';
+      if (moneyEl) moneyEl.textContent = '0 MMK';
       if (impactEl) impactEl.textContent = totalKg.toFixed(1) + ' kg';
-      if (partnersEl) partnersEl.textContent = (this.recipients.length || 4) + ' Charities';
     }
   },
 
@@ -245,7 +273,7 @@ const Redistribution = {
 
     if (preselectedFoodId) {
       const foodSelect = document.getElementById('redist-food-id');
-      if (foodSelect) foodSelect.value = preselectedFoodId;
+      if (foodSelect) foodSelect.value = String(preselectedFoodId);
     }
     if (prefilledQty) {
       const qtyInput = document.getElementById('redist-qty');
@@ -253,7 +281,7 @@ const Redistribution = {
     }
     if (preselectedRecipientId) {
       const recSelect = document.getElementById('redist-recipient');
-      if (recSelect) recSelect.value = preselectedRecipientId;
+      if (recSelect) recSelect.value = String(preselectedRecipientId);
     }
 
     const modal = document.getElementById('redist-modal');
@@ -268,14 +296,24 @@ const Redistribution = {
   async saveDispatch(e) {
     e.preventDefault();
     const foodSelect = document.getElementById('redist-food-id');
-    const foodItemId = parseInt(foodSelect.value);
+    const foodItemId = parseInt(foodSelect.value, 10);
     const quantity = parseFloat(document.getElementById('redist-qty').value);
     const recipientSelect = document.getElementById('redist-recipient');
-    const recipientId = parseInt(recipientSelect.value);
+    const recipientId = parseInt(recipientSelect.value, 10);
     const pickupTime = document.getElementById('redist-time').value;
 
-    if (!foodItemId || !recipientId || isNaN(quantity) || quantity <= 0) {
-      API.showToast('Please fill out all dispatch details correctly', 'warning');
+    if (!foodItemId || isNaN(foodItemId)) {
+      API.showToast('Please select a valid food item', 'warning');
+      return;
+    }
+
+    if (!recipientId || isNaN(recipientId)) {
+      API.showToast('Please select an available recipient charity', 'warning');
+      return;
+    }
+
+    if (isNaN(quantity) || quantity <= 0) {
+      API.showToast('Please enter a donation quantity greater than 0', 'warning');
       return;
     }
 
@@ -286,14 +324,15 @@ const Redistribution = {
       unit: foodSelect.options[foodSelect.selectedIndex]?.getAttribute('data-unit') || 'kg',
       pickupTime: pickupTime || null,
       status: 'PENDING',
-      notes: 'Scheduled via AI Recommendation'
+      notes: 'Scheduled via Surplus Food Redistribution'
     };
 
     try {
       await API.post('/api/redistribution', payload);
-      API.showToast(`Redistribution request created for ${quantity} kg surplus!`, 'success');
+      API.showToast(`Redistribution request created for ${quantity} surplus!`, 'success');
       this.closeModal();
       await this.fetchDispatches();
+      await this.fetchStats();
     } catch (err) {
       console.error('Error scheduling dispatch:', err);
       API.showToast('Failed to schedule dispatch: ' + err.message, 'error');
@@ -310,7 +349,7 @@ const Redistribution = {
       await this.fetchStats();
     } catch (err) {
       console.error('Error updating dispatch status:', err);
-      API.showToast('Updated status', 'success');
+      API.showToast('Failed to update dispatch status: ' + err.message, 'error');
     }
   }
 };

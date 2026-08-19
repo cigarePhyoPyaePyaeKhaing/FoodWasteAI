@@ -6,6 +6,7 @@ import com.foodwasteai.model.RedistributionRecipient;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Data Access Object for Surplus Food Redistribution and Recipients.
@@ -51,6 +52,66 @@ public class RedistributionDao extends BaseDao {
             }
         }
         return list;
+    }
+
+    public Optional<RedistributionRecipient> findRecipientById(Long id) throws SQLException {
+        if (id == null) return Optional.empty();
+        String sql = "SELECT id, name, organization_type, contact_person, phone, email, address, active, created_at " +
+                     "FROM redistribution_recipients WHERE id = ? AND active = TRUE";
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setLong(1, id);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    RedistributionRecipient r = new RedistributionRecipient();
+                    r.setId(rs.getLong("id"));
+                    r.setName(rs.getString("name"));
+                    r.setOrganizationType(rs.getString("organization_type"));
+                    r.setContactPerson(rs.getString("contact_person"));
+                    r.setPhone(rs.getString("phone"));
+                    r.setEmail(rs.getString("email"));
+                    r.setAddress(rs.getString("address"));
+                    r.setActive(rs.getBoolean("active"));
+                    return Optional.of(r);
+                }
+            }
+        }
+        return Optional.empty();
+    }
+
+    public RedistributionRecipient saveRecipient(RedistributionRecipient r) throws SQLException {
+        String sql = "INSERT INTO redistribution_recipients (name, organization_type, contact_person, phone, email, address, active) " +
+                     "VALUES (?, ?, ?, ?, ?, ?, ?)";
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            stmt.setString(1, r.getName());
+            stmt.setString(2, r.getOrganizationType());
+            stmt.setString(3, r.getContactPerson());
+            stmt.setString(4, r.getPhone());
+            stmt.setString(5, r.getEmail());
+            stmt.setString(6, r.getAddress());
+            stmt.setBoolean(7, r.isActive());
+
+            int affected = stmt.executeUpdate();
+            if (affected > 0) {
+                try (ResultSet keys = stmt.getGeneratedKeys()) {
+                    if (keys.next()) {
+                        r.setId(keys.getLong(1));
+                    }
+                }
+            }
+            return r;
+        }
+    }
+
+    public boolean deleteRecipient(Long id) throws SQLException {
+        if (id == null) return false;
+        String sql = "DELETE FROM redistribution_recipients WHERE id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setLong(1, id);
+            return stmt.executeUpdate() > 0;
+        }
     }
 
     public Redistribution saveDispatch(Redistribution d) throws SQLException {
