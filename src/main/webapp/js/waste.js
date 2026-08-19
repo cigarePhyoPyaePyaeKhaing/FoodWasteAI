@@ -1,7 +1,3 @@
-/**
- * FoodWaste AI - Waste Records Controller
- * Connected with /api/waste and /api/inventory REST endpoints
- */
 const Waste = {
   records: [],
   foodItems: [],
@@ -12,6 +8,12 @@ const Waste = {
       this.fetchFoodItems(),
       this.fetchWaste()
     ]);
+
+    window.addEventListener('languageChanged', () => {
+      this.render();
+      this.updateKpis();
+      this.populateFoodSelect();
+    });
   },
 
   async fetchFoodItems() {
@@ -28,15 +30,18 @@ const Waste = {
     const select = document.getElementById('waste-food-id');
     if (!select) return;
 
+    const isMm = typeof I18n !== 'undefined' && I18n.getLanguage() === 'mm';
+
     if (this.foodItems.length === 0) {
-      select.innerHTML = `<option value="">No food items in inventory</option>`;
+      select.innerHTML = `<option value="">${isMm ? 'ကုန်ပစ္စည်းစာရင်း မရှိသေးပါ' : 'No food items in inventory'}</option>`;
       return;
     }
 
     select.innerHTML = this.foodItems.map(f => {
       const price = Number(f.pricePerUnit || 0).toLocaleString();
       const qty = Number(f.quantity || 0).toFixed(1);
-      return `<option value="${f.id}" data-price="${f.pricePerUnit}" data-unit="${f.unit || 'kg'}">${f.name} (Stock: ${qty} ${f.unit || 'kg'} @ ${price} MMK)</option>`;
+      const stockLabel = isMm ? 'လက်ကျန်' : 'Stock';
+      return `<option value="${f.id}" data-price="${f.pricePerUnit}" data-unit="${f.unit || 'kg'}">${f.name} (${stockLabel}: ${qty} ${f.unit || 'kg'} @ ${price} MMK)</option>`;
     }).join('');
   },
 
@@ -59,11 +64,12 @@ const Waste = {
   renderLoading() {
     const tbody = document.getElementById('waste-tbody');
     if (!tbody) return;
+    const isMm = typeof I18n !== 'undefined' && I18n.getLanguage() === 'mm';
     tbody.innerHTML = `
       <tr>
         <td colspan="7" style="text-align:center; padding:3rem; color:var(--text-muted);">
           <div style="font-size:1.5rem; animation: spin 1s linear infinite; display:inline-block;">🍃</div>
-          <div style="margin-top:0.5rem; font-weight:600;">Loading waste incident logs...</div>
+          <div style="margin-top:0.5rem; font-weight:600;">${isMm ? 'အလေအလွင့် မှတ်တမ်းများကို ရယူနေပါသည်...' : 'Loading waste incident logs...'}</div>
         </td>
       </tr>
     `;
@@ -78,13 +84,15 @@ const Waste = {
       return;
     }
 
+    const isMm = typeof I18n !== 'undefined' && I18n.getLanguage() === 'mm';
+
     if (this.records.length === 0) {
       tbody.innerHTML = `
         <tr>
           <td colspan="7" style="text-align:center; padding:3rem; color:var(--text-muted);">
             <div style="font-size:2rem; margin-bottom:0.5rem;">🎉</div>
-            <div style="font-weight:700; color:var(--text-main); font-size:1.05rem;">No Food Waste Recorded</div>
-            <div style="font-size:0.85rem; margin-top:0.25rem;">Great kitchen efficiency! Click "+ Log Food Waste" if an incident occurs.</div>
+            <div style="font-weight:700; color:var(--text-main); font-size:1.05rem;">${typeof I18n !== 'undefined' ? I18n.t('waste.empty.title') : 'No Food Waste Recorded'}</div>
+            <div style="font-size:0.85rem; margin-top:0.25rem;">${typeof I18n !== 'undefined' ? I18n.t('waste.empty.desc') : 'Great kitchen efficiency! Click "+ Log Food Waste" if an incident occurs.'}</div>
           </td>
         </tr>
       `;
@@ -96,16 +104,17 @@ const Waste = {
       if (r.reason === 'UNSOLD') badgeClass = 'badge-important';
       else if (r.reason === 'PREPARATION_WASTE') badgeClass = 'badge-optimization';
 
+      const reasonText = typeof I18n !== 'undefined' ? I18n.translateWasteReason(r.reason) : r.reason;
       const qtyFmt = Number(r.quantityWasted || 0).toFixed(2) + ' kg';
       const lossFmt = Number(r.monetaryLoss || 0).toLocaleString() + ' MMK';
-      const dateFmt = r.wasteDate ? r.wasteDate.replace('T', ' ').substring(0, 16) : 'Recently';
+      const dateFmt = r.wasteDate ? r.wasteDate.replace('T', ' ').substring(0, 16) : (isMm ? 'မကြာသေးမီက' : 'Recently');
 
       return `
         <tr>
           <td>${dateFmt}</td>
           <td><strong>${r.foodItemName || ('Food Item #' + r.foodItemId)}</strong></td>
           <td><strong style="color:var(--risk-high-text); font-size:1rem;">${qtyFmt}</strong></td>
-          <td><span class="badge-bubble ${badgeClass}">${r.reason}</span></td>
+          <td><span class="badge-bubble ${badgeClass}">${reasonText}</span></td>
           <td><strong style="color:var(--risk-high-text);">${lossFmt}</strong></td>
           <td style="color:var(--text-muted); font-size:0.85rem;">${r.notes || '-'}</td>
           <td style="text-align:right;">
@@ -146,14 +155,15 @@ const Waste = {
 
   async saveWaste(e) {
     e.preventDefault();
+    const isMm = typeof I18n !== 'undefined' && I18n.getLanguage() === 'mm';
     const foodSelect = document.getElementById('waste-food-id');
     const foodItemId = parseInt(foodSelect.value);
     const quantityWasted = parseFloat(document.getElementById('waste-qty').value);
     const reason = document.getElementById('waste-reason').value;
-    const notes = document.getElementById('waste-notes').value.trim() || 'Kitchen log entry';
+    const notes = document.getElementById('waste-notes').value.trim() || (isMm ? 'မီးဖိုချောင် အလေအလွင့် စာရင်း' : 'Kitchen log entry');
 
     if (!foodItemId || isNaN(quantityWasted) || quantityWasted <= 0) {
-      API.showToast('Please select a food item and enter a valid quantity wasted', 'warning');
+      API.showToast(isMm ? 'အစားအစာနှင့် အလေအလွင့် ပမာဏကို မှန်ကန်စွာ ထည့်သွင်းပါ' : 'Please select a food item and enter a valid quantity wasted', 'warning');
       return;
     }
 
@@ -166,25 +176,26 @@ const Waste = {
 
     try {
       await API.post('/api/waste', payload);
-      API.showToast(`Logged ${quantityWasted} kg waste and adjusted stock!`, 'warning');
+      API.showToast(isMm ? `${quantityWasted} kg အလေအလွင့် စာရင်းသွင်းပြီး ကုန်ပစ္စည်းလက်ကျန်ကို ချိန်ညှိပြီးပါပြီ!` : `Logged ${quantityWasted} kg waste and adjusted stock!`, 'warning');
       this.closeModal();
       await this.fetchWaste();
     } catch (err) {
       console.error('Error logging waste:', err);
-      API.showToast('Failed to log waste: ' + err.message, 'error');
+      API.showToast(isMm ? ('အလေအလွင့် စာရင်းသွင်းရန် မအောင်မြင်ပါ: ' + err.message) : ('Failed to log waste: ' + err.message), 'error');
     }
   },
 
   async deleteWaste(id) {
-    if (!confirm('Are you sure you want to delete this waste record?')) return;
+    const isMm = typeof I18n !== 'undefined' && I18n.getLanguage() === 'mm';
+    if (!confirm(isMm ? 'ဤအလေအလွင့် မှတ်တမ်းကို ဖျက်ရန် သေချာပါသလား?' : 'Are you sure you want to delete this waste record?')) return;
 
     try {
       await API.delete(`/api/waste/${id}`);
-      API.showToast('Waste record deleted', 'info');
+      API.showToast(isMm ? 'အလေအလွင့် မှတ်တမ်း ဖျက်ပြီးပါပြီ' : 'Waste record deleted', 'info');
       await this.fetchWaste();
     } catch (err) {
       console.error('Error deleting waste:', err);
-      API.showToast('Failed to delete waste record: ' + err.message, 'error');
+      API.showToast(isMm ? ('ဖျက်ရန် မအောင်မြင်ပါ: ' + err.message) : ('Failed to delete waste record: ' + err.message), 'error');
     }
   }
 };

@@ -9,6 +9,25 @@ const AIAssistant = {
 
   init() {
     this.injectStylesAndMarkup();
+    window.addEventListener('languageChanged', () => {
+      this.updateChips();
+      if (typeof I18n !== 'undefined') {
+        I18n.applyTranslations();
+      }
+    });
+    this.updateChips();
+  },
+
+  updateChips() {
+    const container = document.getElementById('gemini-chips-container');
+    if (!container) return;
+    const isMm = typeof I18n !== 'undefined' && I18n.isMyanmar();
+    container.innerHTML = `
+      <button class="gemini-chip" onclick="AIAssistant.sendQuickChip(1)">${isMm ? '🍗 ကြက်သား အန္တရာယ်' : '🍗 Chicken Risk'}</button>
+      <button class="gemini-chip" onclick="AIAssistant.sendQuickChip(2)">${isMm ? '🤝 ပိုလျှံအစားအစာ လှူဒါန်းမှု' : '🤝 Food Rescue'}</button>
+      <button class="gemini-chip" onclick="AIAssistant.sendQuickChip(3)">${isMm ? '🥗 သက်တမ်းကုန်ရန်နီး' : '🥗 Near Expiry'}</button>
+      <button class="gemini-chip" onclick="AIAssistant.sendQuickChip(4)">${isMm ? '📊 အနှစ်ချုပ်' : '📊 Summary'}</button>
+    `;
   },
 
   injectStylesAndMarkup() {

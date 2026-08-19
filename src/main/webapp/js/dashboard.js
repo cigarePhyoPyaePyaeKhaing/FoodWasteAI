@@ -260,18 +260,14 @@ const Dashboard = {
     tbody.innerHTML = this.data.highRiskFoods.map(item => {
       let badgeClass = 'badge-risk-low';
       let barColor = 'var(--risk-low-text)';
-      let levelText = item.riskLevel;
+      let levelText = typeof I18n !== 'undefined' ? I18n.translateRisk(item.riskLevel) : item.riskLevel;
 
       if (item.riskLevel === 'HIGH') {
         badgeClass = 'badge-risk-high';
         barColor = 'var(--risk-high-text)';
-        levelText = isMm ? 'အန္တရာယ်မြင့်' : 'HIGH';
       } else if (item.riskLevel === 'MEDIUM') {
         badgeClass = 'badge-risk-medium';
         barColor = 'var(--risk-med-text)';
-        levelText = isMm ? 'အလယ်အလတ်' : 'MEDIUM';
-      } else {
-        levelText = isMm ? 'အန္တရာယ်နည်း' : 'LOW';
       }
 
       return `
@@ -324,28 +320,35 @@ const Dashboard = {
       return;
     }
 
-    container.innerHTML = this.data.recommendations.map(r => `
+    container.innerHTML = this.data.recommendations.map(r => {
+      const title = typeof I18n !== 'undefined' ? I18n.getDynamic(r, 'title') : r.title;
+      const desc = typeof I18n !== 'undefined' ? (I18n.getDynamic(r, 'description') || I18n.getDynamic(r, 'text')) : (r.description || r.text);
+      const catText = typeof I18n !== 'undefined' ? I18n.translateCategory(r.category) : r.category;
+      const riskText = typeof I18n !== 'undefined' ? I18n.translateRisk(r.riskLevel) : r.riskLevel;
+
+      return `
       <div class="rec-card-bubble" id="rec-bubble-${r.id}">
         <div class="rec-header-row">
           <div style="display:flex; gap:0.4rem; align-items:center;">
-            <span class="badge-bubble ${r.category === 'URGENT' ? 'badge-urgent' : 'badge-important'}">${r.category}</span>
-            <span class="badge-bubble badge-risk-high">${r.riskLevel} RISK</span>
+            <span class="badge-bubble ${r.category === 'URGENT' ? 'badge-urgent' : 'badge-important'}">${catText}</span>
+            <span class="badge-bubble badge-risk-high">${riskText}</span>
           </div>
           <span style="font-weight:800; color:var(--accent-yellow-dark); font-size:0.9rem; background:var(--accent-yellow-100); padding:0.25rem 0.75rem; border-radius:var(--radius-pill);">
-            +${r.savings} Saved
+            +${r.savings} ${isMm ? 'သက်သာမည်' : 'Saved'}
           </span>
         </div>
-        <h4 class="rec-title-text">${r.title}</h4>
-        <p class="rec-desc-text">${r.text}</p>
+        <h4 class="rec-title-text">${title}</h4>
+        <p class="rec-desc-text">${desc}</p>
         <div class="rec-prolog-pill">
-          <strong>🧠 Prolog Logic:</strong> <code>${r.prologRule}</code>
+          <strong>🧠 Prolog:</strong> <code>${r.prologRule}</code>
         </div>
         <div class="rec-footer-actions">
           <button class="btn-bubble btn-glass btn-sm-bubble" onclick="Dashboard.dismissRec(${r.id})">${isMm ? 'ကျော်သွားမည်' : 'Dismiss'}</button>
           <button class="btn-bubble btn-yellow btn-sm-bubble" onclick="Dashboard.applyRec(${r.id}, '${r.savings}')">${isMm ? 'လက်ခံဆောင်ရွက်မည်' : 'Accept & Apply'}</button>
         </div>
       </div>
-    `).join('');
+      `;
+    }).join('');
   },
 
   applyRec(id, savings) {

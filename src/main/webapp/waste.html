@@ -15,46 +15,46 @@
     <div class="sidebar-header">
       <div class="brand-bubble-logo">🍃</div>
       <div class="brand-title-group">
-        <div class="brand-main-title">FoodWaste AI</div>
-        <span class="brand-sub-badge">iOS 26 Bubble Edition</span>
+        <div class="brand-main-title" data-i18n="brand.name">FoodWaste AI</div>
+        <span class="brand-sub-badge" data-i18n="brand.subBadge">iOS 26 Bubble Edition</span>
       </div>
     </div>
 
     <nav class="sidebar-nav-scroll">
-      <div class="nav-bubble-section-title">Core Operations</div>
+      <div class="nav-bubble-section-title" data-i18n="nav.core">Core Operations</div>
       <a href="/dashboard.html" class="nav-bubble-link">
-        <span class="nav-bubble-icon">📊</span> Dashboard
+        <span class="nav-bubble-icon">📊</span> <span data-i18n="nav.dashboard">Dashboard</span>
       </a>
       <a href="/inventory.html" class="nav-bubble-link">
-        <span class="nav-bubble-icon">📦</span> Inventory
+        <span class="nav-bubble-icon">📦</span> <span data-i18n="nav.inventory">Inventory</span>
       </a>
       <a href="/sales.html" class="nav-bubble-link">
-        <span class="nav-bubble-icon">💰</span> Sales Entry
+        <span class="nav-bubble-icon">💰</span> <span data-i18n="nav.sales">Sales Entry</span>
       </a>
       <a href="/waste.html" class="nav-bubble-link active">
-        <span class="nav-bubble-icon">🗑️</span> Waste Records
+        <span class="nav-bubble-icon">🗑️</span> <span data-i18n="nav.waste">Waste Records</span>
       </a>
 
-      <div class="nav-section-title">AI & Intelligence</div>
+      <div class="nav-section-title" data-i18n="nav.ai">AI & Intelligence</div>
       <a href="/prediction.html" class="nav-bubble-link">
-        <span class="nav-bubble-icon">🔮</span> AI Prediction
+        <span class="nav-bubble-icon">🔮</span> <span data-i18n="nav.prediction">AI Prediction</span>
       </a>
       <a href="/recommendations.html" class="nav-bubble-link">
-        <span class="nav-bubble-icon">💡</span> Recommendations
+        <span class="nav-bubble-icon">💡</span> <span data-i18n="nav.recommendations">Recommendations</span>
       </a>
       <a href="/redistribution.html" class="nav-bubble-link">
-        <span class="nav-bubble-icon">🤝</span> Redistribution
+        <span class="nav-bubble-icon">🤝</span> <span data-i18n="nav.redistribution">Redistribution</span>
       </a>
 
-      <div class="nav-section-title admin-only">Management</div>
+      <div class="nav-section-title admin-only" data-i18n="nav.management">Management</div>
       <a href="/reports.html" class="nav-bubble-link">
-        <span class="nav-bubble-icon">📈</span> Reports
+        <span class="nav-bubble-icon">📈</span> <span data-i18n="nav.reports">Reports</span>
       </a>
       <a href="/users.html" class="nav-bubble-link admin-only">
-        <span class="nav-bubble-icon">👥</span> Users
+        <span class="nav-bubble-icon">👥</span> <span data-i18n="nav.users">Users</span>
       </a>
       <a href="/settings.html" class="nav-bubble-link admin-only">
-        <span class="nav-bubble-icon">⚙️</span> Settings
+        <span class="nav-bubble-icon">⚙️</span> <span data-i18n="nav.settings">Settings</span>
       </a>
     </nav>
 
@@ -66,7 +66,7 @@
           <div class="user-role-badge" id="current-user-role">ADMIN</div>
         </div>
       </div>
-      <button class="btn-bubble btn-glass-subtle btn-sm-bubble" onclick="Auth.logout()" title="Sign Out">
+      <button class="btn-bubble btn-glass-subtle btn-sm-bubble" onclick="Auth.logout()" title="Sign Out" data-i18n-title="nav.signOut">
         🚪
       </button>
     </div>
@@ -75,10 +75,10 @@
   <div class="main-wrapper-float">
     <header class="topbar-glass">
       <div class="topbar-left">
-        <h1 class="page-headline-glass">Food Waste Incident Logging</h1>
+        <h1 class="page-headline-glass" data-i18n="waste.headline">Waste Logging & Financial Loss Tracking</h1>
       </div>
       <div class="topbar-right">
-        <button class="btn-bubble btn-yellow btn-sm-bubble" onclick="Waste.openModal()">+ Log Food Waste</button>
+        <button class="btn-bubble btn-yellow btn-sm-bubble" onclick="Waste.openModal()" data-i18n="waste.btn.log">+ Log Food Waste</button>
       </div>
     </header>
 
@@ -86,34 +86,34 @@
       <section class="kpi-grid">
         <div class="kpi-bubble-card">
           <div class="kpi-bubble-top">
-            <span class="kpi-bubble-label">Today's Waste Cost</span>
+            <span class="kpi-bubble-label" data-i18n="waste.kpi.loss">Financial Spoilage</span>
             <div class="kpi-bubble-icon kpi-icon-red">💸</div>
           </div>
           <div>
-            <div class="kpi-bubble-value" id="kpi-waste-loss" style="color:var(--risk-high-text);">98,500 MMK</div>
-            <div class="kpi-bubble-sub">Direct inventory loss</div>
+            <div class="kpi-bubble-value" id="kpi-waste-loss" style="color:var(--risk-high-text);">0 MMK</div>
+            <div class="kpi-bubble-sub" data-i18n="waste.kpi.recordedLoss">Total recorded financial waste</div>
           </div>
         </div>
 
         <div class="kpi-bubble-card">
           <div class="kpi-bubble-top">
-            <span class="kpi-bubble-label">Total Waste Weight</span>
+            <span class="kpi-bubble-label" data-i18n="waste.kpi.weight">Total Waste Weight</span>
             <div class="kpi-bubble-icon kpi-icon-red">🗑️</div>
           </div>
           <div>
-            <div class="kpi-bubble-value" id="kpi-waste-kg">18.2 kg</div>
-            <div class="kpi-bubble-sub">Divertable organic mass</div>
+            <div class="kpi-bubble-value" id="kpi-waste-kg">0.0 kg</div>
+            <div class="kpi-bubble-sub" data-i18n="waste.kpi.physicalLoss">Physical kitchen waste</div>
           </div>
         </div>
 
         <div class="kpi-bubble-card">
           <div class="kpi-bubble-top">
-            <span class="kpi-bubble-label">GHG Equivalent</span>
+            <span class="kpi-bubble-label" data-i18n="waste.kpi.co2">Carbon Footprint</span>
             <div class="kpi-bubble-icon kpi-icon-yellow">🌱</div>
           </div>
           <div>
-            <div class="kpi-bubble-value" id="kpi-waste-co2">45.5 kg CO₂e</div>
-            <div class="kpi-bubble-sub">Landfill methane impact factor</div>
+            <div class="kpi-bubble-value" id="kpi-waste-co2">0.0 kg CO₂e</div>
+            <div class="kpi-bubble-sub" data-i18n="waste.kpi.co2Saved">Avoidable greenhouse emissions</div>
           </div>
         </div>
       </section>
@@ -121,23 +121,23 @@
       <div class="card-glass">
         <div class="card-header-glass">
           <div>
-            <h2 class="card-title-glass">🗑️ Food Waste Log & Reason Breakdown</h2>
-            <div class="card-subtitle-glass">Historical data feed used to train and calibrate SWI-Prolog risk rules</div>
+            <h2 class="card-title-glass" data-i18n="waste.cardTitle">🗑️ Kitchen Food Waste Incident Log</h2>
+            <div class="card-subtitle-glass" data-i18n="waste.cardSubtitle">Categorize spoilage causes and compute exact monetary loss</div>
           </div>
-          <button class="btn-bubble btn-glass-subtle btn-sm-bubble" onclick="Waste.fetchWaste()">🔄 Refresh</button>
+          <button class="btn-bubble btn-glass-subtle btn-sm-bubble" onclick="Waste.fetchWaste()" data-i18n="action.refresh">🔄 Refresh</button>
         </div>
         <div class="card-body-glass" style="padding:0.75rem 1.25rem 1.25rem 1.25rem;">
           <div class="table-responsive">
             <table class="data-table-glass">
               <thead>
                 <tr>
-                  <th>Timestamp</th>
-                  <th>Food Item</th>
-                  <th>Quantity Wasted</th>
-                  <th>Reason</th>
-                  <th>Monetary Loss</th>
-                  <th>Notes</th>
-                  <th style="text-align:right;">Actions</th>
+                  <th data-i18n="waste.th.date">Timestamp</th>
+                  <th data-i18n="waste.th.item">Food Item</th>
+                  <th data-i18n="waste.th.qty">Quantity Wasted</th>
+                  <th data-i18n="waste.th.reason">Reason</th>
+                  <th data-i18n="waste.th.loss">Monetary Loss</th>
+                  <th data-i18n="waste.th.notes">Notes</th>
+                  <th style="text-align:right;" data-i18n="waste.th.actions">Actions</th>
                 </tr>
               </thead>
               <tbody id="waste-tbody">
@@ -155,70 +155,70 @@
 <div class="modal-glass-backdrop" id="log-waste-modal">
   <div class="modal-glass-dialog">
     <div class="modal-glass-header">
-      <h3 style="font-size:1.15rem; font-weight:800; color:var(--text-main);">+ Log Food Waste Incident</h3>
+      <h3 style="font-size:1.15rem; font-weight:800; color:var(--text-main);" data-i18n="waste.modal.title">+ Log Food Waste Incident</h3>
       <button class="btn-bubble btn-glass-subtle btn-sm-bubble" onclick="Waste.closeModal()">✕</button>
     </div>
     <form id="waste-form" onsubmit="Waste.saveWaste(event)">
       <div class="modal-glass-body">
         <div class="form-group-bubble">
-          <label class="form-label-bubble">Select Food Item</label>
+          <label class="form-label-bubble" data-i18n="waste.modal.selectFood">Select Wasted Food Item</label>
           <select class="form-select-bubble" id="waste-food-id" required>
             <!-- Dynamically populated from /api/inventory -->
           </select>
         </div>
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
           <div class="form-group-bubble">
-            <label class="form-label-bubble">Quantity Wasted (kg/unit)</label>
+            <label class="form-label-bubble" data-i18n="waste.modal.qtyWasted">Quantity Wasted</label>
             <input class="form-input-bubble" type="number" step="0.1" id="waste-qty" required placeholder="4.5">
           </div>
           <div class="form-group-bubble">
-            <label class="form-label-bubble">Reason for Waste</label>
+            <label class="form-label-bubble" data-i18n="waste.modal.reason">Primary Spoilage Reason</label>
             <select class="form-select-bubble" id="waste-reason">
-              <option value="OVERPRODUCTION">Overproduction</option>
-              <option value="EXPIRED">Expired Shelf-Life</option>
-              <option value="UNSOLD">Unsold Evening Stock</option>
-              <option value="SPOILED">Spoiled / Storage Fail</option>
-              <option value="DAMAGED">Damaged in Handling</option>
-              <option value="PREPARATION_WASTE">Preparation Trim/Waste</option>
-              <option value="OTHER">Other Reason</option>
+              <option value="OVERPRODUCTION" data-i18n="waste.reason.overproduction">OVERPRODUCTION (Surplus Prep)</option>
+              <option value="EXPIRED" data-i18n="waste.reason.expired">EXPIRED (Passed Shelf Life)</option>
+              <option value="UNSOLD" data-i18n="waste.reason.unsold">UNSOLD (End-of-Day Surplus)</option>
+              <option value="SPOILED" data-i18n="waste.reason.spoiled">SPOILED (Storage / Chilling Failure)</option>
+              <option value="DAMAGED" data-i18n="waste.reason.damaged">DAMAGED (Handling / Drop)</option>
+              <option value="PREPARATION_WASTE" data-i18n="waste.reason.preparation">PREPARATION_WASTE (Trimming & Cooking Loss)</option>
+              <option value="OTHER" data-i18n="waste.reason.other">OTHER (General Kitchen Spoilage)</option>
             </select>
           </div>
         </div>
         <div class="form-group-bubble">
-          <label class="form-label-bubble">Incident Notes (Optional)</label>
+          <label class="form-label-bubble" data-i18n="waste.modal.notes">Incident Notes</label>
           <input class="form-input-bubble" type="text" id="waste-notes" placeholder="e.g. Over-prepped chicken during dinner rush">
         </div>
       </div>
       <div class="modal-glass-footer">
-        <button type="button" class="btn-bubble btn-glass" onclick="Waste.closeModal()">Cancel</button>
-        <button type="submit" class="btn-bubble btn-yellow">Save Waste Log</button>
+        <button type="button" class="btn-bubble btn-glass" onclick="Waste.closeModal()" data-i18n="action.cancel">Cancel</button>
+        <button type="submit" class="btn-bubble btn-yellow" data-i18n="action.save">Save Waste Log</button>
       </div>
     </form>
   </div>
 </div>
 
-<button class="fab-btn" onclick="Waste.openModal()" title="Log Food Waste">+</button>
+<button class="fab-btn" onclick="Waste.openModal()" title="Log Food Waste" data-i18n-title="waste.btn.log">+</button>
 
 <nav class="mobile-bottom-dock">
   <a href="/dashboard.html" class="dock-item">
     <span class="dock-icon">📊</span>
-    <span>Home</span>
+    <span data-i18n="dock.home">Home</span>
   </a>
   <a href="/inventory.html" class="dock-item">
     <span class="dock-icon">📦</span>
-    <span>Inventory</span>
+    <span data-i18n="dock.inventory">Inventory</span>
   </a>
   <a href="/sales.html" class="dock-item">
     <span class="dock-icon">💰</span>
-    <span>Sales</span>
+    <span data-i18n="dock.sales">Sales</span>
   </a>
   <a href="/waste.html" class="dock-item active">
     <span class="dock-icon">🗑️</span>
-    <span>Waste</span>
+    <span data-i18n="dock.waste">Waste</span>
   </a>
   <a href="/reports.html" class="dock-item">
     <span class="dock-icon">📈</span>
-    <span>Reports</span>
+    <span data-i18n="dock.reports">Reports</span>
   </a>
 </nav>
 

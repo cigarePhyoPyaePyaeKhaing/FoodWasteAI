@@ -1,13 +1,13 @@
-/**
- * FoodWaste AI - Reports Controller
- * Live dynamic reporting from MySQL inventory and waste records
- */
 const Reports = {
   wasteRecords: [],
   redistStats: {},
   recommendations: [],
 
   async init() {
+    window.addEventListener('languageChanged', () => {
+      this.render();
+    });
+
     await Promise.all([
       this.fetchWasteData(),
       this.fetchRedistStats(),
@@ -74,8 +74,8 @@ const Reports = {
         <tr>
           <td colspan="5" style="text-align:center; padding:3rem; color:var(--text-muted);">
             <div style="font-size:2rem; margin-bottom:0.5rem;">📈</div>
-            <div style="font-weight:700; color:var(--text-main); font-size:1.05rem;">No Waste Logs Recorded Yet</div>
-            <div style="font-size:0.85rem; margin-top:0.25rem;">Log waste events in the Waste Records section to view category analytics.</div>
+            <div style="font-weight:700; color:var(--text-main); font-size:1.05rem;">${typeof I18n !== 'undefined' ? I18n.t('reports.empty.title') : 'No Waste Logs Recorded Yet'}</div>
+            <div style="font-size:0.85rem; margin-top:0.25rem;">${typeof I18n !== 'undefined' ? I18n.t('reports.empty.desc') : 'Log waste events in the Waste Records section to view category analytics.'}</div>
           </td>
         </tr>
       `;
@@ -95,13 +95,14 @@ const Reports = {
     tbody.innerHTML = Object.keys(categoryMap).map(cat => {
       const item = categoryMap[cat];
       const sharePct = totalWasteKg > 0 ? ((item.qty / totalWasteKg) * 100).toFixed(1) : '0.0';
+      const reasonText = typeof I18n !== 'undefined' ? I18n.translateWasteReason(item.reason) : item.reason;
       return `
         <tr>
           <td><strong>${cat}</strong></td>
           <td>${item.qty.toFixed(1)} kg</td>
           <td><strong style="color:var(--risk-high-text);">${item.loss.toLocaleString()} MMK</strong></td>
           <td>${sharePct}%</td>
-          <td>${item.reason}</td>
+          <td>${reasonText}</td>
         </tr>
       `;
     }).join('');

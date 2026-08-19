@@ -7,6 +7,9 @@ const Users = {
   loading: false,
 
   async init() {
+    window.addEventListener('languageChanged', () => {
+      this.render();
+    });
     await this.fetchUsers();
   },
 
@@ -31,11 +34,13 @@ const Users = {
     const tbody = document.getElementById('users-tbody');
     if (!tbody) return;
 
+    const isMm = typeof I18n !== 'undefined' && I18n.isMyanmar();
+
     if (this.users.length === 0) {
       tbody.innerHTML = `
         <tr>
           <td colspan="6" style="text-align:center; padding:2rem; color:var(--text-muted);">
-            No user accounts found. Click "+ Add New Staff" to create an account.
+            ${isMm ? 'အသုံးပြုသူ အကောင့်များ မရှိသေးပါ။ "+ အကောင့်အသစ် ဖွင့်မည်" ကို နှိပ်ပါ။' : 'No user accounts found. Click "+ Add New Staff" to create an account.'}
           </td>
         </tr>
       `;
@@ -43,9 +48,15 @@ const Users = {
     }
 
     tbody.innerHTML = this.users.map(u => {
+      const roleLabel = isMm
+        ? (u.role === 'ADMIN' ? 'မန်နေဂျာ (ADMIN)' : 'ဝန်ထမ်း (STAFF)')
+        : u.role;
       const roleBadge = u.role === 'ADMIN' ?
-        `<span class="badge-bubble badge-urgent">ADMIN</span>` :
-        `<span class="badge-bubble badge-optimization">STAFF</span>`;
+        `<span class="badge-bubble badge-urgent">${roleLabel}</span>` :
+        `<span class="badge-bubble badge-optimization">${roleLabel}</span>`;
+
+      const statusText = isMm ? (u.active ? 'အသုံးပြုနေဆဲ' : 'ရပ်ဆိုင်းထား') : (u.active ? 'ACTIVE' : 'INACTIVE');
+      const detailsBtn = isMm ? 'အသေးစိတ်' : 'Details';
 
       return `
         <tr>
@@ -53,9 +64,9 @@ const Users = {
           <td><code>${u.username}</code></td>
           <td>${u.email || '-'}</td>
           <td>${roleBadge}</td>
-          <td><span class="badge-bubble badge-risk-low">${u.active ? 'ACTIVE' : 'INACTIVE'}</span></td>
+          <td><span class="badge-bubble badge-risk-low">${statusText}</span></td>
           <td style="text-align:right;">
-            <button class="btn-bubble btn-glass-subtle btn-sm-bubble" onclick="API.showToast('Account active', 'info')">Details</button>
+            <button class="btn-bubble btn-glass-subtle btn-sm-bubble" onclick="API.showToast('Account active', 'info')">${detailsBtn}</button>
           </td>
         </tr>
       `;
@@ -63,7 +74,7 @@ const Users = {
 
     const countBadge = document.getElementById('users-count-badge');
     if (countBadge) {
-      countBadge.textContent = `${this.users.length} Active Accounts`;
+      countBadge.textContent = isMm ? `အသုံးပြုနေသော အကောင့် (${this.users.length}) ခု` : `${this.users.length} Active Accounts`;
     }
   },
 

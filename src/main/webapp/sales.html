@@ -15,46 +15,46 @@
     <div class="sidebar-header">
       <div class="brand-bubble-logo">🍃</div>
       <div class="brand-title-group">
-        <div class="brand-main-title">FoodWaste AI</div>
-        <span class="brand-sub-badge">iOS 26 Bubble Edition</span>
+        <div class="brand-main-title" data-i18n="brand.name">FoodWaste AI</div>
+        <span class="brand-sub-badge" data-i18n="brand.subBadge">iOS 26 Bubble Edition</span>
       </div>
     </div>
 
     <nav class="sidebar-nav-scroll">
-      <div class="nav-bubble-section-title">Core Operations</div>
+      <div class="nav-bubble-section-title" data-i18n="nav.core">Core Operations</div>
       <a href="/dashboard.html" class="nav-bubble-link">
-        <span class="nav-bubble-icon">📊</span> Dashboard
+        <span class="nav-bubble-icon">📊</span> <span data-i18n="nav.dashboard">Dashboard</span>
       </a>
       <a href="/inventory.html" class="nav-bubble-link">
-        <span class="nav-bubble-icon">📦</span> Inventory
+        <span class="nav-bubble-icon">📦</span> <span data-i18n="nav.inventory">Inventory</span>
       </a>
       <a href="/sales.html" class="nav-bubble-link active">
-        <span class="nav-bubble-icon">💰</span> Sales Entry
+        <span class="nav-bubble-icon">💰</span> <span data-i18n="nav.sales">Sales Entry</span>
       </a>
       <a href="/waste.html" class="nav-bubble-link">
-        <span class="nav-bubble-icon">🗑️</span> Waste Records
+        <span class="nav-bubble-icon">🗑️</span> <span data-i18n="nav.waste">Waste Records</span>
       </a>
 
-      <div class="nav-section-title">AI & Intelligence</div>
+      <div class="nav-bubble-section-title" data-i18n="nav.ai">AI & Intelligence</div>
       <a href="/prediction.html" class="nav-bubble-link">
-        <span class="nav-bubble-icon">🔮</span> AI Prediction
+        <span class="nav-bubble-icon">🔮</span> <span data-i18n="nav.prediction">AI Prediction</span>
       </a>
       <a href="/recommendations.html" class="nav-bubble-link">
-        <span class="nav-bubble-icon">💡</span> Recommendations
+        <span class="nav-bubble-icon">💡</span> <span data-i18n="nav.recommendations">Recommendations</span>
       </a>
       <a href="/redistribution.html" class="nav-bubble-link">
-        <span class="nav-bubble-icon">🤝</span> Redistribution
+        <span class="nav-bubble-icon">🤝</span> <span data-i18n="nav.redistribution">Redistribution</span>
       </a>
 
-      <div class="nav-section-title admin-only">Management</div>
+      <div class="nav-section-title admin-only" data-i18n="nav.management">Management</div>
       <a href="/reports.html" class="nav-bubble-link">
-        <span class="nav-bubble-icon">📈</span> Reports
+        <span class="nav-bubble-icon">📈</span> <span data-i18n="nav.reports">Reports</span>
       </a>
       <a href="/users.html" class="nav-bubble-link admin-only">
-        <span class="nav-bubble-icon">👥</span> Users
+        <span class="nav-bubble-icon">👥</span> <span data-i18n="nav.users">Users</span>
       </a>
       <a href="/settings.html" class="nav-bubble-link admin-only">
-        <span class="nav-bubble-icon">⚙️</span> Settings
+        <span class="nav-bubble-icon">⚙️</span> <span data-i18n="nav.settings">Settings</span>
       </a>
     </nav>
 
@@ -66,7 +66,7 @@
           <div class="user-role-badge" id="current-user-role">ADMIN</div>
         </div>
       </div>
-      <button class="btn-bubble btn-glass-subtle btn-sm-bubble" onclick="Auth.logout()" title="Sign Out">
+      <button class="btn-bubble btn-glass-subtle btn-sm-bubble" onclick="Auth.logout()" title="Sign Out" data-i18n-title="nav.signOut">
         🚪
       </button>
     </div>
@@ -75,10 +75,10 @@
   <div class="main-wrapper-float">
     <header class="topbar-glass">
       <div class="topbar-left">
-        <h1 class="page-headline-glass">Sales & Customer Demand Entry</h1>
+        <h1 class="page-headline-glass" data-i18n="sales.headline">Sales Velocity & Customer Orders</h1>
       </div>
       <div class="topbar-right">
-        <button class="btn-bubble btn-yellow btn-sm-bubble" onclick="Sales.openModal()">+ Record Sale</button>
+        <button class="btn-bubble btn-yellow btn-sm-bubble" onclick="Sales.openModal()" data-i18n="sales.btn.record">+ Record Sale</button>
       </div>
     </header>
 
@@ -86,34 +86,34 @@
       <section class="kpi-grid">
         <div class="kpi-bubble-card">
           <div class="kpi-bubble-top">
-            <span class="kpi-bubble-label">Today's Revenue</span>
+            <span class="kpi-bubble-label" data-i18n="sales.kpi.revenue">Today's Revenue</span>
             <div class="kpi-bubble-icon kpi-icon-yellow">💰</div>
           </div>
           <div>
-            <div class="kpi-bubble-value" id="kpi-sales-revenue">454,800 MMK</div>
-            <div class="kpi-bubble-sub" style="color:#047857; font-weight:700;">Active dinner rush service</div>
+            <div class="kpi-bubble-value" id="kpi-sales-revenue">0 MMK</div>
+            <div class="kpi-bubble-sub" id="kpi-sales-sub" style="color:#047857; font-weight:700;" data-i18n="sales.kpi.grossIncome">Gross sales recorded</div>
           </div>
         </div>
 
         <div class="kpi-bubble-card">
           <div class="kpi-bubble-top">
-            <span class="kpi-bubble-label">Food Sold Volume</span>
+            <span class="kpi-bubble-label" data-i18n="sales.kpi.volume">Dishes Served</span>
             <div class="kpi-bubble-icon kpi-icon-blue">⚖️</div>
           </div>
           <div>
-            <div class="kpi-bubble-value" id="kpi-sales-volume">75.0 kg</div>
-            <div class="kpi-bubble-sub">Across 4 major menu items</div>
+            <div class="kpi-bubble-value" id="kpi-sales-volume">0.0 kg</div>
+            <div class="kpi-bubble-sub" data-i18n="sales.kpi.dishesSold">Dishes sold today</div>
           </div>
         </div>
 
         <div class="kpi-bubble-card">
           <div class="kpi-bubble-top">
-            <span class="kpi-bubble-label">Customers Served</span>
+            <span class="kpi-bubble-label" data-i18n="sales.kpi.diners">Total Diners</span>
             <div class="kpi-bubble-icon kpi-icon-green">👥</div>
           </div>
           <div>
-            <div class="kpi-bubble-value" id="kpi-sales-diners">177 Diners</div>
-            <div class="kpi-bubble-sub">Average 0.42 kg food / cover</div>
+            <div class="kpi-bubble-value" id="kpi-sales-diners">0 Diners</div>
+            <div class="kpi-bubble-sub" data-i18n="sales.kpi.guestsCount">Seated customer volume</div>
           </div>
         </div>
       </section>
@@ -121,23 +121,23 @@
       <div class="card-glass">
         <div class="card-header-glass">
           <div>
-            <h2 class="card-title-glass">🧾 Recent Sales Transactions</h2>
-            <div class="card-subtitle-glass">Real-time log used by Prolog AI to model customer demand curves</div>
+            <h2 class="card-title-glass" data-i18n="sales.cardTitle">💰 Sales Transactions & Daily Velocity</h2>
+            <div class="card-subtitle-glass" data-i18n="sales.cardSubtitle">Track customer volume and automatically deduct raw ingredients</div>
           </div>
-          <button class="btn-bubble btn-glass-subtle btn-sm-bubble" onclick="Sales.fetchSales()">🔄 Refresh</button>
+          <button class="btn-bubble btn-glass-subtle btn-sm-bubble" onclick="Sales.fetchSales()" data-i18n="action.refresh">🔄 Refresh</button>
         </div>
         <div class="card-body-glass" style="padding:0.75rem 1.25rem 1.25rem 1.25rem;">
           <div class="table-responsive">
             <table class="data-table-glass">
               <thead>
                 <tr>
-                  <th>Timestamp</th>
-                  <th>Food Item</th>
-                  <th>Quantity Sold</th>
-                  <th>Unit Price</th>
-                  <th>Total Amount</th>
-                  <th>Customer Diners</th>
-                  <th style="text-align:right;">Actions</th>
+                  <th data-i18n="sales.th.date">Timestamp</th>
+                  <th data-i18n="sales.th.item">Food Item</th>
+                  <th data-i18n="sales.th.qty">Quantity Sold</th>
+                  <th data-i18n="sales.th.price">Unit Price</th>
+                  <th data-i18n="sales.th.total">Total Amount</th>
+                  <th data-i18n="sales.th.diners">Customer Diners</th>
+                  <th style="text-align:right;" data-i18n="sales.th.actions">Actions</th>
                 </tr>
               </thead>
               <tbody id="sales-tbody">
@@ -155,58 +155,58 @@
 <div class="modal-glass-backdrop" id="record-sale-modal">
   <div class="modal-glass-dialog">
     <div class="modal-glass-header">
-      <h3 style="font-size:1.15rem; font-weight:800; color:var(--text-main);">+ Record Customer Sale</h3>
+      <h3 style="font-size:1.15rem; font-weight:800; color:var(--text-main);" data-i18n="sales.modal.title">+ Record Customer Sale</h3>
       <button class="btn-bubble btn-glass-subtle btn-sm-bubble" onclick="Sales.closeModal()">✕</button>
     </div>
     <form id="sale-form" onsubmit="Sales.saveSale(event)">
       <div class="modal-glass-body">
         <div class="form-group-bubble">
-          <label class="form-label-bubble">Select Food Item</label>
+          <label class="form-label-bubble" data-i18n="sales.modal.selectFood">Select Food Item Sold</label>
           <select class="form-select-bubble" id="sale-food-id" required>
             <!-- Dynamically populated from /api/inventory -->
           </select>
         </div>
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
           <div class="form-group-bubble">
-            <label class="form-label-bubble">Quantity Sold</label>
+            <label class="form-label-bubble" data-i18n="sales.modal.qtySold">Quantity Sold</label>
             <input class="form-input-bubble" type="number" step="0.1" id="sale-qty" required placeholder="5.0">
           </div>
           <div class="form-group-bubble">
-            <label class="form-label-bubble">Customer Count</label>
+            <label class="form-label-bubble" data-i18n="sales.modal.diners">Customer Diners Served</label>
             <input class="form-input-bubble" type="number" id="sale-customers" value="1" min="1" required>
           </div>
         </div>
       </div>
       <div class="modal-glass-footer">
-        <button type="button" class="btn-bubble btn-glass" onclick="Sales.closeModal()">Cancel</button>
-        <button type="submit" class="btn-bubble btn-yellow">Record Sale & Update Stock</button>
+        <button type="button" class="btn-bubble btn-glass" onclick="Sales.closeModal()" data-i18n="action.cancel">Cancel</button>
+        <button type="submit" class="btn-bubble btn-yellow" data-i18n="action.save">Record Sale & Update Stock</button>
       </div>
     </form>
   </div>
 </div>
 
-<button class="fab-btn" onclick="Sales.openModal()" title="Record Sale">+</button>
+<button class="fab-btn" onclick="Sales.openModal()" title="Record Sale" data-i18n-title="sales.btn.record">+</button>
 
 <nav class="mobile-bottom-dock">
   <a href="/dashboard.html" class="dock-item">
     <span class="dock-icon">📊</span>
-    <span>Home</span>
+    <span data-i18n="dock.home">Home</span>
   </a>
   <a href="/inventory.html" class="dock-item">
     <span class="dock-icon">📦</span>
-    <span>Inventory</span>
+    <span data-i18n="dock.inventory">Inventory</span>
   </a>
   <a href="/sales.html" class="dock-item active">
     <span class="dock-icon">💰</span>
-    <span>Sales</span>
+    <span data-i18n="dock.sales">Sales</span>
   </a>
   <a href="/waste.html" class="dock-item">
     <span class="dock-icon">🗑️</span>
-    <span>Waste</span>
+    <span data-i18n="dock.waste">Waste</span>
   </a>
   <a href="/reports.html" class="dock-item">
     <span class="dock-icon">📈</span>
-    <span>Reports</span>
+    <span data-i18n="dock.reports">Reports</span>
   </a>
 </nav>
 

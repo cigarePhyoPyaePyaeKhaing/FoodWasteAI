@@ -151,6 +151,29 @@ public class PredictionService {
 
         double avgRisk = items.isEmpty() ? 0.0 : (totalRiskScore / items.size());
 
+        // Populate bilingual fields on all assessments
+        TranslationService translator = TranslationService.getInstance();
+        for (PrologAssessment a : assessments) {
+            String reasoningEn = (a.getReasons() != null && !a.getReasons().isEmpty())
+                    ? String.join(" | ", a.getReasons())
+                    : (a.getReason() != null ? a.getReason() : "Prolog risk reasoning");
+            String reasoningMy = translator.translateToMyanmar(reasoningEn);
+
+            a.setReasonEn(reasoningEn);
+            a.setReasonMy(reasoningMy);
+            if (a.getRecommendation() != null) {
+                a.setRecommendationEn(a.getRecommendation());
+                a.setRecommendationMy(translator.translateToMyanmar(a.getRecommendation()));
+            }
+            if (a.getReasons() != null) {
+                List<String> rMy = new ArrayList<>();
+                for (String r : a.getReasons()) {
+                    rMy.add(translator.translateToMyanmar(r));
+                }
+                a.setReasonsMy(rMy);
+            }
+        }
+
         // Persist to MySQL predictions and prediction_items tables
         if (DatabaseConfig.isAvailable() && !items.isEmpty()) {
             try {
@@ -164,20 +187,7 @@ public class PredictionService {
                 Prediction savedPred = predictionDao.savePrediction(pred);
 
                 List<PredictionItem> pItems = new ArrayList<>();
-                TranslationService translator = TranslationService.getInstance();
                 for (PrologAssessment a : assessments) {
-                    String reasoningEn = (a.getReasons() != null && !a.getReasons().isEmpty())
-                            ? String.join(" | ", a.getReasons())
-                            : (a.getReason() != null ? a.getReason() : "Prolog risk reasoning");
-                    String reasoningMy = translator.translateToMyanmar(reasoningEn);
-
-                    a.setReasonEn(reasoningEn);
-                    a.setReasonMy(reasoningMy);
-                    if (a.getRecommendation() != null) {
-                        a.setRecommendationEn(a.getRecommendation());
-                        a.setRecommendationMy(translator.translateToMyanmar(a.getRecommendation()));
-                    }
-
                     PredictionItem pi = new PredictionItem();
                     pi.setPredictionId(savedPred.getId());
                     pi.setFoodItemId(a.getFoodItemId());
@@ -190,9 +200,9 @@ public class PredictionService {
                     pi.setPredictedWasteQty(BigDecimal.valueOf(Math.max(0, a.getStock() - a.getExpectedDemand())).setScale(2, RoundingMode.HALF_UP));
                     pi.setRecommendedProduction(BigDecimal.valueOf(a.getRecommendedProduction()).setScale(2, RoundingMode.HALF_UP));
                     pi.setPriorityUsage(a.getPriorityUsage());
-                    pi.setReasoningText(reasoningEn);
-                    pi.setReasoningTextEn(reasoningEn);
-                    pi.setReasoningTextMy(reasoningMy);
+                    pi.setReasoningText(a.getReasonEn());
+                    pi.setReasoningTextEn(a.getReasonEn());
+                    pi.setReasoningTextMy(a.getReasonMy());
                     pItems.add(pi);
                 }
                 predictionDao.savePredictionItems(savedPred.getId(), pItems);

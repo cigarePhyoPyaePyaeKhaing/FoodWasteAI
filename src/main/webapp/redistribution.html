@@ -15,46 +15,46 @@
     <div class="sidebar-header">
       <div class="brand-bubble-logo">🍃</div>
       <div class="brand-title-group">
-        <div class="brand-main-title">FoodWaste AI</div>
-        <span class="brand-sub-badge">iOS 26 Bubble Edition</span>
+        <div class="brand-main-title" data-i18n="brand.name">FoodWaste AI</div>
+        <span class="brand-sub-badge" data-i18n="brand.subBadge">iOS 26 Bubble Edition</span>
       </div>
     </div>
 
     <nav class="sidebar-nav-scroll">
-      <div class="nav-bubble-section-title">Core Operations</div>
+      <div class="nav-bubble-section-title" data-i18n="nav.core">Core Operations</div>
       <a href="/dashboard.html" class="nav-bubble-link">
-        <span class="nav-bubble-icon">📊</span> Dashboard
+        <span class="nav-bubble-icon">📊</span> <span data-i18n="nav.dashboard">Dashboard</span>
       </a>
       <a href="/inventory.html" class="nav-bubble-link">
-        <span class="nav-bubble-icon">📦</span> Inventory
+        <span class="nav-bubble-icon">📦</span> <span data-i18n="nav.inventory">Inventory</span>
       </a>
       <a href="/sales.html" class="nav-bubble-link">
-        <span class="nav-bubble-icon">💰</span> Sales Entry
+        <span class="nav-bubble-icon">💰</span> <span data-i18n="nav.sales">Sales Entry</span>
       </a>
       <a href="/waste.html" class="nav-bubble-link">
-        <span class="nav-bubble-icon">🗑️</span> Waste Records
+        <span class="nav-bubble-icon">🗑️</span> <span data-i18n="nav.waste">Waste Records</span>
       </a>
 
-      <div class="nav-section-title">AI & Intelligence</div>
+      <div class="nav-section-title" data-i18n="nav.ai">AI & Intelligence</div>
       <a href="/prediction.html" class="nav-bubble-link">
-        <span class="nav-bubble-icon">🔮</span> AI Prediction
+        <span class="nav-bubble-icon">🔮</span> <span data-i18n="nav.prediction">AI Prediction</span>
       </a>
       <a href="/recommendations.html" class="nav-bubble-link">
-        <span class="nav-bubble-icon">💡</span> Recommendations
+        <span class="nav-bubble-icon">💡</span> <span data-i18n="nav.recommendations">Recommendations</span>
       </a>
       <a href="/redistribution.html" class="nav-bubble-link active">
-        <span class="nav-bubble-icon">🤝</span> Redistribution
+        <span class="nav-bubble-icon">🤝</span> <span data-i18n="nav.redistribution">Redistribution</span>
       </a>
 
-      <div class="nav-section-title admin-only">Management</div>
+      <div class="nav-section-title admin-only" data-i18n="nav.management">Management</div>
       <a href="/reports.html" class="nav-bubble-link">
-        <span class="nav-bubble-icon">📈</span> Reports
+        <span class="nav-bubble-icon">📈</span> <span data-i18n="nav.reports">Reports</span>
       </a>
       <a href="/users.html" class="nav-bubble-link admin-only">
-        <span class="nav-bubble-icon">👥</span> Users
+        <span class="nav-bubble-icon">👥</span> <span data-i18n="nav.users">Users</span>
       </a>
       <a href="/settings.html" class="nav-bubble-link admin-only">
-        <span class="nav-bubble-icon">⚙️</span> Settings
+        <span class="nav-bubble-icon">⚙️</span> <span data-i18n="nav.settings">Settings</span>
       </a>
     </nav>
 
@@ -66,7 +66,7 @@
           <div class="user-role-badge" id="current-user-role">ADMIN</div>
         </div>
       </div>
-      <button class="btn-bubble btn-glass-subtle btn-sm-bubble" onclick="Auth.logout()" title="Sign Out">
+      <button class="btn-bubble btn-glass-subtle btn-sm-bubble" onclick="Auth.logout()" title="Sign Out" data-i18n-title="nav.signOut">
         🚪
       </button>
     </div>
@@ -75,10 +75,10 @@
   <div class="main-wrapper-float">
     <header class="topbar-glass">
       <div class="topbar-left">
-        <h1 class="page-headline-glass">Surplus Redistribution</h1>
+        <h1 class="page-headline-glass" data-i18n="redist.headline">Surplus Food Redistribution & Charities</h1>
       </div>
       <div class="topbar-right">
-        <button class="btn-bubble btn-yellow btn-sm-bubble" onclick="Redistribution.openModal()">+ Schedule Surplus Dispatch</button>
+        <button class="btn-bubble btn-yellow btn-sm-bubble" onclick="Redistribution.openModal()" data-i18n="redist.btn.schedule">+ Schedule Surplus Dispatch</button>
       </div>
     </header>
 
@@ -86,45 +86,45 @@
       <section class="kpi-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
         <div class="kpi-bubble-card">
           <div class="kpi-bubble-top">
-            <span class="kpi-bubble-label">Quantity Redistributed</span>
+            <span class="kpi-bubble-label" data-i18n="redist.kpi.rescued">Total Food Rescued</span>
             <div class="kpi-bubble-icon kpi-icon-green">🤝</div>
           </div>
           <div>
             <div class="kpi-bubble-value" id="kpi-redist-rescued">0.0 kg</div>
-            <div class="kpi-bubble-sub" style="color:#047857; font-weight:700;">Total surplus donated</div>
+            <div class="kpi-bubble-sub" style="color:#047857; font-weight:700;" data-i18n="redist.kpi.rescuedSub">Diverted from waste to communities</div>
           </div>
         </div>
 
         <div class="kpi-bubble-card">
           <div class="kpi-bubble-top">
-            <span class="kpi-bubble-label">Estimated Money Saved</span>
+            <span class="kpi-bubble-label" data-i18n="redist.kpi.financialSaved">Total Food Value Saved</span>
             <div class="kpi-bubble-icon kpi-icon-yellow">💰</div>
           </div>
           <div>
             <div class="kpi-bubble-value" id="kpi-redist-money">0 MMK</div>
-            <div class="kpi-bubble-sub" style="color:var(--accent-yellow-dark); font-weight:700;">Prevented financial loss</div>
+            <div class="kpi-bubble-sub" style="color:var(--accent-yellow-dark); font-weight:700;" data-i18n="redist.kpi.financialSavedSub">Cost preserved via redistribution</div>
           </div>
         </div>
 
         <div class="kpi-bubble-card">
           <div class="kpi-bubble-top">
-            <span class="kpi-bubble-label">Waste Reduction Impact</span>
+            <span class="kpi-bubble-label" data-i18n="redist.kpi.pending">Pending Dispatches</span>
             <div class="kpi-bubble-icon kpi-icon-green">🍃</div>
           </div>
           <div>
-            <div class="kpi-bubble-value" id="kpi-redist-impact">0.0 kg</div>
-            <div class="kpi-bubble-sub" style="color:#047857; font-weight:700;">Diverted from landfill</div>
+            <div class="kpi-bubble-value" id="kpi-redist-impact">0 Dispatches</div>
+            <div class="kpi-bubble-sub" style="color:#047857; font-weight:700;" data-i18n="redist.kpi.pendingSub">Awaiting courier pickup</div>
           </div>
         </div>
 
         <div class="kpi-bubble-card">
           <div class="kpi-bubble-top">
-            <span class="kpi-bubble-label">Available Recipients</span>
+            <span class="kpi-bubble-label" data-i18n="redist.kpi.activePartners">Active Charity Partners</span>
             <div class="kpi-bubble-icon kpi-icon-blue">🏢</div>
           </div>
           <div>
             <div class="kpi-bubble-value" id="kpi-redist-partners">0 Charities</div>
-            <div class="kpi-bubble-sub">Verified NGOs & Partners</div>
+            <div class="kpi-bubble-sub" data-i18n="redist.kpi.activePartnersSub">Verified recipient shelters</div>
           </div>
         </div>
       </section>
@@ -132,23 +132,23 @@
       <div class="card-glass">
         <div class="card-header-glass">
           <div>
-            <h2 class="card-title-glass">🚚 Redistribution Records & Dispatches</h2>
-            <div class="card-subtitle-glass">Surplus donations scheduled, completed, and tracked from AI recommendations</div>
+            <h2 class="card-title-glass" data-i18n="redist.cardTitle">🤝 Verified Charity Partner Dispatches</h2>
+            <div class="card-subtitle-glass" data-i18n="redist.cardSubtitle">Schedule safe food rescue batches to local food banks and community shelters</div>
           </div>
-          <button class="btn-bubble btn-glass-subtle btn-sm-bubble" onclick="Redistribution.fetchDispatches()">🔄 Refresh</button>
+          <button class="btn-bubble btn-glass-subtle btn-sm-bubble" onclick="Redistribution.fetchDispatches()" data-i18n="action.refresh">🔄 Refresh</button>
         </div>
         <div class="card-body-glass" style="padding:0.75rem 1.25rem 1.25rem 1.25rem;">
           <div class="table-responsive">
             <table class="data-table-glass">
               <thead>
                 <tr>
-                  <th>Food Item</th>
-                  <th>Quantity</th>
-                  <th>Recipient Organization</th>
-                  <th>Dispatch Notes</th>
-                  <th>Scheduled Pickup</th>
-                  <th>Status</th>
-                  <th style="text-align:right;">Actions</th>
+                  <th data-i18n="redist.th.item">Surplus Item</th>
+                  <th data-i18n="redist.th.qty">Donation Weight</th>
+                  <th data-i18n="redist.th.recipient">Charity Partner</th>
+                  <th data-i18n="redist.th.notes">Notes / Food Safety</th>
+                  <th data-i18n="redist.th.pickup">Scheduled Pickup</th>
+                  <th data-i18n="redist.th.status">Status</th>
+                  <th style="text-align:right;" data-i18n="redist.th.actions">Actions</th>
                 </tr>
               </thead>
               <tbody id="redist-tbody">
@@ -163,8 +163,8 @@
       <div class="card-glass" style="margin-top:1.5rem;">
         <div class="card-header-glass">
           <div>
-            <h2 class="card-title-glass">🏢 Verified Available Recipients</h2>
-            <div class="card-subtitle-glass">Registered community charities, soup kitchens, animal sanctuaries, and bio-hubs</div>
+            <h2 class="card-title-glass" data-i18n="redist.directoryTitle">🏢 Verified Charity Recipients Directory</h2>
+            <div class="card-subtitle-glass" data-i18n="redist.directorySubtitle">Registered food banks, soup kitchens, and sustainable animal feed partners</div>
           </div>
         </div>
         <div class="card-body-glass" style="padding:0.75rem 1.25rem 1.25rem 1.25rem;">
@@ -172,12 +172,11 @@
             <table class="data-table-glass">
               <thead>
                 <tr>
-                  <th>Organization Name</th>
-                  <th>Type</th>
-                  <th>Contact Person</th>
-                  <th>Phone</th>
-                  <th>Address</th>
-                  <th style="text-align:right;">Action</th>
+                  <th data-i18n="redist.th.orgName">Organization Name</th>
+                  <th data-i18n="redist.th.type">Type</th>
+                  <th data-i18n="redist.th.contact">Contact Person</th>
+                  <th data-i18n="redist.th.phone">Phone</th>
+                  <th data-i18n="inv.th.actions" style="text-align:right;">Action</th>
                 </tr>
               </thead>
               <tbody id="recipients-tbody">
@@ -195,64 +194,68 @@
 <div class="modal-glass-backdrop" id="redist-modal">
   <div class="modal-glass-dialog">
     <div class="modal-glass-header">
-      <h3 style="font-size:1.15rem; font-weight:800; color:var(--text-main);">+ Schedule Surplus Dispatch</h3>
+      <h3 style="font-size:1.15rem; font-weight:800; color:var(--text-main);" data-i18n="redist.modal.title">+ Schedule Surplus Dispatch</h3>
       <button class="btn-bubble btn-glass-subtle btn-sm-bubble" onclick="Redistribution.closeModal()">✕</button>
     </div>
     <form id="redist-form" onsubmit="Redistribution.saveDispatch(event)">
       <div class="modal-glass-body">
         <div class="form-group-bubble">
-          <label class="form-label-bubble">Food Item</label>
+          <label class="form-label-bubble" data-i18n="redist.modal.selectFood">Select Surplus Food Item</label>
           <select class="form-select-bubble" id="redist-food-id" required>
             <!-- Dynamically populated from /api/inventory -->
           </select>
         </div>
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
           <div class="form-group-bubble">
-            <label class="form-label-bubble">Donation Quantity</label>
+            <label class="form-label-bubble" data-i18n="redist.modal.qty">Quantity to Donate</label>
             <input class="form-input-bubble" type="number" step="0.1" id="redist-qty" required placeholder="15.0">
           </div>
           <div class="form-group-bubble">
-            <label class="form-label-bubble">Recipient Charity</label>
+            <label class="form-label-bubble" data-i18n="redist.modal.recipient">Select Charity / Partner Organization</label>
             <select class="form-select-bubble" id="redist-recipient" required>
               <!-- Dynamically populated from /api/redistribution/recipients -->
             </select>
           </div>
         </div>
         <div class="form-group-bubble">
-          <label class="form-label-bubble">Pickup Time</label>
+          <label class="form-label-bubble" data-i18n="redist.modal.time">Scheduled Pickup Time</label>
           <input class="form-input-bubble" type="datetime-local" id="redist-time">
+        </div>
+        <div class="form-group-bubble">
+          <label class="form-label-bubble" data-i18n="redist.modal.notes">Food Safety & Handling Notes</label>
+          <input class="form-input-bubble" type="text" id="redist-notes" placeholder="e.g. Chilled, properly packaged per food safety guidelines">
         </div>
       </div>
       <div class="modal-glass-footer">
-        <button type="button" class="btn-bubble btn-glass" onclick="Redistribution.closeModal()">Cancel</button>
-        <button type="submit" class="btn-bubble btn-yellow">Confirm & Schedule Dispatch</button>
+        <button type="button" class="btn-bubble btn-glass" onclick="Redistribution.closeModal()" data-i18n="action.cancel">Cancel</button>
+        <button type="submit" class="btn-bubble btn-yellow" data-i18n="redist.btn.schedule">Confirm & Schedule Dispatch</button>
       </div>
     </form>
   </div>
 </div>
 
-<button class="fab-btn" onclick="Redistribution.openModal()" title="Schedule Donation">+</button>
+<button class="fab-btn" onclick="Redistribution.openModal()" title="Schedule Donation" data-i18n-title="redist.btn.schedule">+</button>
 
 <nav class="mobile-bottom-dock">
   <a href="/dashboard.html" class="dock-item">
     <span class="dock-icon">📊</span>
-    <span>Home</span>
+    <span data-i18n="dock.home">Home</span>
   </a>
   <a href="/inventory.html" class="dock-item">
     <span class="dock-icon">📦</span>
-    <span>Inventory</span>
+    <span data-i18n="dock.inventory">Inventory</span>
   </a>
   <a href="/prediction.html" class="dock-item">
     <span class="dock-icon">🔮</span>
-    <span>Predict</span>
+    <span data-i18n="dock.predict">Predict</span>
   </a>
   <a href="/redistribution.html" class="dock-item active">
     <span class="dock-icon">🤝</span>
-    <span>Rescue</span>
+    <span data-i18n="dock.actions">Rescue</span>
   </a>
   <a href="/reports.html" class="dock-item">
     <span class="dock-icon">📈</span>
-    <span>Reports</span>
+    <span data-i18n="dock.reports">Reports</span>
   </a>
 </nav>
 

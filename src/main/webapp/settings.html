@@ -15,46 +15,46 @@
     <div class="sidebar-header">
       <div class="brand-bubble-logo">🍃</div>
       <div class="brand-title-group">
-        <div class="brand-main-title">FoodWaste AI</div>
-        <span class="brand-sub-badge">iOS 26 Bubble Edition</span>
+        <div class="brand-main-title" data-i18n="brand.name">FoodWaste AI</div>
+        <span class="brand-sub-badge" data-i18n="brand.subBadge">iOS 26 Bubble Edition</span>
       </div>
     </div>
 
     <nav class="sidebar-nav-scroll">
-      <div class="nav-bubble-section-title">Core Operations</div>
+      <div class="nav-bubble-section-title" data-i18n="nav.core">Core Operations</div>
       <a href="/dashboard.html" class="nav-bubble-link">
-        <span class="nav-bubble-icon">📊</span> Dashboard
+        <span class="nav-bubble-icon">📊</span> <span data-i18n="nav.dashboard">Dashboard</span>
       </a>
       <a href="/inventory.html" class="nav-bubble-link">
-        <span class="nav-bubble-icon">📦</span> Inventory
+        <span class="nav-bubble-icon">📦</span> <span data-i18n="nav.inventory">Inventory</span>
       </a>
       <a href="/sales.html" class="nav-bubble-link">
-        <span class="nav-bubble-icon">💰</span> Sales Entry
+        <span class="nav-bubble-icon">💰</span> <span data-i18n="nav.sales">Sales Entry</span>
       </a>
       <a href="/waste.html" class="nav-bubble-link">
-        <span class="nav-bubble-icon">🗑️</span> Waste Records
+        <span class="nav-bubble-icon">🗑️</span> <span data-i18n="nav.waste">Waste Records</span>
       </a>
 
-      <div class="nav-section-title">AI & Intelligence</div>
+      <div class="nav-section-title" data-i18n="nav.ai">AI & Intelligence</div>
       <a href="/prediction.html" class="nav-bubble-link">
-        <span class="nav-bubble-icon">🔮</span> AI Prediction
+        <span class="nav-bubble-icon">🔮</span> <span data-i18n="nav.prediction">AI Prediction</span>
       </a>
       <a href="/recommendations.html" class="nav-bubble-link">
-        <span class="nav-bubble-icon">💡</span> Recommendations
+        <span class="nav-bubble-icon">💡</span> <span data-i18n="nav.recommendations">Recommendations</span>
       </a>
       <a href="/redistribution.html" class="nav-bubble-link">
-        <span class="nav-bubble-icon">🤝</span> Redistribution
+        <span class="nav-bubble-icon">🤝</span> <span data-i18n="nav.redistribution">Redistribution</span>
       </a>
 
-      <div class="nav-section-title admin-only">Management</div>
+      <div class="nav-section-title admin-only" data-i18n="nav.management">Management</div>
       <a href="/reports.html" class="nav-bubble-link">
-        <span class="nav-bubble-icon">📈</span> Reports
+        <span class="nav-bubble-icon">📈</span> <span data-i18n="nav.reports">Reports</span>
       </a>
       <a href="/users.html" class="nav-bubble-link admin-only">
-        <span class="nav-bubble-icon">👥</span> Users
+        <span class="nav-bubble-icon">👥</span> <span data-i18n="nav.users">Users</span>
       </a>
       <a href="/settings.html" class="nav-bubble-link active admin-only">
-        <span class="nav-bubble-icon">⚙️</span> Settings
+        <span class="nav-bubble-icon">⚙️</span> <span data-i18n="nav.settings">Settings</span>
       </a>
     </nav>
 
@@ -66,7 +66,7 @@
           <div class="user-role-badge" id="current-user-role">ADMIN</div>
         </div>
       </div>
-      <button class="btn-bubble btn-glass-subtle btn-sm-bubble" onclick="Auth.logout()" title="Sign Out">
+      <button class="btn-bubble btn-glass-subtle btn-sm-bubble" onclick="Auth.logout()" title="Sign Out" data-i18n-title="nav.signOut">
         🚪
       </button>
     </div>
@@ -75,10 +75,10 @@
   <div class="main-wrapper-float">
     <header class="topbar-glass">
       <div class="topbar-left">
-        <h1 class="page-headline-glass">System Settings & Diagnostics</h1>
+        <h1 class="page-headline-glass" data-i18n="settings.headline">System Settings & Diagnostics</h1>
       </div>
       <div class="topbar-right">
-        <button class="btn-bubble btn-yellow btn-sm-bubble" onclick="checkHealth()">Test System Diagnostics</button>
+        <button class="btn-bubble btn-yellow btn-sm-bubble" onclick="checkHealth()" data-i18n="settings.btn.testDiagnostics">Test System Diagnostics</button>
       </div>
     </header>
 
@@ -86,27 +86,27 @@
       <div class="card-glass">
         <div class="card-header-glass">
           <div>
-            <h2 class="card-title-glass">🗄️ Aiven Cloud MySQL Settings</h2>
-            <div class="card-subtitle-glass">Managed cloud database credentials (injected via environment variables)</div>
+            <h2 class="card-title-glass" data-i18n="settings.mysql.title">🗄️ Aiven Cloud MySQL Settings</h2>
+            <div class="card-subtitle-glass" data-i18n="settings.mysql.subtitle">Managed cloud database credentials (injected via environment variables)</div>
           </div>
           <span class="badge-bubble badge-optimization">SSL Mode: REQUIRED</span>
         </div>
         <div class="card-body-glass">
           <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:1rem;">
             <div class="form-group-bubble">
-              <label class="form-label-bubble">Host Address</label>
+              <label class="form-label-bubble" data-i18n="settings.mysql.host">Host Address</label>
               <input class="form-input-bubble" type="text" value="mysql-example-aivencloud.com" readonly>
             </div>
             <div class="form-group-bubble">
-              <label class="form-label-bubble">Port</label>
+              <label class="form-label-bubble" data-i18n="settings.mysql.port">Port</label>
               <input class="form-input-bubble" type="text" value="3306" readonly>
             </div>
             <div class="form-group-bubble">
-              <label class="form-label-bubble">Database Name</label>
+              <label class="form-label-bubble" data-i18n="settings.mysql.dbName">Database Name</label>
               <input class="form-input-bubble" type="text" value="foodwaste_ai" readonly>
             </div>
           </div>
-          <div style="font-size:0.8rem; color:var(--text-muted); margin-top:0.5rem;">
+          <div style="font-size:0.8rem; color:var(--text-muted); margin-top:0.5rem;" data-i18n="settings.mysql.note">
             🔒 Passwords and sensitive credentials are encrypted and managed via <code>.env</code> / Railway Config Vars.
           </div>
         </div>
@@ -115,19 +115,19 @@
       <div class="card-glass">
         <div class="card-header-glass">
           <div>
-            <h2 class="card-title-glass">🧠 SWI-Prolog Expert Engine</h2>
-            <div class="card-subtitle-glass">Declarative rule knowledge base for waste mitigation</div>
+            <h2 class="card-title-glass" data-i18n="settings.prolog.title">🧠 SWI-Prolog Expert Engine</h2>
+            <div class="card-subtitle-glass" data-i18n="settings.prolog.subtitle">Declarative rule knowledge base for waste mitigation</div>
           </div>
           <span class="badge-bubble badge-optimization">Subprocess Mode</span>
         </div>
         <div class="card-body-glass">
           <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:1rem;">
             <div class="form-group-bubble">
-              <label class="form-label-bubble">Binary Path</label>
+              <label class="form-label-bubble" data-i18n="settings.prolog.binaryPath">Binary Path</label>
               <input class="form-input-bubble" type="text" value="swipl (or SWIPL_PATH env var)" readonly>
             </div>
             <div class="form-group-bubble">
-              <label class="form-label-bubble">Rules File</label>
+              <label class="form-label-bubble" data-i18n="settings.prolog.rulesFile">Rules File</label>
               <input class="form-input-bubble" type="text" value="src/main/resources/prolog/foodwaste_rules.pl" readonly>
             </div>
           </div>
@@ -141,23 +141,23 @@
 <nav class="mobile-bottom-dock">
   <a href="/dashboard.html" class="dock-item">
     <span class="dock-icon">📊</span>
-    <span>Home</span>
+    <span data-i18n="dock.home">Home</span>
   </a>
   <a href="/inventory.html" class="dock-item">
     <span class="dock-icon">📦</span>
-    <span>Inventory</span>
+    <span data-i18n="dock.inventory">Inventory</span>
   </a>
   <a href="/prediction.html" class="dock-item">
     <span class="dock-icon">🔮</span>
-    <span>Predict</span>
+    <span data-i18n="dock.predict">Predict</span>
   </a>
   <a href="/recommendations.html" class="dock-item">
     <span class="dock-icon">💡</span>
-    <span>Actions</span>
+    <span data-i18n="dock.actions">Actions</span>
   </a>
   <a href="/settings.html" class="dock-item active">
     <span class="dock-icon">⚙️</span>
-    <span>Settings</span>
+    <span data-i18n="dock.settings">Settings</span>
   </a>
 </nav>
 

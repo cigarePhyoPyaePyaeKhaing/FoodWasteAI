@@ -1,7 +1,3 @@
-/**
- * FoodWaste AI - Sales Controller
- * Connected with /api/sales and /api/inventory REST endpoints
- */
 const Sales = {
   sales: [],
   foodItems: [],
@@ -12,6 +8,12 @@ const Sales = {
       this.fetchFoodItems(),
       this.fetchSales()
     ]);
+
+    window.addEventListener('languageChanged', () => {
+      this.render();
+      this.updateKpis();
+      this.populateFoodSelect();
+    });
   },
 
   async fetchFoodItems() {
@@ -28,15 +30,18 @@ const Sales = {
     const select = document.getElementById('sale-food-id');
     if (!select) return;
 
+    const isMm = typeof I18n !== 'undefined' && I18n.getLanguage() === 'mm';
+
     if (this.foodItems.length === 0) {
-      select.innerHTML = `<option value="">No food items in inventory</option>`;
+      select.innerHTML = `<option value="">${isMm ? 'ကုန်ပစ္စည်းစာရင်း မရှိသေးပါ' : 'No food items in inventory'}</option>`;
       return;
     }
 
     select.innerHTML = this.foodItems.map(f => {
       const price = Number(f.pricePerUnit || 0).toLocaleString();
       const qty = Number(f.quantity || 0).toFixed(1);
-      return `<option value="${f.id}" data-price="${f.pricePerUnit}" data-unit="${f.unit || 'kg'}">${f.name} (Stock: ${qty} ${f.unit || 'kg'} @ ${price} MMK)</option>`;
+      const stockLabel = isMm ? 'လက်ကျန်' : 'Stock';
+      return `<option value="${f.id}" data-price="${f.pricePerUnit}" data-unit="${f.unit || 'kg'}">${f.name} (${stockLabel}: ${qty} ${f.unit || 'kg'} @ ${price} MMK)</option>`;
     }).join('');
   },
 
@@ -59,11 +64,12 @@ const Sales = {
   renderLoading() {
     const tbody = document.getElementById('sales-tbody');
     if (!tbody) return;
+    const isMm = typeof I18n !== 'undefined' && I18n.getLanguage() === 'mm';
     tbody.innerHTML = `
       <tr>
         <td colspan="7" style="text-align:center; padding:3rem; color:var(--text-muted);">
           <div style="font-size:1.5rem; animation: spin 1s linear infinite; display:inline-block;">🍃</div>
-          <div style="margin-top:0.5rem; font-weight:600;">Loading customer sales records...</div>
+          <div style="margin-top:0.5rem; font-weight:600;">${isMm ? 'ရောင်းချမှု မှတ်တမ်းများကို ရယူနေပါသည်...' : 'Loading customer sales records...'}</div>
         </td>
       </tr>
     `;
@@ -78,13 +84,15 @@ const Sales = {
       return;
     }
 
+    const isMm = typeof I18n !== 'undefined' && I18n.getLanguage() === 'mm';
+
     if (this.sales.length === 0) {
       tbody.innerHTML = `
         <tr>
           <td colspan="7" style="text-align:center; padding:3rem; color:var(--text-muted);">
             <div style="font-size:2rem; margin-bottom:0.5rem;">💰</div>
-            <div style="font-weight:700; color:var(--text-main); font-size:1.05rem;">No Sales Recorded Today</div>
-            <div style="font-size:0.85rem; margin-top:0.25rem;">Click "+ Record Sale" to log customer dish purchases.</div>
+            <div style="font-weight:700; color:var(--text-main); font-size:1.05rem;">${typeof I18n !== 'undefined' ? I18n.t('sales.empty.title') : 'No Sales Recorded Today'}</div>
+            <div style="font-size:0.85rem; margin-top:0.25rem;">${typeof I18n !== 'undefined' ? I18n.t('sales.empty.desc') : 'Click "+ Record Sale" to log customer dish purchases.'}</div>
           </td>
         </tr>
       `;
@@ -92,11 +100,12 @@ const Sales = {
     }
 
     tbody.innerHTML = this.sales.map(s => {
-      const qtyFmt = Number(s.quantitySold || 0).toFixed(2) + ' units';
+      const qtyFmt = Number(s.quantitySold || 0).toFixed(2) + ' ' + (isMm ? 'ခု/ပမာဏ' : 'units');
       const priceFmt = Number(s.unitPrice || 0).toLocaleString() + ' MMK';
       const totalFmt = Number(s.totalAmount || 0).toLocaleString() + ' MMK';
       const diners = s.customerCount || 1;
-      const dateFmt = s.saleDate ? s.saleDate.replace('T', ' ').substring(0, 16) : 'Today';
+      const dinersText = `${diners} ${isMm ? 'ဦး' : 'Diners'}`;
+      const dateFmt = s.saleDate ? s.saleDate.replace('T', ' ').substring(0, 16) : (isMm ? 'ယနေ့' : 'Today');
 
       return `
         <tr>
@@ -105,7 +114,7 @@ const Sales = {
           <td><strong>${qtyFmt}</strong></td>
           <td>${priceFmt}</td>
           <td><strong style="color:var(--accent-yellow-dark);">${totalFmt}</strong></td>
-          <td><span class="badge-bubble badge-optimization">${diners} Diners</span></td>
+          <td><span class="badge-bubble badge-optimization">${dinersText}</span></td>
           <td style="text-align:right;">
             <button class="btn-bubble btn-glass-subtle btn-sm-bubble" style="color:var(--risk-high-text);" onclick="Sales.deleteSale(${s.id})">🗑️</button>
           </td>
@@ -115,6 +124,7 @@ const Sales = {
   },
 
   updateKpis() {
+    const isMm = typeof I18n !== 'undefined' && I18n.getLanguage() === 'mm';
     const totalRev = this.sales.reduce((sum, s) => sum + Number(s.totalAmount || 0), 0);
     const totalVol = this.sales.reduce((sum, s) => sum + Number(s.quantitySold || 0), 0);
     const totalDiners = this.sales.reduce((sum, s) => sum + Number(s.customerCount || 0), 0);
@@ -126,7 +136,7 @@ const Sales = {
     if (volEl) volEl.textContent = totalVol.toFixed(1) + ' kg';
 
     const dinersEl = document.getElementById('kpi-sales-diners');
-    if (dinersEl) dinersEl.textContent = totalDiners + ' Diners';
+    if (dinersEl) dinersEl.textContent = totalDiners + (isMm ? ' ဦး' : ' Diners');
   },
 
   openModal() {
@@ -144,13 +154,14 @@ const Sales = {
 
   async saveSale(e) {
     e.preventDefault();
+    const isMm = typeof I18n !== 'undefined' && I18n.getLanguage() === 'mm';
     const foodSelect = document.getElementById('sale-food-id');
     const foodItemId = parseInt(foodSelect.value);
     const quantitySold = parseFloat(document.getElementById('sale-qty').value);
     const customerCount = parseInt(document.getElementById('sale-customers').value) || 1;
 
     if (!foodItemId || isNaN(quantitySold) || quantitySold <= 0) {
-      API.showToast('Please select a food item and enter a valid quantity', 'warning');
+      API.showToast(isMm ? 'အစားအစာနှင့် ပမာဏကို မှန်ကန်စွာ ရွေးချယ်ပါ' : 'Please select a food item and enter a valid quantity', 'warning');
       return;
     }
 
@@ -166,25 +177,26 @@ const Sales = {
 
     try {
       await API.post('/api/sales', payload);
-      API.showToast(`Recorded sale for ${selectedOption.text.split('(')[0].trim()}!`, 'success');
+      API.showToast(isMm ? 'ရောင်းချမှု မှတ်တမ်းတင်ပြီးပါပြီ!' : `Recorded sale for ${selectedOption.text.split('(')[0].trim()}!`, 'success');
       this.closeModal();
       await this.fetchSales();
     } catch (err) {
       console.error('Error saving sale:', err);
-      API.showToast('Failed to record sale: ' + err.message, 'error');
+      API.showToast(isMm ? ('ရောင်းချမှု မှတ်တမ်းတင်ရန် မအောင်မြင်ပါ: ' + err.message) : ('Failed to record sale: ' + err.message), 'error');
     }
   },
 
   async deleteSale(id) {
-    if (!confirm('Are you sure you want to delete this sales record?')) return;
+    const isMm = typeof I18n !== 'undefined' && I18n.getLanguage() === 'mm';
+    if (!confirm(isMm ? 'ဤရောင်းချမှု မှတ်တမ်းကို ဖျက်ရန် သေချာပါသလား?' : 'Are you sure you want to delete this sales record?')) return;
 
     try {
       await API.delete(`/api/sales/${id}`);
-      API.showToast('Sale record deleted', 'info');
+      API.showToast(isMm ? 'ရောင်းချမှု မှတ်တမ်း ဖျက်ပြီးပါပြီ' : 'Sale record deleted', 'info');
       await this.fetchSales();
     } catch (err) {
       console.error('Error deleting sale:', err);
-      API.showToast('Failed to delete sale: ' + err.message, 'error');
+      API.showToast(isMm ? ('ဖျက်ရန် မအောင်မြင်ပါ: ' + err.message) : ('Failed to delete sale: ' + err.message), 'error');
     }
   }
 };

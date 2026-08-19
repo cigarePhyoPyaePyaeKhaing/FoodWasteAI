@@ -133,6 +133,7 @@ const Prediction = {
           }
 
           const riskBadge = typeof I18n !== 'undefined' ? I18n.translateRisk(item.riskLevel) : item.riskLevel;
+          const priorityBadge = typeof I18n !== 'undefined' ? I18n.translatePriority(item.priorityUsage || 'STANDARD') : (item.priorityUsage || 'STANDARD');
           const cardTitle = isMm
             ? `${item.foodName} သည် အဘယ့်ကြောင့် ${riskBadge} ဖြစ်ရသနည်း (${Math.round(item.riskPercentage)}%)`
             : `Why is ${item.foodName} ${item.riskLevel} Risk (${Math.round(item.riskPercentage)}%)?`;
@@ -140,8 +141,8 @@ const Prediction = {
           let reasonsList = item.reasons || [];
           if (isMm && item.reasonsMy && item.reasonsMy.length > 0) {
             reasonsList = item.reasonsMy;
-          } else if (isMm && item.reasonMy) {
-            reasonsList = [item.reasonMy];
+          } else if (isMm && (item.reasonMy || item.reason_my)) {
+            reasonsList = [item.reasonMy || item.reason_my];
           }
 
           const reasonsHtml = reasonsList.map(r => `<li>${r}</li>`).join('');
@@ -160,7 +161,7 @@ const Prediction = {
                   ${cardTitle}
                 </span>
                 <span style="font-size:0.75rem; font-weight:700; background:rgba(255,255,255,0.8); padding:0.15rem 0.5rem; border-radius:9999px;">
-                  ${item.priorityUsage || 'STANDARD'}
+                  ${priorityBadge}
                 </span>
               </div>
               <ul style="font-size:0.85rem; color:var(--text-body); margin-top:0.4rem; padding-left:1.2rem; line-height:1.6;">

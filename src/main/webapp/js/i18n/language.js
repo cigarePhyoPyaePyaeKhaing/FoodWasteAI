@@ -33,7 +33,7 @@ const I18n = {
     this.applyTranslations();
     this.updateSwitcherUI();
 
-    // Trigger custom event for dynamic controllers to re-render
+    // Trigger custom event for dynamic controllers to re-render immediately
     window.dispatchEvent(new CustomEvent('languageChanged', { detail: { language: normalized } }));
   },
 
@@ -54,9 +54,12 @@ const I18n = {
     const upper = String(risk).toUpperCase();
     if (this.isMyanmar()) {
       if (upper === 'HIGH') return 'အန္တရာယ်မြင့်';
-      if (upper === 'MEDIUM' || upper === 'MED') return 'အလယ်အလတ်';
+      if (upper === 'MEDIUM' || upper === 'MED') return 'အလယ်အလတ်အန္တရာယ်';
       if (upper === 'LOW') return 'အန္တရာယ်နည်း';
     }
+    if (upper === 'HIGH') return 'HIGH RISK';
+    if (upper === 'MEDIUM' || upper === 'MED') return 'MEDIUM RISK';
+    if (upper === 'LOW') return 'LOW RISK';
     return upper;
   },
 
@@ -67,8 +70,12 @@ const I18n = {
       if (upper === 'URGENT') return 'အရေးပေါ်';
       if (upper === 'IMPORTANT') return 'အရေးကြီး';
       if (upper === 'OPTIMIZATION') return 'စီမံညှိနှိုင်းမှု';
-      if (upper === 'REDISTRIBUTION') return 'ပြန်လည်လှူဒါန်းမှု';
+      if (upper === 'REDISTRIBUTION') return 'ပိုလျှံအစားအစာ ပြန်လည်ဖြန့်ဝေမှု';
     }
+    if (upper === 'URGENT') return 'URGENT';
+    if (upper === 'IMPORTANT') return 'IMPORTANT';
+    if (upper === 'OPTIMIZATION') return 'OPTIMIZATION';
+    if (upper === 'REDISTRIBUTION') return 'REDISTRIBUTION';
     return upper;
   },
 
@@ -76,24 +83,102 @@ const I18n = {
     if (!status) return '';
     const upper = String(status).toUpperCase();
     if (this.isMyanmar()) {
+      if (upper === 'OK') return 'ပုံမှန်ကောင်းမွန်';
+      if (upper === 'NEAR_EXPIRY' || upper === 'NEAREXPIRY') return 'သက်တမ်းကုန်ရန်နီး';
+      if (upper === 'EXPIRED') return 'သက်တမ်းကုန်ပြီး';
+      if (upper === 'LOW_STOCK' || upper === 'LOWSTOCK') return 'လက်ကျန်နည်း';
       if (upper === 'PENDING') return 'စောင့်ဆိုင်းဆဲ';
       if (upper === 'CONFIRMED') return 'အတည်ပြုပြီး';
-      if (upper === 'COLLECTED' || upper === 'COMPLETED') return 'ပြီးစီး';
+      if (upper === 'COLLECTED') return 'လက်ခံရယူပြီး';
+      if (upper === 'COMPLETED') return 'ပြီးစီး';
       if (upper === 'ACCEPTED') return 'လက်ခံပြီး';
-      if (upper === 'DISMISSED' || upper === 'CANCELLED') return 'ပယ်ဖျက်ပြီး';
+      if (upper === 'DISMISSED') return 'ပယ်ဖျက်ပြီး';
+      if (upper === 'CANCELLED') return 'ပယ်ဖျက်ပြီး';
+      if (upper === 'ACTIVE') return 'အသုံးပြုဆဲ';
+      if (upper === 'INACTIVE') return 'ပိတ်ထားသည်';
     }
+    if (upper === 'OK') return 'OK';
+    if (upper === 'NEAR_EXPIRY' || upper === 'NEAREXPIRY') return 'NEAR EXPIRY';
+    if (upper === 'EXPIRED') return 'EXPIRED';
+    if (upper === 'LOW_STOCK' || upper === 'LOWSTOCK') return 'LOW STOCK';
+    if (upper === 'PENDING') return 'PENDING';
+    if (upper === 'CONFIRMED') return 'CONFIRMED';
+    if (upper === 'COLLECTED') return 'COLLECTED';
+    if (upper === 'COMPLETED') return 'COMPLETED';
+    if (upper === 'ACCEPTED') return 'ACCEPTED';
+    if (upper === 'DISMISSED') return 'DISMISSED';
+    if (upper === 'CANCELLED') return 'CANCELLED';
+    if (upper === 'ACTIVE') return 'ACTIVE';
+    if (upper === 'INACTIVE') return 'INACTIVE';
     return upper;
+  },
+
+  translatePriority(priority) {
+    if (!priority) return '';
+    const upper = String(priority).toUpperCase();
+    if (this.isMyanmar()) {
+      if (upper === 'IMMEDIATE_USE' || upper === 'IMMEDIATE') return 'ချက်ချင်းအသုံးပြုရန်';
+      if (upper === 'HIGH_PRIORITY' || upper === 'HIGH') return 'ဦးစားပေးအဆင့်မြင့်';
+      if (upper === 'MODERATE_PRIORITY' || upper === 'MODERATE' || upper === 'MEDIUM') return 'အလယ်အလတ် ဦးစားပေး';
+      if (upper === 'STANDARD' || upper === 'NORMAL') return 'ပုံမှန်အဆင့်';
+      if (upper === 'DISPOSE_OR_COMPOST' || upper === 'COMPOST') return 'စွန့်ပစ် သို့မဟုတ် မြေဆွေးပြုလုပ်ရန်';
+    }
+    if (upper === 'IMMEDIATE_USE' || upper === 'IMMEDIATE') return 'IMMEDIATE USE';
+    if (upper === 'HIGH_PRIORITY' || upper === 'HIGH') return 'HIGH PRIORITY';
+    if (upper === 'MODERATE_PRIORITY' || upper === 'MODERATE' || upper === 'MEDIUM') return 'MODERATE PRIORITY';
+    if (upper === 'STANDARD' || upper === 'NORMAL') return 'STANDARD';
+    if (upper === 'DISPOSE_OR_COMPOST' || upper === 'COMPOST') return 'DISPOSE / COMPOST';
+    return upper;
+  },
+
+  translateWasteReason(reason) {
+    if (!reason) return '';
+    const upper = String(reason).toUpperCase();
+    if (this.isMyanmar()) {
+      if (upper === 'OVERPRODUCTION') return 'ပိုလျှံထုတ်လုပ်မှု';
+      if (upper === 'EXPIRED') return 'သက်တမ်းကုန်ဆုံးခြင်း';
+      if (upper === 'UNSOLD') return 'ညနေခင်း ရောင်းမကုန်သော ပစ္စည်း';
+      if (upper === 'SPOILED') return 'သိုလှောင်မှု ချွတ်ယွင်းပျက်စီးခြင်း';
+      if (upper === 'DAMAGED') return 'ကိုင်တွယ်စဉ် ထိခိုက်ပျက်စီးခြင်း';
+      if (upper === 'PREPARATION_WASTE') return 'ချက်ပြုတ်ပြင်ဆင်မှု အလေအလွင့်';
+      if (upper === 'OTHER') return 'အခြားအကြောင်းရင်း';
+    }
+    if (upper === 'OVERPRODUCTION') return 'Overproduction';
+    if (upper === 'EXPIRED') return 'Expired Shelf Life';
+    if (upper === 'UNSOLD') return 'Unsold Surplus';
+    if (upper === 'SPOILED') return 'Spoiled Storage';
+    if (upper === 'DAMAGED') return 'Handling Damage';
+    if (upper === 'PREPARATION_WASTE') return 'Preparation Trimming';
+    if (upper === 'OTHER') return 'Other Reason';
+    return reason;
+  },
+
+  translateFoodCategory(category) {
+    if (!category) return '';
+    const upper = String(category).toUpperCase();
+    if (this.isMyanmar()) {
+      if (upper === 'POULTRY') return 'ကြက်/ဘဲ/ငှက် အသား';
+      if (upper === 'PRODUCE') return 'ဟင်းသီးဟင်းရွက်နှင့် သစ်သီးဝလံ';
+      if (upper === 'SEAFOOD') return 'ပင်လယ်စာ';
+      if (upper === 'GRAINS') return 'ဂျုံနှင့် နှံစားသီးနှံ';
+      if (upper === 'DAIRY') return 'နို့နှင့် နို့ထွက်ပစ္စည်း';
+      if (upper === 'BAKERY') return 'မုန့်ဖုတ်ထုတ်ကုန်';
+      if (upper === 'MEAT') return 'အသား';
+    }
+    return category;
   },
 
   translateError(err) {
     if (!err) return 'An error occurred';
     const msg = typeof err === 'string' ? err : (err.message || err.error || JSON.stringify(err));
     if (this.isMyanmar()) {
-      if (msg.includes('Recipient not found')) return 'ပရဟိတ အဖွဲ့အစည်းကို ရှာမတွေ့ပါ သို့မဟုတ် ပိတ်ထားပါသည်';
+      if (msg.includes('Recipient not found') || msg.includes('inactive')) return 'ပရဟိတ မိတ်ဖက်အဖွဲ့အစည်းကို ရှာမတွေ့ပါ သို့မဟုတ် ပိတ်ထားပါသည်';
       if (msg.includes('Food item not found')) return 'ကုန်ပစ္စည်းကို ရှာမတွေ့ပါ';
-      if (msg.includes('greater than zero')) return 'ပမာဏသည် သုညထက် ကြီးရပါမည်';
+      if (msg.includes('greater than zero') || msg.includes('greater than 0')) return 'ပမာဏသည် သုညထက် ကြီးရပါမည်';
       if (msg.includes('Invalid credentials')) return 'အသုံးပြုသူအမည် သို့မဟုတ် လျှို့ဝှက်နံပါတ် မှားယွင်းနေပါသည်';
-      if (msg.includes('Unauthorized')) return 'ဝင်ရောက်ခွင့် မရှိပါ';
+      if (msg.includes('Unauthorized') || msg.includes('unauthorized')) return 'ဝင်ရောက်ခွင့် မရှိပါ';
+      if (msg.includes('Recipient ID is required')) return 'ပရဟိတ မိတ်ဖက်အဖွဲ့အစည်း ID လိုအပ်ပါသည်';
+      if (msg.includes('Food item ID is required')) return 'ကုန်ပစ္စည်း ID လိုအပ်ပါသည်';
       if (msg.includes('Network') || msg.includes('Failed to fetch')) return 'ကွန်ရက် ချိတ်ဆက်မှု မအောင်မြင်ပါ';
     }
     return msg;
@@ -166,7 +251,7 @@ const I18n = {
         container.style.marginRight = '0.75rem';
         topbarRight.insertBefore(container, topbarRight.firstChild);
       } else {
-        const loginCard = document.querySelector('.brand-hero-box');
+        const loginCard = document.getElementById('login-lang-container') || document.querySelector('.brand-hero-box');
         if (loginCard) {
           container = document.createElement('div');
           container.id = 'language-switcher-container';

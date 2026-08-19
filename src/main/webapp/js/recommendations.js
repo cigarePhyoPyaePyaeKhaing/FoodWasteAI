@@ -9,6 +9,10 @@ const Recommendations = {
   loading: false,
 
   async init() {
+    window.addEventListener('languageChanged', () => {
+      this.render();
+      this.updateCounts();
+    });
     await this.fetchRecommendations();
     if (this.recommendations.length === 0) {
       await this.generateFreshDirectives();
@@ -175,19 +179,19 @@ const Recommendations = {
     }
 
     const btnAll = document.getElementById('filter-btn-all');
-    if (btnAll) btnAll.textContent = `All Directives (${activeRecs.length})`;
+    if (btnAll) btnAll.textContent = (isMm ? 'အကြံပြုချက် အားလုံး' : 'All Directives') + ` (${activeRecs.length})`;
 
     const btnUrgent = document.getElementById('filter-btn-urgent');
-    if (btnUrgent) btnUrgent.textContent = `Urgent (${urgentCount})`;
+    if (btnUrgent) btnUrgent.textContent = (isMm ? 'အရေးပေါ်' : 'Urgent') + ` (${urgentCount})`;
 
     const btnImportant = document.getElementById('filter-btn-important');
-    if (btnImportant) btnImportant.textContent = `Important (${importantCount})`;
+    if (btnImportant) btnImportant.textContent = (isMm ? 'အရေးကြီး' : 'Important') + ` (${importantCount})`;
 
     const btnOpt = document.getElementById('filter-btn-opt');
-    if (btnOpt) btnOpt.textContent = `Optimization (${optCount})`;
+    if (btnOpt) btnOpt.textContent = (isMm ? 'စီမံညှိနှိုင်းမှု' : 'Optimization') + ` (${optCount})`;
 
     const btnRedist = document.getElementById('filter-btn-redist');
-    if (btnRedist) btnRedist.textContent = `Redistribution (${redistCount})`;
+    if (btnRedist) btnRedist.textContent = (isMm ? 'ပိုလျှံအစားအစာ ပြန်လည်ဖြန့်ဝေမှု' : 'Redistribution') + ` (${redistCount})`;
   },
 
   filter(category) {

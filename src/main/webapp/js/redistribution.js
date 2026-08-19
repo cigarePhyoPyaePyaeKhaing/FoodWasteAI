@@ -22,8 +22,10 @@ const Redistribution = {
 
   async init() {
     window.addEventListener('languageChanged', () => {
-      this.renderTable();
+      this.render();
       this.renderRecipientsTable();
+      this.populateRecipientSelect();
+      this.populateFoodSelect();
       this.updateKpis();
     });
 

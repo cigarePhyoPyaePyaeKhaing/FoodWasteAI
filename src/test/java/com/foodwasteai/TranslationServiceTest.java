@@ -9,7 +9,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Tests for TranslationService covering translation pipeline,
- * in-memory caching, glossary preservation of food item names, and offline fallback.
+ * in-memory caching, glossary preservation of food item names, Prolog predicates, and offline fallback.
  */
 public class TranslationServiceTest {
 
@@ -25,6 +25,26 @@ public class TranslationServiceTest {
     void testSingleton() {
         assertNotNull(translationService);
         assertSame(translationService, TranslationService.getInstance());
+    }
+
+    @Test
+    @DisplayName("Translates exact 15 required domain glossary items correctly")
+    void testExactDomainGlossaryMappings() {
+        assertEquals("အနှစ်ချုပ်စာမျက်နှာ", translationService.translateToMyanmar("Dashboard"));
+        assertEquals("ကုန်ပစ္စည်းလက်ကျန် စီမံခန့်ခွဲမှု", translationService.translateToMyanmar("Inventory"));
+        assertEquals("ရောင်းချမှုမှတ်တမ်း", translationService.translateToMyanmar("Sales Entry"));
+        assertEquals("အလေအလွင့်မှတ်တမ်းများ", translationService.translateToMyanmar("Waste Records"));
+        assertEquals("AI ခန့်မှန်းချက်", translationService.translateToMyanmar("AI Prediction"));
+        assertEquals("AI အကြံပြုချက်များ", translationService.translateToMyanmar("Recommendations"));
+        assertEquals("ပိုလျှံအစားအစာ ပြန်လည်ဖြန့်ဝေမှု", translationService.translateToMyanmar("Redistribution"));
+        assertEquals("အန္တရာယ်မြင့်", translationService.translateToMyanmar("High Risk"));
+        assertEquals("အလယ်အလတ်အန္တရာယ်", translationService.translateToMyanmar("Medium Risk"));
+        assertEquals("အန္တရာယ်နည်း", translationService.translateToMyanmar("Low Risk"));
+        assertEquals("သက်တမ်းကုန်ရန်နီး", translationService.translateToMyanmar("Near Expiry"));
+        assertEquals("ခန့်မှန်းငွေကြေး သက်သာမှု", translationService.translateToMyanmar("Estimated Savings"));
+        assertEquals("ချက်ချင်းအသုံးပြုရန်", translationService.translateToMyanmar("Immediate Use"));
+        assertEquals("ဦးစားပေးအဆင့်မြင့်", translationService.translateToMyanmar("High Priority"));
+        assertEquals("ပုံမှန်အဆင့်", translationService.translateToMyanmar("Standard"));
     }
 
     @Test
@@ -55,6 +75,21 @@ public class TranslationServiceTest {
         // Food item name should be preserved verbatim
         assertTrue(my.contains("Fresh Chicken Breast"), "Food item name must remain unchanged");
         assertTrue(my.contains("20%"), "Percentage must remain unchanged");
+
+        String saladEn = "Surplus stock (15.5 kg) for Organic Garden Salad Mix near expiry";
+        String saladMy = translationService.translateToMyanmar(saladEn);
+        assertTrue(saladMy.contains("Organic Garden Salad Mix"), "Complex salad name must remain unchanged");
+        assertTrue(saladMy.contains("15.5 kg"), "Quantity with decimal and unit must remain unchanged");
+    }
+
+    @Test
+    @DisplayName("Preserves Prolog predicate names in translated reasoning")
+    void testPreservePrologPredicates() {
+        String en = "Prolog Rule: evaluate_priority_use/3 -> recommend_production/6 (Reduce production by 20%)";
+        String my = translationService.translateToMyanmar(en);
+        assertNotNull(my);
+        assertTrue(my.contains("evaluate_priority_use/3"));
+        assertTrue(my.contains("recommend_production/6"));
     }
 
     @Test
@@ -64,7 +99,7 @@ public class TranslationServiceTest {
         String my = translationService.translateToMyanmar(en);
         assertNotNull(my);
         assertTrue(my.contains("5.0 kg"));
-        assertTrue(my.contains("ပရဟိတ") || my.contains("လှူဒါန်း"));
+        assertTrue(my.contains("ပရဟိတ") || my.contains("လှူဒါန်း") || my.contains("သက်တမ်းကုန်"));
     }
 
     @Test
