@@ -472,11 +472,11 @@ const AIAssistant = {
 
   handleSmartAction(type, payload) {
     if (type === 'REDUCE_PRODUCTION') {
-      window.location.href = 'recommendations.html';
+      window.location.href = '/recommendations.html';
     } else if (type === 'SCHEDULE_DONATION') {
-      window.location.href = 'redistribution.html';
+      window.location.href = '/redistribution.html';
     } else if (type === 'VIEW_INVENTORY') {
-      window.location.href = 'inventory.html';
+      window.location.href = '/inventory.html';
     } else {
       API.showToast('Action acknowledged', 'success');
     }

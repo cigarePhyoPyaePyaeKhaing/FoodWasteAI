@@ -20,7 +20,7 @@ const Auth = {
   logout() {
     localStorage.removeItem('foodwaste_user');
     localStorage.removeItem('foodwaste_token');
-    window.location.href = 'index.html';
+    window.location.href = '/index.html';
   },
 
   isAdmin() {

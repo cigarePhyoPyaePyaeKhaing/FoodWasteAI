@@ -67,7 +67,7 @@ public class AppConfig {
 
     // Standardized Getters
     public static int getPort() {
-        return getInt("PORT", getInt("APP_PORT", 8088));
+        return getInt("PORT", getInt("server.port", getInt("APP_PORT", 8088)));
     }
 
     public static String getDbHost() {

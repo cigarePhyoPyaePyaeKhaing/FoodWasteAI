@@ -4,9 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FoodWaste AI - Sign In</title>
-  <link rel="stylesheet" href="css/variables.css">
-  <link rel="stylesheet" href="css/components.css">
-  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="/css/variables.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="/css/styles.css">
   <style>
     body {
       display: flex;
@@ -121,11 +121,11 @@
   </div>
 </div>
 
-<script src="js/i18n/en.js"></script>
-<script src="js/i18n/mm.js"></script>
-<script src="js/i18n/language.js"></script>
-<script src="js/api.js"></script>
-<script src="js/auth.js"></script>
+<script src="/js/i18n/en.js"></script>
+<script src="/js/i18n/mm.js"></script>
+<script src="/js/i18n/language.js"></script>
+<script src="/js/api.js"></script>
+<script src="/js/auth.js"></script>
 <script>
   async function handleLogin(e) {
     e.preventDefault();
@@ -139,7 +139,7 @@
         Auth.setUser(res.data.user, res.data.token);
         API.showToast(`Welcome back, ${res.data.user.fullName || res.data.user.username}!`, 'success');
         setTimeout(() => {
-          window.location.href = 'dashboard.html';
+          window.location.href = '/dashboard.html';
         }, 400);
         return;
       }
@@ -152,7 +152,7 @@
     Auth.setUser({ username, fullName, role: roleSelect }, 'demo-session-token');
     API.showToast(`Welcome back, ${fullName}!`, 'success');
     setTimeout(() => {
-      window.location.href = 'dashboard.html';
+      window.location.href = '/dashboard.html';
     }, 400);
   }
 </script>
