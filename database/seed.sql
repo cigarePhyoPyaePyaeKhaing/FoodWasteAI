@@ -6,11 +6,12 @@
 USE foodwaste_ai;
 
 -- 1. SYSTEM USERS (Passwords hashed with BCrypt)
--- admin: admin123  |  staff_sarah: staff123
-INSERT INTO users (username, email, password_hash, full_name, role, active) VALUES
-('admin', 'manager@foodwaste.ai', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVKIUi', 'Restaurant Manager (Admin)', 'ADMIN', TRUE),
-('staff_sarah', 'sarah@foodwaste.ai', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVKIUi', 'Sarah Jenkins (Kitchen Staff)', 'STAFF', TRUE)
-ON DUPLICATE KEY UPDATE full_name=VALUES(full_name);
+-- admin: admin123  |  staff: staff123  |  staff_sarah: staff123
+INSERT INTO users (id, username, email, password_hash, full_name, role, active) VALUES
+(1, 'admin', 'manager@foodwaste.ai', '$2a$10$3zP2sO4jJc5f8G2j1D4sOuKxW3bB4mG1a6c4F3pG5qE2iL1hO6u2a', 'Restaurant Manager (Admin)', 'ADMIN', TRUE),
+(2, 'staff', 'staff@foodwaste.ai', '$2a$10$3zP2sO4jJc5f8G2j1D4sOuKxW3bB4mG1a6c4F3pG5qE2iL1hO6u2a', 'Kitchen Staff', 'STAFF', TRUE),
+(3, 'staff_sarah', 'sarah@foodwaste.ai', '$2a$10$3zP2sO4jJc5f8G2j1D4sOuKxW3bB4mG1a6c4F3pG5qE2iL1hO6u2a', 'Sarah Jenkins (Kitchen Staff)', 'STAFF', TRUE)
+ON DUPLICATE KEY UPDATE full_name=VALUES(full_name), password_hash=VALUES(password_hash);
 
 -- 2. VERIFIED REDISTRIBUTION CHARITY PARTNERS (Master Directory)
 INSERT INTO redistribution_recipients (id, name, organization_type, contact_person, phone, email, address, active) VALUES

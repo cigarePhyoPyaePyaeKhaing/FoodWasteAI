@@ -170,4 +170,56 @@ public class RedistributionService {
         }
         return false;
     }
+
+    /**
+     * Aggregates live redistribution metrics: quantity redistributed, money saved, and waste reduction impact.
+     */
+    public Map<String, Object> getRedistributionStats() throws SQLException {
+        List<Redistribution> dispatches = getAllDispatches();
+        List<RedistributionRecipient> recipients = getAllRecipients();
+        List<FoodItem> items = foodItemService.getAllFoodItems();
+        Map<Long, FoodItem> foodMap = new HashMap<>();
+        for (FoodItem f : items) {
+            foodMap.put(f.getId(), f);
+        }
+
+        double totalRedistributedKg = 0.0;
+        double totalMoneySaved = 0.0;
+        double wasteReductionKg = 0.0;
+        int pending = 0;
+        int completed = 0;
+        int cancelled = 0;
+
+        for (Redistribution d : dispatches) {
+            double qty = d.getQuantity() != null ? d.getQuantity().doubleValue() : 0.0;
+            FoodItem food = foodMap.get(d.getFoodItemId());
+            double unitPrice = (food != null && food.getPricePerUnit() != null) ? food.getPricePerUnit().doubleValue() : 3500.0;
+
+            if (d.getStatus() == Redistribution.Status.COLLECTED || d.getStatus() == Redistribution.Status.COMPLETED) {
+                totalRedistributedKg += qty;
+                wasteReductionKg += qty;
+                totalMoneySaved += qty * unitPrice;
+                completed++;
+            } else if (d.getStatus() == Redistribution.Status.PENDING || d.getStatus() == Redistribution.Status.CONFIRMED) {
+                totalRedistributedKg += qty;
+                wasteReductionKg += qty;
+                totalMoneySaved += qty * unitPrice;
+                pending++;
+            } else if (d.getStatus() == Redistribution.Status.CANCELLED) {
+                cancelled++;
+            }
+        }
+
+        Map<String, Object> stats = new LinkedHashMap<>();
+        stats.put("quantityRedistributedKg", BigDecimal.valueOf(totalRedistributedKg).setScale(2, java.math.RoundingMode.HALF_UP));
+        stats.put("estimatedMoneySaved", BigDecimal.valueOf(totalMoneySaved).setScale(2, java.math.RoundingMode.HALF_UP));
+        stats.put("wasteReductionImpactKg", BigDecimal.valueOf(wasteReductionKg).setScale(2, java.math.RoundingMode.HALF_UP));
+        stats.put("activeCharitiesCount", recipients.size());
+        stats.put("pendingDispatchesCount", pending);
+        stats.put("completedDispatchesCount", completed);
+        stats.put("cancelledDispatchesCount", cancelled);
+        stats.put("totalDispatchesCount", dispatches.size());
+
+        return stats;
+    }
 }

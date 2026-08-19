@@ -1,8 +1,12 @@
 package com.foodwasteai.service;
 
+import com.foodwasteai.config.DatabaseConfig;
+import com.foodwasteai.dao.PredictionDao;
 import com.foodwasteai.dao.SalesDao;
 import com.foodwasteai.dao.WasteRecordDao;
 import com.foodwasteai.model.FoodItem;
+import com.foodwasteai.model.Prediction;
+import com.foodwasteai.model.PredictionItem;
 import com.foodwasteai.prolog.PrologAssessment;
 import com.foodwasteai.prolog.PrologService;
 import org.slf4j.Logger;
@@ -25,19 +29,23 @@ public class PredictionService {
     private final FoodItemService foodItemService;
     private final SalesDao salesDao;
     private final WasteRecordDao wasteDao;
+    private final PredictionDao predictionDao;
 
     public PredictionService() {
         this.prologService = new PrologService();
         this.foodItemService = new FoodItemService();
         this.salesDao = new SalesDao();
         this.wasteDao = new WasteRecordDao();
+        this.predictionDao = new PredictionDao();
     }
 
-    public PredictionService(PrologService prologService, FoodItemService foodItemService, SalesDao salesDao, WasteRecordDao wasteDao) {
+    public PredictionService(PrologService prologService, FoodItemService foodItemService,
+                             SalesDao salesDao, WasteRecordDao wasteDao, PredictionDao predictionDao) {
         this.prologService = prologService;
         this.foodItemService = foodItemService;
         this.salesDao = salesDao;
         this.wasteDao = wasteDao;
+        this.predictionDao = predictionDao;
     }
 
     /**
@@ -73,11 +81,11 @@ public class PredictionService {
             if (avgSales != null && avgSales.compareTo(BigDecimal.ZERO) > 0) {
                 expectedDemand = avgSales.doubleValue();
             } else {
-                // Fallback estimated demand: 60% of current stock or min threshold
-                expectedDemand = Math.max(5.0, stock * 0.60);
+                // Fallback estimated demand: 85% of current stock or min threshold
+                expectedDemand = Math.max(5.0, stock * 0.85);
             }
         } catch (Exception e) {
-            expectedDemand = Math.max(5.0, stock * 0.60);
+            expectedDemand = Math.max(5.0, stock * 0.85);
         }
 
         // Fetch real historical waste rate
@@ -88,10 +96,10 @@ public class PredictionService {
                 histWasteRate = rate.doubleValue();
             } else {
                 // Category-specific empirical baseline
-                histWasteRate = getCategoryDefaultWasteRate(item.getCategory());
+                histWasteRate = getCategoryDefaultWasteRate(item.getCategory(), expiryDays);
             }
         } catch (Exception e) {
-            histWasteRate = getCategoryDefaultWasteRate(item.getCategory());
+            histWasteRate = getCategoryDefaultWasteRate(item.getCategory(), expiryDays);
         }
 
         double currentProduction = expectedDemand * 1.1; // Default planned production
@@ -143,6 +151,41 @@ public class PredictionService {
 
         double avgRisk = items.isEmpty() ? 0.0 : (totalRiskScore / items.size());
 
+        // Persist to MySQL predictions and prediction_items tables
+        if (DatabaseConfig.isAvailable() && !items.isEmpty()) {
+            try {
+                Prediction pred = new Prediction();
+                pred.setPredictionDate(LocalDate.now().plusDays(1));
+                pred.setOverallRiskScore(BigDecimal.valueOf(avgRisk).setScale(2, RoundingMode.HALF_UP));
+                pred.setExpectedTotalWasteKg(BigDecimal.valueOf(expectedTotalWasteKg).setScale(2, RoundingMode.HALF_UP));
+                pred.setEstimatedMoneyLost(BigDecimal.valueOf(estimatedMoneyLost).setScale(2, RoundingMode.HALF_UP));
+                pred.setPotentialSavings(BigDecimal.valueOf(potentialSavings).setScale(2, RoundingMode.HALF_UP));
+                pred.setStatus(Prediction.Status.GENERATED);
+                Prediction savedPred = predictionDao.savePrediction(pred);
+
+                List<PredictionItem> pItems = new ArrayList<>();
+                for (PrologAssessment a : assessments) {
+                    PredictionItem pi = new PredictionItem();
+                    pi.setPredictionId(savedPred.getId());
+                    pi.setFoodItemId(a.getFoodItemId());
+                    pi.setCurrentStock(BigDecimal.valueOf(a.getStock()).setScale(2, RoundingMode.HALF_UP));
+                    pi.setExpectedDemand(BigDecimal.valueOf(a.getExpectedDemand()).setScale(2, RoundingMode.HALF_UP));
+                    pi.setExpiryDays(a.getExpiryDays());
+                    pi.setHistoricalWasteRate(BigDecimal.valueOf(a.getHistoricalWasteRate()).setScale(4, RoundingMode.HALF_UP));
+                    pi.setRiskLevel(PredictionItem.RiskLevel.valueOf(a.getRiskLevel()));
+                    pi.setRiskPercentage(BigDecimal.valueOf(a.getRiskPercentage()).setScale(2, RoundingMode.HALF_UP));
+                    pi.setPredictedWasteQty(BigDecimal.valueOf(Math.max(0, a.getStock() - a.getExpectedDemand())).setScale(2, RoundingMode.HALF_UP));
+                    pi.setRecommendedProduction(BigDecimal.valueOf(a.getRecommendedProduction()).setScale(2, RoundingMode.HALF_UP));
+                    pi.setPriorityUsage(a.getPriorityUsage());
+                    pi.setReasoningText(a.getReasons() != null ? String.join(" | ", a.getReasons()) : "Prolog risk reasoning");
+                    pItems.add(pi);
+                }
+                predictionDao.savePredictionItems(savedPred.getId(), pItems);
+            } catch (Exception e) {
+                logger.warn("Could not persist predictions to MySQL: {}", e.getMessage());
+            }
+        }
+
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("predictionDate", LocalDate.now().plusDays(1).toString());
         result.put("overallRiskScore", BigDecimal.valueOf(avgRisk).setScale(1, RoundingMode.HALF_UP));
@@ -157,7 +200,24 @@ public class PredictionService {
         return result;
     }
 
-    private double getCategoryDefaultWasteRate(String category) {
+    public PredictionDao getPredictionDao() {
+        return predictionDao;
+    }
+
+    public List<PredictionItem> getLatestPredictionItems() throws SQLException {
+        if (DatabaseConfig.isAvailable()) {
+            Optional<Prediction> latest = predictionDao.findLatestPrediction();
+            if (latest.isPresent()) {
+                return predictionDao.findItemsByPredictionId(latest.get().getId());
+            }
+        }
+        return Collections.emptyList();
+    }
+
+    private double getCategoryDefaultWasteRate(String category, int expiryDays) {
+        if (expiryDays > 14) {
+            return 0.02; // Long shelf-life / frozen / stable storage baseline
+        }
         if (category == null) return 0.05;
         switch (category.toLowerCase()) {
             case "poultry":

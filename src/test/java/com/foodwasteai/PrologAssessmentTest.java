@@ -37,6 +37,21 @@ public class PrologAssessmentTest {
     }
 
     @Test
+    @DisplayName("Should populate explanation output fields: item, risk, reason, recommendation")
+    public void testExplanationOutputFields() {
+        PredictionService predictionService = new PredictionService();
+        PrologAssessment assessment = predictionService.assessFoodItem("Fresh Milk", 40.0, 24.0, 1, 0.08, 26.0);
+
+        assertNotNull(assessment);
+        assertEquals("Fresh Milk", assessment.getItem());
+        assertEquals("HIGH", assessment.getRisk());
+        assertNotNull(assessment.getReason());
+        assertFalse(assessment.getReason().trim().isEmpty());
+        assertNotNull(assessment.getRecommendation());
+        assertFalse(assessment.getRecommendation().trim().isEmpty());
+    }
+
+    @Test
     @DisplayName("Should generate valid ApiResponse wrappers")
     public void testApiResponseStructure() {
         ApiResponse<String> successResp = ApiResponse.success("Operation completed", "TestData");

@@ -9,6 +9,7 @@ import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 /**
  * REST API Controller for Surplus Food Redistribution and Charity Dispatches.
@@ -30,6 +31,11 @@ public class RedistributionServlet extends BaseServlet {
             if (path != null && path.contains("recipients")) {
                 List<RedistributionRecipient> recipients = redistributionService.getAllRecipients();
                 sendSuccess(resp, recipients);
+                return;
+            }
+            if (path != null && path.contains("stats")) {
+                Map<String, Object> stats = redistributionService.getRedistributionStats();
+                sendSuccess(resp, stats);
                 return;
             }
 

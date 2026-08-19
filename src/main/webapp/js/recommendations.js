@@ -1,6 +1,7 @@
 /**
  * FoodWaste AI - Recommendations Controller
  * Connected with /api/recommendations and /api/recommendations/generate REST endpoints
+ * Data flow: food_items -> SWI-Prolog prediction -> prediction_items -> recommendations page
  */
 const Recommendations = {
   recommendations: [],
@@ -9,6 +10,9 @@ const Recommendations = {
 
   async init() {
     await this.fetchRecommendations();
+    if (this.recommendations.length === 0) {
+      await this.generateFreshDirectives();
+    }
   },
 
   async fetchRecommendations() {
@@ -28,14 +32,18 @@ const Recommendations = {
   },
 
   async generateFreshDirectives() {
-    API.showToast('Generating fresh directives from SWI-Prolog reasoning...', 'info');
+    API.showToast('Evaluating inventory through SWI-Prolog reasoning...', 'info');
     try {
       await API.post('/api/recommendations/generate', {});
-      await this.fetchRecommendations();
-      API.showToast('Prolog Expert directives refreshed!', 'success');
+      const res = await API.get('/api/recommendations');
+      this.recommendations = (res && res.data) ? res.data : [];
+      API.showToast('AI Directives generated from Prolog prediction!', 'success');
     } catch (err) {
       console.error('Error generating directives:', err);
       API.showToast('Updated directives', 'success');
+    } finally {
+      this.render();
+      this.updateCounts();
     }
   },
 
@@ -45,7 +53,7 @@ const Recommendations = {
     container.innerHTML = `
       <div style="grid-column: 1 / -1; text-align:center; padding:3rem; color:var(--text-muted);">
         <div style="font-size:1.5rem; animation: spin 1s linear infinite; display:inline-block;">🍃</div>
-        <div style="margin-top:0.5rem; font-weight:600;">Evaluating Prolog expert rules...</div>
+        <div style="margin-top:0.5rem; font-weight:600;">Evaluating Prolog expert rules & prediction items...</div>
       </div>
     `;
   },
@@ -70,7 +78,7 @@ const Recommendations = {
         <div style="grid-column: 1 / -1; text-align:center; padding:3rem; color:var(--text-muted); background:var(--glass-bg); border-radius:var(--radius-lg); border:1px solid var(--glass-border);">
           <div style="font-size:2rem; margin-bottom:0.5rem;">🎉</div>
           <div style="font-weight:700; color:var(--text-main); font-size:1.05rem;">All Directives Addressed</div>
-          <div style="font-size:0.85rem; margin-top:0.25rem;">No active recommendations in this category. Click "+ Generate Directives" to re-evaluate inventory.</div>
+          <div style="font-size:0.85rem; margin-top:0.25rem;">No active recommendations in this category. Click "⚡ Re-Evaluate Inventory" to generate fresh directives.</div>
         </div>
       `;
       return;
@@ -90,25 +98,43 @@ const Recommendations = {
         badgeClass = 'badge-redistribution';
       }
 
+      let riskBadgeClass = 'badge-risk-medium';
+      if (r.riskLevel === 'HIGH') riskBadgeClass = 'badge-risk-high';
+      else if (r.riskLevel === 'LOW') riskBadgeClass = 'badge-risk-low';
+
       const savings = Number(r.estimatedSavings || 0);
-      const savingsBadge = savings > 0 ?
-        `<span style="font-weight:800; color:var(--accent-yellow-dark); background:var(--accent-yellow-100); padding:0.25rem 0.75rem; border-radius:var(--radius-pill);">+${savings.toLocaleString()} MMK</span>` :
-        `<span style="font-weight:800; color:#7e22ce; background:rgba(168,85,247,0.15); padding:0.25rem 0.75rem; border-radius:var(--radius-pill);">Food Rescue</span>`;
+      let savingsBadge = '';
+      if (r.category === 'REDISTRIBUTION') {
+        savingsBadge = `<span style="font-weight:800; color:#7e22ce; background:rgba(168,85,247,0.15); padding:0.25rem 0.75rem; border-radius:var(--radius-pill);">🤝 Food Rescue</span>`;
+      } else if (savings > 0) {
+        savingsBadge = `<span style="font-weight:800; color:var(--accent-yellow-dark); background:var(--accent-yellow-100); padding:0.25rem 0.75rem; border-radius:var(--radius-pill);">+${savings.toLocaleString()} MMK</span>`;
+      } else {
+        savingsBadge = `<span style="font-weight:700; color:#047857; background:rgba(209,250,229,0.5); padding:0.25rem 0.75rem; border-radius:var(--radius-pill);">Standard Batch</span>`;
+      }
 
       const isAccepted = r.status === 'ACCEPTED';
-      const actionButtons = isAccepted ?
-        `<span class="badge-bubble badge-risk-low" style="padding:0.4rem 1rem;">✅ Applied & Active</span>` :
-        `
+      let actionButtons = '';
+
+      if (isAccepted) {
+        actionButtons = `<span class="badge-bubble badge-risk-low" style="padding:0.4rem 1rem;">✅ Applied & Active</span>`;
+      } else if (r.category === 'REDISTRIBUTION') {
+        actionButtons = `
+          <button class="btn-bubble btn-glass btn-sm-bubble" onclick="Recommendations.dismiss(${r.id})">Dismiss</button>
+          <a href="/redistribution.html?foodItemId=${r.foodItemId}&foodName=${encodeURIComponent(r.foodItemName || '')}" class="btn-bubble btn-yellow btn-sm-bubble" style="text-decoration:none;">🤝 Schedule Redistribution</a>
+        `;
+      } else {
+        actionButtons = `
           <button class="btn-bubble btn-glass btn-sm-bubble" onclick="Recommendations.dismiss(${r.id})">Dismiss</button>
           <button class="btn-bubble btn-yellow btn-sm-bubble" onclick="Recommendations.accept(${r.id})">Accept & Apply</button>
         `;
+      }
 
       return `
         <div class="rec-card-bubble" data-category="${r.category}" style="border-top: 4px solid ${borderTop};">
           <div class="rec-header-row">
             <div style="display:flex; gap:0.4rem; align-items:center;">
               <span class="badge-bubble ${badgeClass}">${r.category}</span>
-              <span class="badge-bubble ${r.riskLevel === 'HIGH' ? 'badge-risk-high' : 'badge-risk-medium'}">${r.riskLevel} RISK</span>
+              <span class="badge-bubble ${riskBadgeClass}">${r.riskLevel} RISK</span>
             </div>
             ${savingsBadge}
           </div>

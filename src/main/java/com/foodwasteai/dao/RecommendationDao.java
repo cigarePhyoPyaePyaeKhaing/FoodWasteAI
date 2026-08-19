@@ -98,6 +98,14 @@ public class RecommendationDao extends BaseDao {
         }
     }
 
+    public int clearPendingRecommendations() throws SQLException {
+        String sql = "DELETE FROM recommendations WHERE status = 'PENDING'";
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            return stmt.executeUpdate();
+        }
+    }
+
     private Recommendation mapResultSetToRecommendation(ResultSet rs) throws SQLException {
         Recommendation rec = new Recommendation();
         rec.setId(rs.getLong("id"));

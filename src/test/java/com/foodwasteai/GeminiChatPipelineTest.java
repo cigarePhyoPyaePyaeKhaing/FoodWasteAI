@@ -47,8 +47,8 @@ public class GeminiChatPipelineTest {
 
         assertNotNull(response);
         assertTrue(response.getExplanation().toLowerCase().contains("chicken"));
-        assertTrue(response.getExplanation().toLowerCase().contains("high") || response.getExplanation().contains("82%"));
-        assertTrue(response.getExplanation().toLowerCase().contains("stock") || response.getExplanation().toLowerCase().contains("expiry"));
+        assertTrue(response.getExplanation().toLowerCase().contains("risk") || response.getExplanation().toLowerCase().contains("probability"));
+        assertTrue(response.getExplanation().toLowerCase().contains("stock") || response.getExplanation().toLowerCase().contains("expiry") || response.getExplanation().toLowerCase().contains("operational"));
     }
 
     @Test

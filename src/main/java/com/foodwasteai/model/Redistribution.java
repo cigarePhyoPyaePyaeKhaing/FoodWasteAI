@@ -14,6 +14,7 @@ public class Redistribution implements Serializable {
         PENDING,
         CONFIRMED,
         COLLECTED,
+        COMPLETED,
         CANCELLED
     }
 

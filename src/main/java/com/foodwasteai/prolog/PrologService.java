@@ -157,11 +157,11 @@ public class PrologService {
 
                     // Calculate risk percentage
                     if ("HIGH".equalsIgnoreCase(risk)) {
-                        assessment.setRiskPercentage(82.0);
+                        assessment.setRiskPercentage(85.0);
                     } else if ("MEDIUM".equalsIgnoreCase(risk)) {
                         assessment.setRiskPercentage(55.0);
                     } else {
-                        assessment.setRiskPercentage(20.0);
+                        assessment.setRiskPercentage(18.0);
                     }
 
                     // Parse reasons array from Prolog list notation [a, b]
@@ -196,8 +196,8 @@ public class PrologService {
 
         // Fallback if formatting was not matched
         assessment.setRiskLevel("LOW");
-        assessment.setRiskPercentage(20.0);
-        assessment.addReason("Stock is balanced with expected demand");
+        assessment.setRiskPercentage(18.0);
+        assessment.addReason("Safe shelf life remaining (> 3 days) and stock is balanced with demand.");
         assessment.setRecommendedProduction(currentProduction);
         assessment.setRecommendedAction("Maintain standard scheduled production batch");
         assessment.setRecommendation("Maintain standard scheduled production batch");
@@ -228,51 +228,89 @@ public class PrologService {
         boolean redistribute;
 
         // Rule evaluation mirroring foodwaste_rules.pl exactly
-        if (expiryDays <= 1 && stock > 0) {
+        if (expiryDays <= 0 && stock > 0) {
             risk = "HIGH";
-            riskPct = 82.0;
-            reasons.add("Expiry is near (within 1-2 days)");
-            reasons.add("Stock remaining requires immediate consumption");
-            recProd = Math.max(0, Math.round(currentProduction * 0.75));
-            recAction = "Reduce tomorrow production by 15-25% to exhaust existing inventory";
+            riskPct = 95.0;
+            reasons.add("Item has reached or passed expiration date. Do not serve to customers.");
+            recProd = 0.0;
+            recAction = "Halt production and dispose of expired inventory safely";
+            priority = "DISPOSE_OR_COMPOST";
+            redistribute = false;
+        } else if (expiryDays <= 1 && stock > 0) {
+            // High Risk Rule 2: Expiry today or tomorrow - HIGHEST PRIORITY
+            risk = "HIGH";
+            riskPct = 85.0;
+            reasons.add("Product expires within 24 hours. Immediate action recommended.");
+            recProd = stock > expectedDemand ? Math.max(0, Math.round(currentProduction * 0.70)) : Math.max(0, Math.round(currentProduction * 0.50));
+            recAction = "Reduce production or redistribute immediately";
             priority = "IMMEDIATE_USE";
-            redistribute = stock > expectedDemand && expiryDays >= 1;
-        } else if (expectedDemand > 0 && (stock / expectedDemand) >= 1.30 && (expiryDays <= 3 || histWasteRate >= 0.20)) {
+            redistribute = (stock - expectedDemand) >= 5 && expiryDays >= 1;
+        } else if (expectedDemand > 0 && (stock / expectedDemand) >= 1.50 && (expiryDays <= 3 || histWasteRate >= 0.20)) {
+            // High Risk Rule 3: Heavy Overstock with Near Expiry / High Waste
             risk = "HIGH";
             riskPct = 82.0;
-            if ((stock / expectedDemand) >= 1.30) reasons.add("Stock exceeds expected demand");
-            if (expiryDays <= 3) reasons.add("Expiry is near (within 1-3 days)");
-            if (histWasteRate >= 0.20) reasons.add("Historical waste is high");
-            recProd = Math.max(0, Math.round(currentProduction * 0.75));
-            recAction = "Reduce tomorrow production by 15-25% to exhaust existing inventory";
-            priority = "HIGH_PRIORITY";
+            if ((stock / expectedDemand) >= 1.30) reasons.add("Stock significantly exceeds expected demand");
+            if (expiryDays <= 3) reasons.add("Short remaining shelf life (<= 3 days)");
+            if (histWasteRate >= 0.20) reasons.add("High historical waste rate recorded");
+            recProd = Math.max(0, Math.round(currentProduction * 0.70));
+            recAction = "Reduce production or redistribute immediately";
+            priority = expiryDays <= 2 ? "IMMEDIATE_USE" : "HIGH_PRIORITY";
             redistribute = (stock - expectedDemand) >= 5 && expiryDays >= 1;
-        } else if (expiryDays <= 3 && stock > 0) {
-            risk = "MEDIUM";
-            riskPct = 55.0;
-            reasons.add("Expiry approaching within 3 days");
-            reasons.add("Requires monitoring to prevent spoilage");
-            recProd = Math.max(0, Math.round(currentProduction * 0.90));
-            recAction = "Slightly reduce production by 10% to prevent excess buffer";
+        } else if (expectedDemand > 0 && (stock / expectedDemand) >= 1.30 && (expiryDays <= 2 || histWasteRate >= 0.25)) {
+            // High Risk Rule 4: Moderate-to-Heavy Overstock with 2-day expiry
+            risk = "HIGH";
+            riskPct = 80.0;
+            if ((stock / expectedDemand) >= 1.30) reasons.add("Stock significantly exceeds expected demand");
+            if (expiryDays <= 3) reasons.add("Short remaining shelf life (<= 3 days)");
+            if (histWasteRate >= 0.20) reasons.add("High historical waste rate recorded");
+            recProd = Math.max(0, Math.round(currentProduction * 0.70));
+            recAction = "Reduce production or redistribute immediately";
+            priority = "IMMEDIATE_USE";
+            redistribute = (stock - expectedDemand) >= 5 && expiryDays >= 1;
+        } else if (histWasteRate >= 0.30 && stock > expectedDemand) {
+            // High Risk Rule 5: Critical historical waste
+            risk = "HIGH";
+            riskPct = 78.0;
+            reasons.add("Historical waste rate is critical (>= 30%). Stock exceeds expected demand.");
+            recProd = Math.max(0, Math.round(currentProduction * 0.70));
+            recAction = "Reduce production or redistribute immediately";
             priority = "HIGH_PRIORITY";
             redistribute = false;
-        } else if (histWasteRate >= 0.15 && stock >= expectedDemand) {
+        } else if (expiryDays > 1 && expiryDays <= 3 && stock > 0) {
+            // Medium Risk Rule 1: Expiry approaching within 2 to 3 days
+            risk = "MEDIUM";
+            riskPct = 55.0;
+            reasons.add("Product expires within 2-3 days. Monitor stock velocity closely.");
+            recProd = stock > expectedDemand ? Math.max(0, Math.round(currentProduction * 0.85)) : Math.max(0, Math.round(currentProduction * 0.90));
+            recAction = stock > expectedDemand ? "Slightly reduce production by 10-15% and monitor inventory turnover" : "Feature in daily specials to accelerate turnover";
+            priority = "HIGH_PRIORITY";
+            redistribute = false;
+        } else if (expectedDemand > 0 && (stock / expectedDemand) >= 1.25) {
+            // Medium Risk Rule 2: Quantity significantly higher than demand
             risk = "MEDIUM";
             riskPct = 50.0;
-            reasons.add("Moderate historical waste rate recorded");
-            reasons.add("Potential over-ordering pattern");
+            reasons.add("Current stock moderately exceeds forecasted demand");
+            if (histWasteRate >= 0.15) reasons.add("Historical waste rate indicates slight overproduction");
+            recProd = Math.max(0, Math.round(currentProduction * 0.85));
+            recAction = "Slightly reduce production by 10-15% and monitor inventory turnover";
+            priority = "MODERATE_PRIORITY";
+            redistribute = false;
+        } else if (histWasteRate >= 0.15 && stock >= expectedDemand) {
+            // Medium Risk Rule 3: Moderate historical waste rate
+            risk = "MEDIUM";
+            riskPct = 45.0;
+            reasons.add("Moderate historical waste rate recorded (>= 15%). Potential over-ordering pattern.");
             recProd = Math.max(0, Math.round(currentProduction * 0.90));
-            recAction = "Slightly reduce production by 10% to prevent excess buffer";
+            recAction = "Feature in daily specials to accelerate turnover";
             priority = "MODERATE_PRIORITY";
             redistribute = false;
         } else {
+            // Low Risk
             risk = "LOW";
-            riskPct = 20.0;
-            reasons.add("Stock is balanced with expected demand");
-            reasons.add("Safe shelf life remaining");
-            reasons.add("Low historical waste rate");
+            riskPct = 18.0;
+            reasons.add("Safe shelf life remaining (> 3 days) and stock is balanced with demand.");
             recProd = stock < expectedDemand ? Math.max(currentProduction, expectedDemand - stock) : currentProduction;
-            recAction = "Maintain standard scheduled production batch";
+            recAction = stock < expectedDemand ? "Maintain optimal production aligned with customer demand" : "Maintain standard scheduled production batch";
             priority = "STANDARD";
             redistribute = false;
         }

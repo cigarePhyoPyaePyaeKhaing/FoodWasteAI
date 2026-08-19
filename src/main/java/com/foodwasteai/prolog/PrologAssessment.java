@@ -12,13 +12,16 @@ public class PrologAssessment implements Serializable {
 
     private Long foodItemId;
     private String foodName;
+    private String item; // Output alias for foodName
     private double stock;
     private double expectedDemand;
     private int expiryDays;
     private double historicalWasteRate;
     private String riskLevel; // HIGH, MEDIUM, LOW
-    private double riskPercentage; // e.g., 82.0%
+    private String risk; // Output alias for riskLevel
+    private double riskPercentage; // e.g., 85.0%
     private List<String> reasons = new ArrayList<>();
+    private String reason; // Primary explanation reason
     private String recommendation; // Actionable summary recommendation
     private double recommendedProduction;
     private String recommendedAction;
@@ -43,6 +46,16 @@ public class PrologAssessment implements Serializable {
 
     public void setFoodName(String foodName) {
         this.foodName = foodName;
+        this.item = foodName;
+    }
+
+    public String getItem() {
+        return item != null ? item : foodName;
+    }
+
+    public void setItem(String item) {
+        this.item = item;
+        this.foodName = item;
     }
 
     public double getStock() {
@@ -83,6 +96,16 @@ public class PrologAssessment implements Serializable {
 
     public void setRiskLevel(String riskLevel) {
         this.riskLevel = riskLevel;
+        this.risk = riskLevel;
+    }
+
+    public String getRisk() {
+        return risk != null ? risk : riskLevel;
+    }
+
+    public void setRisk(String risk) {
+        this.risk = risk;
+        this.riskLevel = risk;
     }
 
     public double getRiskPercentage() {
@@ -99,10 +122,33 @@ public class PrologAssessment implements Serializable {
 
     public void setReasons(List<String> reasons) {
         this.reasons = reasons;
+        if (reasons != null && !reasons.isEmpty()) {
+            this.reason = reasons.get(0);
+        }
     }
 
     public void addReason(String reason) {
         this.reasons.add(reason);
+        if (this.reason == null || this.reason.isEmpty()) {
+            this.reason = reason;
+        }
+    }
+
+    public String getReason() {
+        if (reason != null && !reason.isEmpty()) {
+            return reason;
+        }
+        if (reasons != null && !reasons.isEmpty()) {
+            return reasons.get(0);
+        }
+        return "";
+    }
+
+    public void setReason(String reason) {
+        this.reason = reason;
+        if (reason != null && !reason.isEmpty() && this.reasons.isEmpty()) {
+            this.reasons.add(reason);
+        }
     }
 
     public String getRecommendation() {
@@ -112,6 +158,9 @@ public class PrologAssessment implements Serializable {
 
     public void setRecommendation(String recommendation) {
         this.recommendation = recommendation;
+        if (this.recommendedAction == null) {
+            this.recommendedAction = recommendation;
+        }
     }
 
     public double getRecommendedProduction() {

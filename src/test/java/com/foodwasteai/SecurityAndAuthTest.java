@@ -73,23 +73,25 @@ public class SecurityAndAuthTest {
     @Test
     @DisplayName("Security: Register new user with enforced BCrypt hash")
     public void testRegisterUserBCrypt() throws SQLException {
+        String testUser = "chef_mario_" + (System.currentTimeMillis() % 100000);
+        String testEmail = testUser + "@foodwaste.ai";
         User newUser = authService.registerUser(
-                "chef_mario",
-                "mario@foodwaste.ai",
+                testUser,
+                testEmail,
                 "secretPass2026",
                 "Mario Rossi",
                 User.Role.STAFF
         );
 
         assertNotNull(newUser);
-        assertEquals("chef_mario", newUser.getUsername());
+        assertEquals(testUser, newUser.getUsername());
         assertNotNull(newUser.getPasswordHash());
         assertTrue(newUser.getPasswordHash().startsWith("$2a$") || newUser.getPasswordHash().startsWith("$2b$"),
                 "Password must be hashed with BCrypt ($2a$ format)");
         assertTrue(BCrypt.checkpw("secretPass2026", newUser.getPasswordHash()));
 
         // Authenticate with newly registered user
-        Optional<AuthService.UserSession> newSession = authService.authenticate("chef_mario", "secretPass2026");
+        Optional<AuthService.UserSession> newSession = authService.authenticate(testUser, "secretPass2026");
         assertTrue(newSession.isPresent());
     }
 

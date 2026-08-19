@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.sql.SQLException;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -37,6 +38,7 @@ public class RecommendationRedistributionTest {
     @Test
     @DisplayName("Should retrieve and filter recommendations by category and status")
     public void testRecommendationRetrieval() throws SQLException {
+        recommendationService.generateRecommendationsFromProlog();
         List<Recommendation> all = recommendationService.getAllRecommendations();
         assertFalse(all.isEmpty(), "Recommendations should not be empty");
 
@@ -45,11 +47,12 @@ public class RecommendationRedistributionTest {
         assertEquals(Recommendation.Category.URGENT, urgent.get(0).getCategory());
 
         // Test status update (Accept / Dismiss)
-        boolean accepted = recommendationService.updateRecommendationStatus(1L, Recommendation.Status.ACCEPTED);
+        Long recId = all.get(0).getId();
+        boolean accepted = recommendationService.updateRecommendationStatus(recId, Recommendation.Status.ACCEPTED);
         assertTrue(accepted);
 
         List<Recommendation> acceptedList = recommendationService.getRecommendationsByStatus(Recommendation.Status.ACCEPTED);
-        assertTrue(acceptedList.stream().anyMatch(r -> r.getId().equals(1L)));
+        assertTrue(acceptedList.stream().anyMatch(r -> r.getId().equals(recId)));
     }
 
     @Test
@@ -67,16 +70,17 @@ public class RecommendationRedistributionTest {
         List<RedistributionRecipient> recipients = redistributionService.getAllRecipients();
         assertFalse(recipients.isEmpty(), "Recipients list should not be empty");
 
-        // Initial bread quantity (item #6 starts at 25 units)
-        Optional<FoodItem> breadBefore = foodItemService.getFoodItemById(6L);
-        assertTrue(breadBefore.isPresent());
-        BigDecimal initialQty = breadBefore.get().getQuantity();
+        FoodItem targetItem = foodItemService.createFoodItem(
+                new FoodItem(null, "Test Redist Item " + System.currentTimeMillis(), "Dairy", new BigDecimal("30.00"), "kg", new BigDecimal("5000.00"), LocalDate.now().plusDays(2), new BigDecimal("5.00")), 1L
+        );
+        Long itemId = targetItem.getId();
+        BigDecimal initialQty = targetItem.getQuantity();
 
         Redistribution dispatch = new Redistribution();
-        dispatch.setFoodItemId(6L);
+        dispatch.setFoodItemId(itemId);
         dispatch.setRecipientId(recipients.get(0).getId());
         dispatch.setQuantity(new BigDecimal("5.00"));
-        dispatch.setUnit("units");
+        dispatch.setUnit(targetItem.getUnit() != null ? targetItem.getUnit() : "kg");
         dispatch.setPickupTime(LocalDateTime.now().plusDays(1));
         dispatch.setNotes("Donation test");
 
@@ -84,9 +88,9 @@ public class RecommendationRedistributionTest {
         assertNotNull(scheduled.getId());
 
         // Stock deduction check
-        Optional<FoodItem> breadAfter = foodItemService.getFoodItemById(6L);
-        assertTrue(breadAfter.isPresent());
-        assertEquals(0, initialQty.subtract(new BigDecimal("5.00")).compareTo(breadAfter.get().getQuantity()));
+        Optional<FoodItem> itemAfter = foodItemService.getFoodItemById(itemId);
+        assertTrue(itemAfter.isPresent());
+        assertEquals(0, initialQty.subtract(new BigDecimal("5.00")).compareTo(itemAfter.get().getQuantity()));
 
         // Mark collected
         boolean collected = redistributionService.updateDispatchStatus(scheduled.getId(), Redistribution.Status.COLLECTED);

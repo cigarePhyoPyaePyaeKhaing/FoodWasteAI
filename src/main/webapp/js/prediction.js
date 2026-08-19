@@ -112,7 +112,7 @@ const Prediction = {
           </div>
         `;
       } else {
-        reasoningContainer.innerHTML = items.slice(0, 4).map(item => {
+        reasoningContainer.innerHTML = items.map(item => {
           let bg = 'rgba(209, 250, 229, 0.4)';
           let border = 'var(--risk-low-border)';
           let titleColor = 'var(--risk-low-text)';

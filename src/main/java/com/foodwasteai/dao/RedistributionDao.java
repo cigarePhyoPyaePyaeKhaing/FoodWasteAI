@@ -82,9 +82,17 @@ public class RedistributionDao extends BaseDao {
         String sql = "UPDATE redistributions SET status = ? WHERE id = ?";
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setString(1, status.name());
             stmt.setLong(2, id);
-            return stmt.executeUpdate() > 0;
+            try {
+                stmt.setString(1, status.name());
+                return stmt.executeUpdate() > 0;
+            } catch (SQLException e) {
+                if (status == Redistribution.Status.COMPLETED) {
+                    stmt.setString(1, "COLLECTED");
+                    return stmt.executeUpdate() > 0;
+                }
+                throw e;
+            }
         }
     }
 
@@ -101,7 +109,16 @@ public class RedistributionDao extends BaseDao {
         Timestamp pickup = rs.getTimestamp("pickup_time");
         if (pickup != null) d.setPickupTime(pickup.toLocalDateTime());
 
-        d.setStatus(Redistribution.Status.valueOf(rs.getString("status")));
+        String statusStr = rs.getString("status");
+        if ("COLLECTED".equalsIgnoreCase(statusStr)) {
+            d.setStatus(Redistribution.Status.COMPLETED);
+        } else {
+            try {
+                d.setStatus(Redistribution.Status.valueOf(statusStr.toUpperCase()));
+            } catch (Exception e) {
+                d.setStatus(Redistribution.Status.PENDING);
+            }
+        }
         d.setNotes(rs.getString("notes"));
 
         Timestamp created = rs.getTimestamp("created_at");

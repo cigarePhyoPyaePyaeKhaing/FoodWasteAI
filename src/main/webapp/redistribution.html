@@ -83,37 +83,48 @@
     </header>
 
     <main class="content-body-float">
-      <section class="kpi-grid">
+      <section class="kpi-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
         <div class="kpi-bubble-card">
           <div class="kpi-bubble-top">
-            <span class="kpi-bubble-label">Food Rescued This Month</span>
+            <span class="kpi-bubble-label">Quantity Redistributed</span>
             <div class="kpi-bubble-icon kpi-icon-green">🤝</div>
           </div>
           <div>
-            <div class="kpi-bubble-value" id="kpi-redist-rescued">128.5 kg</div>
-            <div class="kpi-bubble-sub" style="color:#047857; font-weight:700;">Diverted from landfill waste</div>
+            <div class="kpi-bubble-value" id="kpi-redist-rescued">0.0 kg</div>
+            <div class="kpi-bubble-sub" style="color:#047857; font-weight:700;">Total surplus donated</div>
           </div>
         </div>
 
         <div class="kpi-bubble-card">
           <div class="kpi-bubble-top">
-            <span class="kpi-bubble-label">Partner Organizations</span>
+            <span class="kpi-bubble-label">Estimated Money Saved</span>
+            <div class="kpi-bubble-icon kpi-icon-yellow">💰</div>
+          </div>
+          <div>
+            <div class="kpi-bubble-value" id="kpi-redist-money">0 MMK</div>
+            <div class="kpi-bubble-sub" style="color:var(--accent-yellow-dark); font-weight:700;">Prevented financial loss</div>
+          </div>
+        </div>
+
+        <div class="kpi-bubble-card">
+          <div class="kpi-bubble-top">
+            <span class="kpi-bubble-label">Waste Reduction Impact</span>
+            <div class="kpi-bubble-icon kpi-icon-green">🍃</div>
+          </div>
+          <div>
+            <div class="kpi-bubble-value" id="kpi-redist-impact">0.0 kg</div>
+            <div class="kpi-bubble-sub" style="color:#047857; font-weight:700;">Diverted from landfill</div>
+          </div>
+        </div>
+
+        <div class="kpi-bubble-card">
+          <div class="kpi-bubble-top">
+            <span class="kpi-bubble-label">Available Recipients</span>
             <div class="kpi-bubble-icon kpi-icon-blue">🏢</div>
           </div>
           <div>
             <div class="kpi-bubble-value" id="kpi-redist-partners">4 Charities</div>
-            <div class="kpi-bubble-sub">Verified NGOs & Community Kitchens</div>
-          </div>
-        </div>
-
-        <div class="kpi-bubble-card">
-          <div class="kpi-bubble-top">
-            <span class="kpi-bubble-label">Pending Dispatches</span>
-            <div class="kpi-bubble-icon kpi-icon-yellow">🚚</div>
-          </div>
-          <div>
-            <div class="kpi-bubble-value" id="kpi-redist-pending">2 Batches</div>
-            <div class="kpi-bubble-sub" style="color:var(--accent-yellow-dark); font-weight:700;">Awaiting courier pickup</div>
+            <div class="kpi-bubble-sub">Verified NGOs & Partners</div>
           </div>
         </div>
       </section>
@@ -121,8 +132,8 @@
       <div class="card-glass">
         <div class="card-header-glass">
           <div>
-            <h2 class="card-title-glass">🚚 Active Redistribution Dispatches</h2>
-            <div class="card-subtitle-glass">Coordinating food rescue batches before expiry deadlines</div>
+            <h2 class="card-title-glass">🚚 Redistribution Records & Dispatches</h2>
+            <div class="card-subtitle-glass">Surplus donations scheduled, completed, and tracked from AI recommendations</div>
           </div>
           <button class="btn-bubble btn-glass-subtle btn-sm-bubble" onclick="Redistribution.fetchDispatches()">🔄 Refresh</button>
         </div>
@@ -142,6 +153,35 @@
               </thead>
               <tbody id="redist-tbody">
                 <!-- Dynamically populated via /api/redistribution -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Available Recipients Directory -->
+      <div class="card-glass" style="margin-top:1.5rem;">
+        <div class="card-header-glass">
+          <div>
+            <h2 class="card-title-glass">🏢 Verified Available Recipients</h2>
+            <div class="card-subtitle-glass">Registered community charities, soup kitchens, animal sanctuaries, and bio-hubs</div>
+          </div>
+        </div>
+        <div class="card-body-glass" style="padding:0.75rem 1.25rem 1.25rem 1.25rem;">
+          <div class="table-responsive">
+            <table class="data-table-glass">
+              <thead>
+                <tr>
+                  <th>Organization Name</th>
+                  <th>Type</th>
+                  <th>Contact Person</th>
+                  <th>Phone</th>
+                  <th>Address</th>
+                  <th style="text-align:right;">Action</th>
+                </tr>
+              </thead>
+              <tbody id="recipients-tbody">
+                <!-- Dynamically populated via /api/redistribution/recipients -->
               </tbody>
             </table>
           </div>
