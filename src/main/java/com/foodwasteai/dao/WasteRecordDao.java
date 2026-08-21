@@ -236,12 +236,17 @@ public class WasteRecordDao extends BaseDao {
             }
 
             // 7. Insert inventory transaction audit log
+            Long validUserId = resolveValidUserId(conn, userId);
             try (PreparedStatement txStmt = conn.prepareStatement(insertTxSql)) {
                 txStmt.setLong(1, foodItem.getId());
                 txStmt.setBigDecimal(2, requestedQty);
                 txStmt.setString(3, foodItem.getUnit());
                 txStmt.setString(4, "Waste incident: " + record.getReason() + " (" + requestedQty.stripTrailingZeros().toPlainString() + " " + foodItem.getUnit() + ")");
-                txStmt.setObject(5, userId);
+                if (validUserId != null) {
+                    txStmt.setLong(5, validUserId);
+                } else {
+                    txStmt.setNull(5, Types.BIGINT);
+                }
                 txStmt.executeUpdate();
             }
 

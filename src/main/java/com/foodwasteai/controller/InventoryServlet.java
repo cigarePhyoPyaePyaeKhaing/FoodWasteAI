@@ -81,7 +81,8 @@ public class InventoryServlet extends BaseServlet {
                 return;
             }
 
-            FoodItem saved = foodItemService.createFoodItem(item, 1L);
+            Long userId = getAuthenticatedUserId(req);
+            FoodItem saved = foodItemService.createFoodItem(item, userId);
             sendCreated(resp, "Food item created successfully", saved);
         } catch (IllegalArgumentException e) {
             sendBadRequest(resp, e.getMessage());
@@ -108,7 +109,8 @@ public class InventoryServlet extends BaseServlet {
                 return;
             }
 
-            boolean updated = foodItemService.updateFoodItem(item, 1L);
+            Long userId = getAuthenticatedUserId(req);
+            boolean updated = foodItemService.updateFoodItem(item, userId);
             if (updated) {
                 sendSuccess(resp, "Food item updated successfully", item);
             } else {

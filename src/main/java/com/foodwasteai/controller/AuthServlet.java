@@ -130,22 +130,4 @@ public class AuthServlet extends BaseServlet {
 
         sendBadRequest(resp, "Invalid auth endpoint");
     }
-
-    private String extractToken(HttpServletRequest req) {
-        String authHeader = req.getHeader("Authorization");
-        if (authHeader != null && !authHeader.trim().isEmpty()) {
-            if (authHeader.startsWith("Bearer ")) {
-                return authHeader.substring(7).trim();
-            }
-            return authHeader.trim();
-        }
-        if (req.getCookies() != null) {
-            for (Cookie c : req.getCookies()) {
-                if ("foodwaste_session".equals(c.getName()) || "token".equals(c.getName())) {
-                    return c.getValue();
-                }
-            }
-        }
-        return req.getParameter("token");
-    }
 }

@@ -70,7 +70,8 @@ public class WasteServlet extends BaseServlet {
                 return;
             }
 
-            WasteRecord saved = wasteService.recordWaste(record, 1L);
+            Long userId = getAuthenticatedUserId(req);
+            WasteRecord saved = wasteService.recordWaste(record, userId);
             sendCreated(resp, "Waste recorded successfully and stock adjusted", saved);
         } catch (IllegalArgumentException e) {
             sendBadRequest(resp, e.getMessage());

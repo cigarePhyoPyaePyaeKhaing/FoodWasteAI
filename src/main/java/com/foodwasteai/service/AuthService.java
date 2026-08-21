@@ -97,13 +97,21 @@ public class AuthService {
         if (DatabaseConfig.isAvailable()) {
             try {
                 Optional<User> dbUser = userDao.findByUsername(username.trim());
-                if (dbUser.isPresent()) user = dbUser.get();
+                if (dbUser.isPresent()) {
+                    user = dbUser.get();
+                } else if (com.foodwasteai.config.AppConfig.isProduction()) {
+                    logger.warn("Authentication failed: User '{}' not found in database", username);
+                    return Optional.empty();
+                }
             } catch (SQLException e) {
-                logger.warn("Database error querying user '{}': {}. Falling back to memory registry.", username, e.getMessage());
+                logger.error("Database error querying user '{}': {}", username, e.getMessage());
+                if (com.foodwasteai.config.AppConfig.isProduction()) {
+                    return Optional.empty();
+                }
             }
         }
 
-        if (user == null) {
+        if (user == null && !com.foodwasteai.config.AppConfig.isProduction()) {
             user = memoryUsers.get(username.trim().toLowerCase());
         }
 
@@ -126,7 +134,7 @@ public class AuthService {
         }
 
         UserSession session = createSession(user, DEFAULT_SESSION_HOURS * 60);
-        logger.info("User '{}' authenticated successfully with backend role '{}'", user.getUsername(), user.getRole());
+        logger.info("User '{}' (ID: {}, Role: {}) authenticated successfully", user.getUsername(), user.getId(), user.getRole());
         return Optional.of(session);
     }
 

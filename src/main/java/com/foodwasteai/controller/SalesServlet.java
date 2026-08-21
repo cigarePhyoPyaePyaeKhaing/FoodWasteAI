@@ -70,7 +70,8 @@ public class SalesServlet extends BaseServlet {
                 return;
             }
 
-            Sale saved = salesService.recordSale(sale, 1L);
+            Long userId = getAuthenticatedUserId(req);
+            Sale saved = salesService.recordSale(sale, userId);
             sendCreated(resp, "Sale recorded successfully and stock updated", saved);
         } catch (IllegalArgumentException e) {
             sendBadRequest(resp, e.getMessage());

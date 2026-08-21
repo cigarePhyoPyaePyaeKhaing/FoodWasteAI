@@ -74,6 +74,7 @@ public class DatabaseConfig {
                 if (conn.isValid(3)) {
                     available = true;
                     applyBilingualMigrations(conn);
+                    ensureDefaultUsersExist(conn);
                     logger.info("Production database connection established successfully to {}:{}/{}!", host, port, dbName);
                 }
             }
@@ -86,6 +87,38 @@ public class DatabaseConfig {
                         host, port, dbName, e.getMessage());
             }
             available = false;
+        }
+    }
+
+    private static void ensureDefaultUsersExist(Connection conn) {
+        String countSql = "SELECT COUNT(*) FROM users";
+        try (java.sql.Statement stmt = conn.createStatement();
+             java.sql.ResultSet rs = stmt.executeQuery(countSql)) {
+            if (rs.next() && rs.getInt(1) == 0) {
+                logger.info("Users table is empty. Seeding initial admin and staff accounts into production database.");
+                String adminHash = org.mindrot.jbcrypt.BCrypt.hashpw("admin123", org.mindrot.jbcrypt.BCrypt.gensalt(12));
+                String staffHash = org.mindrot.jbcrypt.BCrypt.hashpw("staff123", org.mindrot.jbcrypt.BCrypt.gensalt(12));
+                String insertSql = "INSERT INTO users (username, email, password_hash, full_name, role, active) VALUES (?, ?, ?, ?, ?, ?)";
+                try (java.sql.PreparedStatement insertStmt = conn.prepareStatement(insertSql)) {
+                    insertStmt.setString(1, "admin");
+                    insertStmt.setString(2, "admin@foodwaste.ai");
+                    insertStmt.setString(3, adminHash);
+                    insertStmt.setString(4, "Restaurant Manager");
+                    insertStmt.setString(5, "ADMIN");
+                    insertStmt.setBoolean(6, true);
+                    insertStmt.executeUpdate();
+
+                    insertStmt.setString(1, "staff");
+                    insertStmt.setString(2, "staff@foodwaste.ai");
+                    insertStmt.setString(3, staffHash);
+                    insertStmt.setString(4, "Sarah Jenkins");
+                    insertStmt.setString(5, "STAFF");
+                    insertStmt.setBoolean(6, true);
+                    insertStmt.executeUpdate();
+                }
+            }
+        } catch (SQLException e) {
+            logger.debug("Could not verify/seed users: {}", e.getMessage());
         }
     }
 

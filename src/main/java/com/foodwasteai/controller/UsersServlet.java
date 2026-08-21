@@ -64,21 +64,6 @@ public class UsersServlet extends BaseServlet {
         return true;
     }
 
-    private String extractToken(HttpServletRequest req) {
-        String authHeader = req.getHeader("Authorization");
-        if (authHeader != null && !authHeader.trim().isEmpty()) {
-            return authHeader;
-        }
-        if (req.getCookies() != null) {
-            for (Cookie c : req.getCookies()) {
-                if ("foodwaste_session".equals(c.getName()) || "token".equals(c.getName())) {
-                    return c.getValue();
-                }
-            }
-        }
-        return req.getParameter("token");
-    }
-
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         if (!checkAdminPermission(req, resp)) {

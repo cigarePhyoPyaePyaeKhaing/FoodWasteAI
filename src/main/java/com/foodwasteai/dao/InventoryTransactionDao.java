@@ -16,29 +16,32 @@ public class InventoryTransactionDao extends BaseDao {
         ValidationUtils.validateInventoryTransaction(tx);
         String sql = "INSERT INTO inventory_transactions (food_item_id, transaction_type, quantity, unit, notes, created_by) " +
                      "VALUES (?, ?, ?, ?, ?, ?)";
-        try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-            stmt.setLong(1, tx.getFoodItemId());
-            stmt.setString(2, tx.getTransactionType().name());
-            stmt.setBigDecimal(3, tx.getQuantity());
-            stmt.setString(4, tx.getUnit() != null ? tx.getUnit().trim() : "kg");
-            stmt.setString(5, tx.getNotes());
-            if (tx.getCreatedBy() != null) {
-                stmt.setLong(6, tx.getCreatedBy());
-            } else {
-                stmt.setNull(6, Types.BIGINT);
-            }
+        try (Connection conn = getConnection()) {
+            Long validUserId = resolveValidUserId(conn, tx.getCreatedBy());
+            try (PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+                stmt.setLong(1, tx.getFoodItemId());
+                stmt.setString(2, tx.getTransactionType().name());
+                stmt.setBigDecimal(3, tx.getQuantity());
+                stmt.setString(4, tx.getUnit() != null ? tx.getUnit().trim() : "kg");
+                stmt.setString(5, tx.getNotes());
+                if (validUserId != null) {
+                    stmt.setLong(6, validUserId);
+                } else {
+                    stmt.setNull(6, Types.BIGINT);
+                }
 
-            int affected = stmt.executeUpdate();
-            if (affected > 0) {
-                try (ResultSet keys = stmt.getGeneratedKeys()) {
-                    if (keys.next()) {
-                        tx.setId(keys.getLong(1));
+                int affected = stmt.executeUpdate();
+                if (affected > 0) {
+                    try (ResultSet keys = stmt.getGeneratedKeys()) {
+                        if (keys.next()) {
+                            tx.setId(keys.getLong(1));
+                        }
                     }
                 }
+                logger.info("Recorded inventory transaction: {} of item #{} (created_by: {})",
+                        tx.getTransactionType(), tx.getFoodItemId(), validUserId);
+                return tx;
             }
-            logger.info("Recorded inventory transaction: {} of item #{}", tx.getTransactionType(), tx.getFoodItemId());
-            return tx;
         }
     }
 

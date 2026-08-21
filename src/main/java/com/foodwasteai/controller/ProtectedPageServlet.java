@@ -160,21 +160,6 @@ public class ProtectedPageServlet extends BaseServlet {
         return null;
     }
 
-    private String extractToken(HttpServletRequest req) {
-        String authHeader = req.getHeader("Authorization");
-        if (authHeader != null && !authHeader.trim().isEmpty()) {
-            return authHeader;
-        }
-        if (req.getCookies() != null) {
-            for (Cookie c : req.getCookies()) {
-                if ("foodwaste_session".equals(c.getName()) || "token".equals(c.getName())) {
-                    return c.getValue();
-                }
-            }
-        }
-        return req.getParameter("token");
-    }
-
     private void applyNoCacheHeaders(HttpServletResponse response) {
         response.setHeader("Cache-Control", "no-cache, no-store, must-revalidate, max-age=0");
         response.setHeader("Pragma", "no-cache");

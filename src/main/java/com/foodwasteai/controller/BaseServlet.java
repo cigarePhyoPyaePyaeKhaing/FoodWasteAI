@@ -129,4 +129,44 @@ public abstract class BaseServlet extends HttpServlet {
         } catch (NumberFormatException ignored) {}
         return null;
     }
+
+    protected static final com.foodwasteai.service.AuthService authService = new com.foodwasteai.service.AuthService();
+
+    protected String extractToken(HttpServletRequest req) {
+        String authHeader = req.getHeader("Authorization");
+        if (authHeader != null && !authHeader.trim().isEmpty()) {
+            if (authHeader.startsWith("Bearer ")) {
+                return authHeader.substring(7).trim();
+            }
+            return authHeader.trim();
+        }
+        if (req.getCookies() != null) {
+            for (jakarta.servlet.http.Cookie c : req.getCookies()) {
+                if ("foodwaste_session".equals(c.getName()) || "token".equals(c.getName())) {
+                    return c.getValue();
+                }
+            }
+        }
+        return req.getParameter("token");
+    }
+
+    protected com.foodwasteai.model.User getAuthenticatedUser(HttpServletRequest req) {
+        Object u = req.getAttribute("currentUser");
+        if (u instanceof com.foodwasteai.model.User) {
+            return (com.foodwasteai.model.User) u;
+        }
+        String token = extractToken(req);
+        if (token != null && !token.trim().isEmpty()) {
+            java.util.Optional<com.foodwasteai.model.User> userOpt = authService.validateToken(token);
+            if (userOpt.isPresent()) {
+                return userOpt.get();
+            }
+        }
+        return null;
+    }
+
+    protected Long getAuthenticatedUserId(HttpServletRequest req) {
+        com.foodwasteai.model.User user = getAuthenticatedUser(req);
+        return user != null ? user.getId() : null;
+    }
 }
