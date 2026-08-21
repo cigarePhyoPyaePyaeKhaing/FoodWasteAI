@@ -70,7 +70,7 @@ public class PredictionDao extends BaseDao {
 
     public List<PredictionItem> findItemsByPredictionId(Long predictionId) throws SQLException {
         List<PredictionItem> list = new ArrayList<>();
-        String sql = "SELECT pi.id, pi.prediction_id, pi.food_item_id, f.name AS food_name, pi.current_stock, " +
+        String sql = "SELECT pi.id, pi.prediction_id, pi.food_item_id, f.name AS food_name, f.unit AS food_unit, pi.current_stock, " +
                      "pi.expected_demand, pi.expiry_days, pi.historical_waste_rate, pi.risk_level, " +
                      "pi.risk_percentage, pi.predicted_waste_qty, pi.recommended_production, " +
                      "pi.priority_usage, pi.reasoning_text, pi.reasoning_text_en, pi.reasoning_text_my, pi.created_at " +
@@ -121,12 +121,16 @@ public class PredictionDao extends BaseDao {
         item.setPredictionId(rs.getLong("prediction_id"));
         item.setFoodItemId(rs.getLong("food_item_id"));
         item.setFoodItemName(rs.getString("food_name"));
+        try {
+            item.setUnit(rs.getString("food_unit"));
+        } catch (SQLException ignored) {}
         item.setCurrentStock(rs.getBigDecimal("current_stock"));
         item.setExpectedDemand(rs.getBigDecimal("expected_demand"));
         item.setExpiryDays(rs.getInt("expiry_days"));
         item.setHistoricalWasteRate(rs.getBigDecimal("historical_waste_rate"));
         item.setRiskLevel(PredictionItem.RiskLevel.valueOf(rs.getString("risk_level")));
         item.setRiskPercentage(rs.getBigDecimal("risk_percentage"));
+        item.setRiskScore(rs.getBigDecimal("risk_percentage"));
         item.setPredictedWasteQty(rs.getBigDecimal("predicted_waste_qty"));
         item.setRecommendedProduction(rs.getBigDecimal("recommended_production"));
         item.setPriorityUsage(rs.getString("priority_usage"));

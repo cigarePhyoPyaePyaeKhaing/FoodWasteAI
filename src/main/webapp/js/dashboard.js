@@ -56,12 +56,12 @@ const Dashboard = {
 
           if (d.items && d.items.length > 0) {
             this.data.highRiskFoods = d.items.map(item => ({
-              name: item.foodName,
-              riskPct: Math.round(item.riskPercentage),
+              name: item.foodName || item.foodItemName || 'Item',
+              riskPct: Math.round(item.riskScore !== undefined ? item.riskScore : (item.riskPercentage !== undefined ? item.riskPercentage : 18)),
               riskLevel: item.riskLevel,
               category: 'Kitchen Item',
-              stock: `${Number(item.stock).toFixed(1)} kg`,
-              demand: `${Number(item.expectedDemand).toFixed(1)} kg`,
+              stock: `${Number(item.stock).toFixed(1)} ${item.unit || 'units'}`,
+              demand: `${Number(item.expectedDemand).toFixed(1)} ${item.unit || 'units'}`,
               expiry: `${item.expiryDays} Day(s)`
             }));
           } else {

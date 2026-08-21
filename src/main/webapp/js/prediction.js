@@ -2,6 +2,7 @@
  * FoodWaste AI - Prediction Controller
  * Connected with /api/prediction and /api/prediction/{id} REST endpoints
  * Displays Explainable AI reasoning from SWI-Prolog expert engine
+ * Enforces unit integrity and risk-score synchronization across all views.
  */
 const Prediction = {
   report: null,
@@ -74,11 +75,16 @@ const Prediction = {
           </div>
         `;
       } else {
-        const totalWaste = items.reduce((sum, i) => sum + Math.max(0, i.stock - i.expectedDemand), 0) || 1;
-        
         breakdownContainer.innerHTML = items.map(item => {
-          const surplus = Math.max(0, item.stock - item.expectedDemand);
-          const sharePct = Math.min(100, Math.round((surplus / totalWaste) * 100)) || Math.round(item.riskPercentage);
+          const unit = item.unit || 'units';
+          const foodName = item.foodName || item.foodItemName || 'Item';
+          const wasteQty = Number(
+            item.predictedWasteQuantity !== undefined ? item.predictedWasteQuantity :
+            (item.predictedWasteQty !== undefined ? item.predictedWasteQty : Math.max(0, item.stock - item.expectedDemand))
+          ).toFixed(1);
+          
+          // Use authoritative SWI-Prolog riskScore directly (no frontend normalization or derived recalculation)
+          const riskScore = Math.round(item.riskScore !== undefined ? item.riskScore : (item.riskPercentage !== undefined ? item.riskPercentage : 18));
           
           let color = '#059669';
           let badge = isMm ? 'အန္တရာယ်နည်း' : 'LOW';
@@ -93,11 +99,11 @@ const Prediction = {
           return `
             <div>
               <div style="display:flex; justify-content:space-between; margin-bottom:0.4rem; font-weight:700;">
-                <span>🍲 ${item.foodName}</span>
-                <span style="color:${color};">${surplus.toFixed(1)} kg (${sharePct}%) &bull; ${badge}</span>
+                <span>🍲 ${foodName}</span>
+                <span style="color:${color};">${wasteQty} ${unit} (${riskScore}%) &bull; ${badge}</span>
               </div>
               <div style="background:rgba(0,0,0,0.06); height:12px; border-radius:9999px; overflow:hidden;">
-                <div style="width:${sharePct}%; height:100%; background:${color}; border-radius:9999px; transition:width 0.6s ease;"></div>
+                <div style="width:${riskScore}%; height:100%; background:${color}; border-radius:9999px; transition:width 0.6s ease;"></div>
               </div>
             </div>
           `;
@@ -132,11 +138,14 @@ const Prediction = {
             titleColor = 'var(--risk-med-text)';
           }
 
+          const foodName = item.foodName || item.foodItemName || 'Item';
+          const riskScore = Math.round(item.riskScore !== undefined ? item.riskScore : (item.riskPercentage !== undefined ? item.riskPercentage : 18));
           const riskBadge = typeof I18n !== 'undefined' ? I18n.translateRisk(item.riskLevel) : item.riskLevel;
-          const priorityBadge = typeof I18n !== 'undefined' ? I18n.translatePriority(item.priorityUsage || 'STANDARD') : (item.priorityUsage || 'STANDARD');
+          const priorityBadge = typeof I18n !== 'undefined' ? I18n.translatePriority(item.priorityUsage || item.priority || 'STANDARD') : (item.priorityUsage || item.priority || 'STANDARD');
+          
           const cardTitle = isMm
-            ? `${item.foodName} သည် အဘယ့်ကြောင့် ${riskBadge} ဖြစ်ရသနည်း (${Math.round(item.riskPercentage)}%)`
-            : `Why is ${item.foodName} ${item.riskLevel} Risk (${Math.round(item.riskPercentage)}%)?`;
+            ? `${foodName} သည် အဘယ့်ကြောင့် ${riskBadge} ဖြစ်ရသနည်း (${riskScore}%)`
+            : `Why is ${foodName} ${item.riskLevel} Risk (${riskScore}%)?`;
 
           let reasonsList = item.reasons || [];
           if (isMm && item.reasonsMy && item.reasonsMy.length > 0) {
@@ -147,7 +156,7 @@ const Prediction = {
 
           const reasonsHtml = reasonsList.map(r => `<li>${r}</li>`).join('');
 
-          let recText = item.recommendation || item.recommendedAction || 'Maintain scheduled batches.';
+          let recText = item.recommendation || item.recommendedAction || item.action || 'Maintain scheduled batches.';
           if (isMm && (item.recommendationMy || item.recommendation_my)) {
             recText = item.recommendationMy || item.recommendation_my;
           }

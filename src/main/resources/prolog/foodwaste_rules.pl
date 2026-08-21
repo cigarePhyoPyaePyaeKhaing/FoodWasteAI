@@ -28,19 +28,23 @@ assess_item(Stock, ExpectedDemand, ExpiryDays, HistWasteRate, CurrentProduction,
 % PRIORITY: Expiry date strictly prioritizes over quantity.
 % ---------------------------------------------------------------------
 
-% High Risk Rule 1: Item is already expired (<= 0 days)
-assess_waste_risk(Stock, _, ExpiryDays, _, high, ['Item has reached or passed expiration date. Do not serve to customers.']) :-
-    ExpiryDays =< 0,
+% High Risk Rule 1: Item has passed expiration date (< 0 days)
+assess_waste_risk(Stock, _, ExpiryDays, _, high, ['Item has passed expiration date. Do not serve to customers.']) :-
+    ExpiryDays < 0,
     Stock > 0,
     !.
 
-% High Risk Rule 2: Expiry is today or tomorrow (<= 1 day) - HIGHEST PRIORITY
-assess_waste_risk(Stock, _, ExpiryDays, _, high, ['Product expires within 24 hours. Immediate action recommended.']) :-
-    ExpiryDays =< 1,
+% High Risk Rule 2: Item expires today (= 0 days)
+assess_waste_risk(Stock, _, 0, _, high, ['Product expires today. Immediate consumption or action required.']) :-
     Stock > 0,
     !.
 
-% High Risk Rule 3: Heavy Overstock (Stock >= 150% of demand) with Near Expiry (<= 3 days) or Elevated Waste (>= 20%)
+% High Risk Rule 3: Expiry is tomorrow (within 24 hours, = 1 day)
+assess_waste_risk(Stock, _, 1, _, high, ['Product expires within 24 hours. Immediate action recommended.']) :-
+    Stock > 0,
+    !.
+
+% High Risk Rule 4: Heavy Overstock (Stock >= 150% of demand) with Near Expiry (<= 3 days) or Elevated Waste (>= 20%)
 assess_waste_risk(Stock, ExpectedDemand, ExpiryDays, HistWasteRate, high, Reasons) :-
     ExpectedDemand > 0,
     Ratio is Stock / ExpectedDemand,
@@ -49,7 +53,7 @@ assess_waste_risk(Stock, ExpectedDemand, ExpiryDays, HistWasteRate, high, Reason
     build_high_reasons(Ratio, ExpiryDays, HistWasteRate, Reasons),
     !.
 
-% High Risk Rule 4: Moderate-to-Heavy Overstock (>= 130% of demand) with 2-day expiry or High Waste (>= 25%)
+% High Risk Rule 5: Moderate-to-Heavy Overstock (>= 130% of demand) with 2-day expiry or High Waste (>= 25%)
 assess_waste_risk(Stock, ExpectedDemand, ExpiryDays, HistWasteRate, high, Reasons) :-
     ExpectedDemand > 0,
     Ratio is Stock / ExpectedDemand,
@@ -58,7 +62,7 @@ assess_waste_risk(Stock, ExpectedDemand, ExpiryDays, HistWasteRate, high, Reason
     build_high_reasons(Ratio, ExpiryDays, HistWasteRate, Reasons),
     !.
 
-% High Risk Rule 5: Critical historical waste pattern (>= 30%) and stock exceeds demand
+% High Risk Rule 6: Critical historical waste pattern (>= 30%) and stock exceeds demand
 assess_waste_risk(Stock, ExpectedDemand, _, HistWasteRate, high, ['Historical waste rate is critical (>= 30%). Stock exceeds expected demand.']) :-
     HistWasteRate >= 0.30,
     Stock > ExpectedDemand,
@@ -160,11 +164,10 @@ recommend_production(_, _, CurrentProduction, low, CurrentProduction, 'Maintain 
 % 3. PRIORITY USAGE RECOMMENDATION RULES
 % ---------------------------------------------------------------------
 evaluate_priority_use(ExpiryDays, _, 'DISPOSE_OR_COMPOST') :-
-    ExpiryDays =< 0,
+    ExpiryDays < 0,
     !.
-evaluate_priority_use(ExpiryDays, _, 'IMMEDIATE_USE') :-
-    ExpiryDays =< 1,
-    !.
+evaluate_priority_use(0, _, 'IMMEDIATE_USE') :- !.
+evaluate_priority_use(1, _, 'IMMEDIATE_USE') :- !.
 evaluate_priority_use(ExpiryDays, high, 'IMMEDIATE_USE') :-
     ExpiryDays =< 2,
     !.

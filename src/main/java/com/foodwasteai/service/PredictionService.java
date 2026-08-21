@@ -22,6 +22,7 @@ import java.util.*;
 /**
  * Service orchestrating AI waste prediction and SWI-Prolog expert system rule evaluation.
  * Architecture: Controller -> Service -> PrologService -> SWI-Prolog -> Result -> Java -> JSON
+ * Preserves food item units and guarantees authoritative risk-score synchronization across all layers.
  */
 public class PredictionService {
     private static final Logger logger = LoggerFactory.getLogger(PredictionService.class);
@@ -53,9 +54,17 @@ public class PredictionService {
      */
     public PrologAssessment assessFoodItem(String foodName, double stock, double expectedDemand,
                                           int expiryDays, double histWasteRate, double currentProduction) {
-        logger.info("Evaluating item '{}' via PrologService (stock={}, demand={}, expiryDays={}, wasteRate={})",
-                foodName, stock, expectedDemand, expiryDays, histWasteRate);
-        return prologService.assessFoodItem(foodName, stock, expectedDemand, expiryDays, histWasteRate, currentProduction);
+        return assessFoodItem(foodName, "kg", stock, expectedDemand, expiryDays, histWasteRate, currentProduction);
+    }
+
+    /**
+     * Assesses a food item with specified unit.
+     */
+    public PrologAssessment assessFoodItem(String foodName, String unit, double stock, double expectedDemand,
+                                          int expiryDays, double histWasteRate, double currentProduction) {
+        logger.info("Evaluating item '{}' ({}) via PrologService (stock={}, demand={}, expiryDays={}, wasteRate={})",
+                foodName, unit, stock, expectedDemand, expiryDays, histWasteRate);
+        return prologService.assessFoodItem(foodName, unit, stock, expectedDemand, expiryDays, histWasteRate, currentProduction);
     }
 
     /**
@@ -68,11 +77,11 @@ public class PredictionService {
         }
 
         FoodItem item = itemOpt.get();
-        double stock = item.getQuantity() != null ? item.getQuantity().doubleValue() : 0.0;
-        
-        // Calculate days to expiry
+        double stock = item.getQuantity() != null ? Math.max(0.0, item.getQuantity().doubleValue()) : 0.0;
+        String unit = item.getUnit() != null && !item.getUnit().trim().isEmpty() ? item.getUnit().trim() : "kg";
+
+        // Calculate exact days to expiry without clamping negative days
         int expiryDays = (int) ChronoUnit.DAYS.between(LocalDate.now(), item.getExpiryDate());
-        if (expiryDays < 0) expiryDays = 0;
 
         // Fetch real historical sales demand
         double expectedDemand;
@@ -81,11 +90,11 @@ public class PredictionService {
             if (avgSales != null && avgSales.compareTo(BigDecimal.ZERO) > 0) {
                 expectedDemand = avgSales.doubleValue();
             } else {
-                // Fallback estimated demand: 85% of current stock or min threshold
-                expectedDemand = Math.max(5.0, stock * 0.85);
+                // Baseline estimated demand: 85% of current stock or minimum 1.0 unit
+                expectedDemand = Math.max(1.0, stock * 0.85);
             }
         } catch (Exception e) {
-            expectedDemand = Math.max(5.0, stock * 0.85);
+            expectedDemand = Math.max(1.0, stock * 0.85);
         }
 
         // Fetch real historical waste rate
@@ -105,9 +114,10 @@ public class PredictionService {
         double currentProduction = expectedDemand * 1.1; // Default planned production
 
         PrologAssessment assessment = prologService.assessFoodItem(
-                item.getName(), stock, expectedDemand, expiryDays, histWasteRate, currentProduction
+                item.getName(), unit, stock, expectedDemand, expiryDays, histWasteRate, currentProduction
         );
         assessment.setFoodItemId(item.getId());
+        assessment.setUnit(unit);
 
         return Optional.of(assessment);
     }
@@ -130,19 +140,20 @@ public class PredictionService {
             if (opt.isPresent()) {
                 PrologAssessment a = opt.get();
                 assessments.add(a);
-                totalRiskScore += a.getRiskPercentage();
+                totalRiskScore += a.getRiskScore();
+
+                double projectedWaste = a.getPredictedWasteQuantity();
+                double itemPrice = item.getPricePerUnit() != null ? item.getPricePerUnit().doubleValue() : 2000.0;
 
                 if ("HIGH".equalsIgnoreCase(a.getRiskLevel())) {
                     highRiskCount++;
-                    double projectedWaste = Math.max(0, a.getStock() - a.getExpectedDemand());
                     expectedTotalWasteKg += projectedWaste;
-                    double loss = projectedWaste * (item.getPricePerUnit() != null ? item.getPricePerUnit().doubleValue() : 5000);
+                    double loss = projectedWaste * itemPrice;
                     estimatedMoneyLost += loss;
                     potentialSavings += loss * 0.70; // 70% preventable via AI actions
                 } else if ("MEDIUM".equalsIgnoreCase(a.getRiskLevel())) {
-                    double projectedWaste = Math.max(0, (a.getStock() - a.getExpectedDemand()) * 0.30);
                     expectedTotalWasteKg += projectedWaste;
-                    double loss = projectedWaste * (item.getPricePerUnit() != null ? item.getPricePerUnit().doubleValue() : 5000);
+                    double loss = projectedWaste * itemPrice;
                     estimatedMoneyLost += loss;
                     potentialSavings += loss * 0.50;
                 }
@@ -191,13 +202,15 @@ public class PredictionService {
                     PredictionItem pi = new PredictionItem();
                     pi.setPredictionId(savedPred.getId());
                     pi.setFoodItemId(a.getFoodItemId());
+                    pi.setUnit(a.getUnit());
                     pi.setCurrentStock(BigDecimal.valueOf(a.getStock()).setScale(2, RoundingMode.HALF_UP));
                     pi.setExpectedDemand(BigDecimal.valueOf(a.getExpectedDemand()).setScale(2, RoundingMode.HALF_UP));
                     pi.setExpiryDays(a.getExpiryDays());
                     pi.setHistoricalWasteRate(BigDecimal.valueOf(a.getHistoricalWasteRate()).setScale(4, RoundingMode.HALF_UP));
                     pi.setRiskLevel(PredictionItem.RiskLevel.valueOf(a.getRiskLevel()));
-                    pi.setRiskPercentage(BigDecimal.valueOf(a.getRiskPercentage()).setScale(2, RoundingMode.HALF_UP));
-                    pi.setPredictedWasteQty(BigDecimal.valueOf(Math.max(0, a.getStock() - a.getExpectedDemand())).setScale(2, RoundingMode.HALF_UP));
+                    pi.setRiskScore(BigDecimal.valueOf(a.getRiskScore()).setScale(2, RoundingMode.HALF_UP));
+                    pi.setRiskPercentage(BigDecimal.valueOf(a.getRiskScore()).setScale(2, RoundingMode.HALF_UP));
+                    pi.setPredictedWasteQty(BigDecimal.valueOf(a.getPredictedWasteQuantity()).setScale(2, RoundingMode.HALF_UP));
                     pi.setRecommendedProduction(BigDecimal.valueOf(a.getRecommendedProduction()).setScale(2, RoundingMode.HALF_UP));
                     pi.setPriorityUsage(a.getPriorityUsage());
                     pi.setReasoningText(a.getReasonEn());

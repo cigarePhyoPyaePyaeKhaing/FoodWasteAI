@@ -14,7 +14,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * Dedicated integration service for SWI-Prolog expert reasoning system.
  * Executes Prolog knowledge base via controlled subprocess with structured output.
- * Includes a safe development fallback when swipl is not yet installed on local machines.
+ * Serves as the single authoritative source of truth for riskScore, predictedWasteQuantity, and units.
  */
 public class PrologService {
     private static final Logger logger = LoggerFactory.getLogger(PrologService.class);
@@ -82,26 +82,34 @@ public class PrologService {
     }
 
     /**
-     * Performs expert system assessment of a single food item.
+     * Overload for assessing food item defaulting unit to "kg".
      */
     public PrologAssessment assessFoodItem(String foodName, double stock, double expectedDemand,
                                           int expiryDays, double histWasteRate, double currentProduction) {
+        return assessFoodItem(foodName, "kg", stock, expectedDemand, expiryDays, histWasteRate, currentProduction);
+    }
+
+    /**
+     * Performs expert system assessment of a single food item preserving unit and calculating exact predicted waste.
+     */
+    public PrologAssessment assessFoodItem(String foodName, String unit, double stock, double expectedDemand,
+                                          int expiryDays, double histWasteRate, double currentProduction) {
         if (isPrologAvailable() && extractedRulesFile != null) {
             try {
-                return executePrologSubprocess(foodName, stock, expectedDemand, expiryDays, histWasteRate, currentProduction);
+                return executePrologSubprocess(foodName, unit, stock, expectedDemand, expiryDays, histWasteRate, currentProduction);
             } catch (Exception e) {
                 logger.error("Error executing SWI-Prolog process: {}. Falling back to safe dev evaluator.", e.getMessage(), e);
             }
         }
 
         // Safe development fallback when swipl is not installed
-        return executeDevelopmentFallback(foodName, stock, expectedDemand, expiryDays, histWasteRate, currentProduction);
+        return executeDevelopmentFallback(foodName, unit, stock, expectedDemand, expiryDays, histWasteRate, currentProduction);
     }
 
     /**
      * Executes real SWI-Prolog subprocess.
      */
-    private PrologAssessment executePrologSubprocess(String foodName, double stock, double expectedDemand,
+    private PrologAssessment executePrologSubprocess(String foodName, String unit, double stock, double expectedDemand,
                                                     int expiryDays, double histWasteRate, double currentProduction) throws Exception {
         String swiplPath = AppConfig.getSwiplPath();
         String rulesPath = extractedRulesFile.getAbsolutePath().replace("\\", "/");
@@ -131,16 +139,17 @@ public class PrologService {
             throw new RuntimeException("SWI-Prolog subprocess timed out");
         }
 
-        return parsePrologOutput(foodName, stock, expectedDemand, expiryDays, histWasteRate, currentProduction, output.toString());
+        return parsePrologOutput(foodName, unit, stock, expectedDemand, expiryDays, histWasteRate, currentProduction, output.toString());
     }
 
     /**
      * Parses stdout from SWI-Prolog.
      */
-    private PrologAssessment parsePrologOutput(String foodName, double stock, double expectedDemand,
+    private PrologAssessment parsePrologOutput(String foodName, String unit, double stock, double expectedDemand,
                                               int expiryDays, double histWasteRate, double currentProduction, String rawOutput) {
         PrologAssessment assessment = new PrologAssessment();
         assessment.setFoodName(foodName);
+        assessment.setUnit(unit != null ? unit : "kg");
         assessment.setStock(stock);
         assessment.setExpectedDemand(expectedDemand);
         assessment.setExpiryDays(expiryDays);
@@ -155,14 +164,32 @@ public class PrologService {
                     String risk = parts[0].trim().toUpperCase();
                     assessment.setRiskLevel(risk);
 
-                    // Calculate risk percentage
-                    if ("HIGH".equalsIgnoreCase(risk)) {
-                        assessment.setRiskPercentage(85.0);
+                    // Authoritative risk score matching Prolog rules
+                    double riskScore;
+                    if (expiryDays < 0) {
+                        riskScore = 95.0;
+                    } else if (expiryDays <= 1) {
+                        riskScore = 85.0;
+                    } else if ("HIGH".equalsIgnoreCase(risk)) {
+                        if (expectedDemand > 0 && (stock / expectedDemand) >= 1.50) {
+                            riskScore = 82.0;
+                        } else if (expectedDemand > 0 && (stock / expectedDemand) >= 1.30) {
+                            riskScore = 80.0;
+                        } else {
+                            riskScore = 78.0;
+                        }
                     } else if ("MEDIUM".equalsIgnoreCase(risk)) {
-                        assessment.setRiskPercentage(55.0);
+                        if (expiryDays <= 3) {
+                            riskScore = 55.0;
+                        } else if (expectedDemand > 0 && (stock / expectedDemand) >= 1.25) {
+                            riskScore = 50.0;
+                        } else {
+                            riskScore = 45.0;
+                        }
                     } else {
-                        assessment.setRiskPercentage(18.0);
+                        riskScore = 18.0;
                     }
+                    assessment.setRiskScore(riskScore);
 
                     // Parse reasons array from Prolog list notation [a, b]
                     String reasonsRaw = parts[1].trim();
@@ -189,6 +216,24 @@ public class PrologService {
                     assessment.setPriorityUsage(parts[4].trim().replace("'", ""));
                     assessment.setRecommendRedistribution("true".equalsIgnoreCase(parts[5].trim()));
 
+                    // Calculate bounded predicted waste quantity in actual item units
+                    double predictedWaste;
+                    if (expiryDays < 0) {
+                        predictedWaste = stock;
+                    } else if ("HIGH".equalsIgnoreCase(risk)) {
+                        if (expiryDays <= 1) {
+                            predictedWaste = Math.max(0.0, stock - (expectedDemand * 0.60));
+                        } else {
+                            predictedWaste = Math.max(0.0, stock - expectedDemand);
+                        }
+                    } else if ("MEDIUM".equalsIgnoreCase(risk)) {
+                        predictedWaste = Math.max(0.0, (stock - expectedDemand) * 0.50);
+                    } else {
+                        predictedWaste = 0.0;
+                    }
+                    predictedWaste = Math.max(0.0, Math.min(stock, predictedWaste));
+                    assessment.setPredictedWasteQuantity(predictedWaste);
+
                     return assessment;
                 }
             }
@@ -196,23 +241,25 @@ public class PrologService {
 
         // Fallback if formatting was not matched
         assessment.setRiskLevel("LOW");
-        assessment.setRiskPercentage(18.0);
+        assessment.setRiskScore(18.0);
         assessment.addReason("Safe shelf life remaining (> 3 days) and stock is balanced with demand.");
         assessment.setRecommendedProduction(currentProduction);
         assessment.setRecommendedAction("Maintain standard scheduled production batch");
         assessment.setRecommendation("Maintain standard scheduled production batch");
         assessment.setPriorityUsage("STANDARD");
         assessment.setRecommendRedistribution(false);
+        assessment.setPredictedWasteQuantity(0.0);
         return assessment;
     }
 
     /**
      * Development fallback mirroring Prolog rules exactly, used only when SWI-Prolog is missing locally.
      */
-    private PrologAssessment executeDevelopmentFallback(String foodName, double stock, double expectedDemand,
+    private PrologAssessment executeDevelopmentFallback(String foodName, String unit, double stock, double expectedDemand,
                                                          int expiryDays, double histWasteRate, double currentProduction) {
         PrologAssessment assessment = new PrologAssessment();
         assessment.setFoodName(foodName);
+        assessment.setUnit(unit != null ? unit : "kg");
         assessment.setStock(stock);
         assessment.setExpectedDemand(expectedDemand);
         assessment.setExpiryDays(expiryDays);
@@ -228,25 +275,35 @@ public class PrologService {
         boolean redistribute;
 
         // Rule evaluation mirroring foodwaste_rules.pl exactly
-        if (expiryDays <= 0 && stock > 0) {
+        if (expiryDays < 0 && stock > 0) {
+            // High Risk Rule 1: Item has passed expiration date (< 0 days)
             risk = "HIGH";
             riskPct = 95.0;
-            reasons.add("Item has reached or passed expiration date. Do not serve to customers.");
+            reasons.add("Item has passed expiration date. Do not serve to customers.");
             recProd = 0.0;
             recAction = "Halt production and dispose of expired inventory safely";
             priority = "DISPOSE_OR_COMPOST";
             redistribute = false;
-        } else if (expiryDays <= 1 && stock > 0) {
-            // High Risk Rule 2: Expiry today or tomorrow - HIGHEST PRIORITY
+        } else if (expiryDays == 0 && stock > 0) {
+            // High Risk Rule 2: Item expires today (= 0 days)
+            risk = "HIGH";
+            riskPct = 85.0;
+            reasons.add("Product expires today. Immediate consumption or action required.");
+            recProd = stock > expectedDemand ? Math.max(0, Math.round(currentProduction * 0.70)) : Math.max(0, Math.round(currentProduction * 0.50));
+            recAction = "Reduce production or redistribute immediately";
+            priority = "IMMEDIATE_USE";
+            redistribute = (stock - expectedDemand) >= 5;
+        } else if (expiryDays == 1 && stock > 0) {
+            // High Risk Rule 3: Expiry within 24 hours (= 1 day) - HIGHEST PRIORITY
             risk = "HIGH";
             riskPct = 85.0;
             reasons.add("Product expires within 24 hours. Immediate action recommended.");
             recProd = stock > expectedDemand ? Math.max(0, Math.round(currentProduction * 0.70)) : Math.max(0, Math.round(currentProduction * 0.50));
             recAction = "Reduce production or redistribute immediately";
             priority = "IMMEDIATE_USE";
-            redistribute = (stock - expectedDemand) >= 5 && expiryDays >= 1;
+            redistribute = (stock - expectedDemand) >= 5;
         } else if (expectedDemand > 0 && (stock / expectedDemand) >= 1.50 && (expiryDays <= 3 || histWasteRate >= 0.20)) {
-            // High Risk Rule 3: Heavy Overstock with Near Expiry / High Waste
+            // High Risk Rule 4: Heavy Overstock with Near Expiry / High Waste
             risk = "HIGH";
             riskPct = 82.0;
             if ((stock / expectedDemand) >= 1.30) reasons.add("Stock significantly exceeds expected demand");
@@ -257,7 +314,7 @@ public class PrologService {
             priority = expiryDays <= 2 ? "IMMEDIATE_USE" : "HIGH_PRIORITY";
             redistribute = (stock - expectedDemand) >= 5 && expiryDays >= 1;
         } else if (expectedDemand > 0 && (stock / expectedDemand) >= 1.30 && (expiryDays <= 2 || histWasteRate >= 0.25)) {
-            // High Risk Rule 4: Moderate-to-Heavy Overstock with 2-day expiry
+            // High Risk Rule 5: Moderate-to-Heavy Overstock with 2-day expiry
             risk = "HIGH";
             riskPct = 80.0;
             if ((stock / expectedDemand) >= 1.30) reasons.add("Stock significantly exceeds expected demand");
@@ -268,7 +325,7 @@ public class PrologService {
             priority = "IMMEDIATE_USE";
             redistribute = (stock - expectedDemand) >= 5 && expiryDays >= 1;
         } else if (histWasteRate >= 0.30 && stock > expectedDemand) {
-            // High Risk Rule 5: Critical historical waste
+            // High Risk Rule 6: Critical historical waste
             risk = "HIGH";
             riskPct = 78.0;
             reasons.add("Historical waste rate is critical (>= 30%). Stock exceeds expected demand.");
@@ -316,13 +373,31 @@ public class PrologService {
         }
 
         assessment.setRiskLevel(risk);
-        assessment.setRiskPercentage(riskPct);
+        assessment.setRiskScore(riskPct);
         assessment.setReasons(reasons);
         assessment.setRecommendedProduction(recProd);
         assessment.setRecommendedAction(recAction);
         assessment.setRecommendation(recAction);
         assessment.setPriorityUsage(priority);
         assessment.setRecommendRedistribution(redistribute);
+
+        // Calculate bounded predicted waste quantity in actual item units
+        double predictedWaste;
+        if (expiryDays < 0) {
+            predictedWaste = stock;
+        } else if ("HIGH".equalsIgnoreCase(risk)) {
+            if (expiryDays <= 1) {
+                predictedWaste = Math.max(0.0, stock - (expectedDemand * 0.60));
+            } else {
+                predictedWaste = Math.max(0.0, stock - expectedDemand);
+            }
+        } else if ("MEDIUM".equalsIgnoreCase(risk)) {
+            predictedWaste = Math.max(0.0, (stock - expectedDemand) * 0.50);
+        } else {
+            predictedWaste = 0.0;
+        }
+        predictedWaste = Math.max(0.0, Math.min(stock, predictedWaste));
+        assessment.setPredictedWasteQuantity(predictedWaste);
 
         return assessment;
     }

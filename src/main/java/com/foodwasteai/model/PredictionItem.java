@@ -20,13 +20,16 @@ public class PredictionItem implements Serializable {
     private Long predictionId;
     private Long foodItemId;
     private String foodItemName; // Joined
+    private String unit = "kg"; // Joined from food_items
     private BigDecimal currentStock;
     private BigDecimal expectedDemand;
     private Integer expiryDays;
     private BigDecimal historicalWasteRate;
     private RiskLevel riskLevel;
     private BigDecimal riskPercentage;
+    private BigDecimal riskScore; // Alias synced with riskPercentage
     private BigDecimal predictedWasteQty;
+    private BigDecimal predictedWasteQuantity; // Alias
     private BigDecimal recommendedProduction;
     private String priorityUsage;
     private String reasoningText;
@@ -67,6 +70,14 @@ public class PredictionItem implements Serializable {
 
     public void setFoodItemName(String foodItemName) {
         this.foodItemName = foodItemName;
+    }
+
+    public String getUnit() {
+        return unit != null ? unit : "kg";
+    }
+
+    public void setUnit(String unit) {
+        this.unit = unit != null ? unit.trim() : "kg";
     }
 
     public BigDecimal getCurrentStock() {
@@ -110,19 +121,38 @@ public class PredictionItem implements Serializable {
     }
 
     public BigDecimal getRiskPercentage() {
-        return riskPercentage;
+        return riskPercentage != null ? riskPercentage : riskScore;
     }
 
     public void setRiskPercentage(BigDecimal riskPercentage) {
         this.riskPercentage = riskPercentage;
+        this.riskScore = riskPercentage;
+    }
+
+    public BigDecimal getRiskScore() {
+        return riskPercentage != null ? riskPercentage : riskScore;
+    }
+
+    public void setRiskScore(BigDecimal riskScore) {
+        this.riskScore = riskScore;
+        this.riskPercentage = riskScore;
     }
 
     public BigDecimal getPredictedWasteQty() {
-        return predictedWasteQty;
+        return predictedWasteQty != null ? predictedWasteQty : predictedWasteQuantity;
     }
 
     public void setPredictedWasteQty(BigDecimal predictedWasteQty) {
         this.predictedWasteQty = predictedWasteQty;
+        this.predictedWasteQuantity = predictedWasteQty;
+    }
+
+    public BigDecimal getPredictedWasteQuantity() {
+        return getPredictedWasteQty();
+    }
+
+    public void setPredictedWasteQuantity(BigDecimal predictedWasteQuantity) {
+        setPredictedWasteQty(predictedWasteQuantity);
     }
 
     public BigDecimal getRecommendedProduction() {
