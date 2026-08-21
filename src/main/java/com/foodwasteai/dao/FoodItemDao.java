@@ -173,14 +173,15 @@ public class FoodItemDao extends BaseDao {
         item.setQuantity(rs.getBigDecimal("quantity"));
         item.setUnit(rs.getString("unit"));
         item.setPricePerUnit(rs.getBigDecimal("price_per_unit"));
+        item.setMinStockThreshold(rs.getBigDecimal("min_stock_threshold"));
 
         Date expiry = rs.getDate("expiry_date");
         if (expiry != null) {
             item.setExpiryDate(expiry.toLocalDate());
-            item.setStatus(com.foodwasteai.util.ExpiryStatusResolver.resolveStatus(item.getExpiryDate(), item.getQuantity(), item.getMinStockThreshold(), java.time.LocalDate.now()));
-        } else {
-            item.setStatus(rs.getString("status"));
         }
+
+        // Dynamically compute status and all expiry fields using Asia/Yangon date
+        item.updateComputedExpiryFields();
 
         Timestamp created = rs.getTimestamp("created_at");
         if (created != null) item.setCreatedAt(created.toLocalDateTime());

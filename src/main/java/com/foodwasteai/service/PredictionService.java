@@ -80,8 +80,8 @@ public class PredictionService {
         double stock = item.getQuantity() != null ? Math.max(0.0, item.getQuantity().doubleValue()) : 0.0;
         String unit = item.getUnit() != null && !item.getUnit().trim().isEmpty() ? item.getUnit().trim() : "kg";
 
-        // Calculate exact days to expiry without clamping negative days
-        int expiryDays = (int) ChronoUnit.DAYS.between(LocalDate.now(), item.getExpiryDate());
+        // Calculate exact days to expiry using Myanmar timezone without clamping negative days
+        int expiryDays = com.foodwasteai.util.ExpiryStatusResolver.calculateDaysRemaining(item.getExpiryDate());
 
         // Fetch real historical sales demand
         double expectedDemand;
@@ -189,7 +189,7 @@ public class PredictionService {
         if (DatabaseConfig.isAvailable() && !items.isEmpty()) {
             try {
                 Prediction pred = new Prediction();
-                pred.setPredictionDate(LocalDate.now().plusDays(1));
+                pred.setPredictionDate(com.foodwasteai.util.ExpiryStatusResolver.getToday().plusDays(1));
                 pred.setOverallRiskScore(BigDecimal.valueOf(avgRisk).setScale(2, RoundingMode.HALF_UP));
                 pred.setExpectedTotalWasteKg(BigDecimal.valueOf(expectedTotalWasteKg).setScale(2, RoundingMode.HALF_UP));
                 pred.setEstimatedMoneyLost(BigDecimal.valueOf(estimatedMoneyLost).setScale(2, RoundingMode.HALF_UP));
@@ -225,7 +225,7 @@ public class PredictionService {
         }
 
         Map<String, Object> result = new LinkedHashMap<>();
-        result.put("predictionDate", LocalDate.now().plusDays(1).toString());
+        result.put("predictionDate", com.foodwasteai.util.ExpiryStatusResolver.getToday().plusDays(1).toString());
         result.put("overallRiskScore", BigDecimal.valueOf(avgRisk).setScale(1, RoundingMode.HALF_UP));
         result.put("highRiskItemCount", highRiskCount);
         result.put("totalItemsEvaluated", items.size());

@@ -159,7 +159,7 @@ public class SalesDao extends BaseDao {
             sale.setUnit(foodItem.getUnit());
 
             // 2. Expiry validation (strictly expired before today cannot be sold)
-            if (foodItem.getExpiryDate() != null && foodItem.getExpiryDate().isBefore(LocalDate.now())) {
+            if (foodItem.getExpiryDate() != null && com.foodwasteai.util.ExpiryStatusResolver.isExpired(foodItem.getExpiryDate())) {
                 conn.rollback();
                 throw new IllegalArgumentException(String.format("Cannot record sale for expired food item '%s' (Expired on %s)",
                         foodItem.getName(), foodItem.getExpiryDate()));

@@ -74,7 +74,8 @@ const Inventory = {
     const filtered = this.items.filter(item => {
       const matchQuery = (item.name || '').toLowerCase().includes(query) || (item.category || '').toLowerCase().includes(query);
       const matchCat = !cat || item.category === cat;
-      const matchStatus = !status || item.status === status;
+      const effectiveStatus = item.status || item.expiryStatus || 'OK';
+      const matchStatus = !status || effectiveStatus === status || item.status === status || item.expiryStatus === status;
       return matchQuery && matchCat && matchStatus;
     });
 
@@ -92,11 +93,14 @@ const Inventory = {
     }
 
     tbody.innerHTML = filtered.map(item => {
+      const effectiveStatus = item.status || item.expiryStatus || 'OK';
       let badgeClass = 'badge-risk-low';
-      if (item.status === 'NEAR_EXPIRY' || item.status === 'EXPIRED') badgeClass = 'badge-risk-high';
-      else if (item.status === 'LOW_STOCK') badgeClass = 'badge-risk-medium';
+      if (effectiveStatus === 'EXPIRED') badgeClass = 'badge-risk-high';
+      else if (effectiveStatus === 'SAME_DAY_EXPIRY') badgeClass = 'badge-risk-high';
+      else if (effectiveStatus === 'NEAR_EXPIRY') badgeClass = 'badge-risk-medium';
+      else if (effectiveStatus === 'LOW_STOCK') badgeClass = 'badge-risk-medium';
 
-      const statusText = typeof I18n !== 'undefined' ? I18n.translateStatus(item.status) : (item.status || 'OK');
+      const statusText = typeof I18n !== 'undefined' ? I18n.translateStatus(effectiveStatus) : effectiveStatus;
       const catText = typeof I18n !== 'undefined' ? I18n.translateFoodCategory(item.category) : item.category;
       const editBtnText = typeof I18n !== 'undefined' ? I18n.t('action.edit') : 'Edit';
 

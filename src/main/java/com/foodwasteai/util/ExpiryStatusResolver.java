@@ -4,6 +4,7 @@ import com.foodwasteai.model.FoodItem;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 
 /**
@@ -11,10 +12,13 @@ import java.time.temporal.ChronoUnit;
  * Enforces one single shared expiry policy across Inventory, SWI-Prolog reasoning,
  * AI predictions, Mitigation Recommendations, Dashboard alerts, and Waste logging.
  *
+ * All date checks default to Myanmar Standard Time (Asia/Yangon, UTC+06:30) to guarantee
+ * consistent behavior on cloud environments like Railway (running in UTC).
+ *
  * Policy:
  *  - expiry_date < today (daysRemaining < 0):
  *      State: EXPIRED
- *      Database status: EXPIRED
+ *      Database / UI status: EXPIRED
  *      Risk Level: HIGH (95%)
  *      Prolog Priority: DISPOSE_OR_COMPOST
  *      Action: Halt production and dispose of expired inventory safely
@@ -22,7 +26,7 @@ import java.time.temporal.ChronoUnit;
  *
  *  - expiry_date == today (daysRemaining == 0):
  *      State: SAME_DAY_EXPIRY
- *      Database status: NEAR_EXPIRY
+ *      Database / UI status: SAME_DAY_EXPIRY
  *      Risk Level: HIGH (85%)
  *      Prolog Priority: IMMEDIATE_USE
  *      Action: Reduce production or redistribute immediately
@@ -30,19 +34,21 @@ import java.time.temporal.ChronoUnit;
  *
  *  - expiry_date > today && daysRemaining <= 3:
  *      State: NEAR_EXPIRY
- *      Database status: NEAR_EXPIRY
+ *      Database / UI status: NEAR_EXPIRY
  *      Risk Level: 1 day -> HIGH (85%), 2-3 days -> MEDIUM (55%)
  *      Prolog Priority: 1-2 days -> IMMEDIATE_USE, 3 days -> HIGH_PRIORITY
  *      Action: 1-2 days -> Reduce production / redistribute, 3 days -> Slightly reduce by 10-15%
  *
  *  - expiry_date > today && daysRemaining > 3:
  *      State: SAFE
- *      Database status: LOW_STOCK (if qty <= threshold) or OK
+ *      Database / UI status: LOW_STOCK (if qty <= threshold) or OK
  *      Risk Level: LOW (18%) (or MEDIUM if heavy overstock)
  *      Prolog Priority: STANDARD
  *      Action: Maintain standard scheduled production batch
  */
 public class ExpiryStatusResolver {
+
+    public static final ZoneId ZONE_YANGON = ZoneId.of("Asia/Yangon");
 
     public enum ExpiryState {
         EXPIRED,
@@ -52,9 +58,17 @@ public class ExpiryStatusResolver {
     }
 
     public static final String STATUS_EXPIRED = "EXPIRED";
+    public static final String STATUS_SAME_DAY_EXPIRY = "SAME_DAY_EXPIRY";
     public static final String STATUS_NEAR_EXPIRY = "NEAR_EXPIRY";
     public static final String STATUS_LOW_STOCK = "LOW_STOCK";
     public static final String STATUS_OK = "OK";
+
+    /**
+     * Gets the current date in Asia/Yangon timezone (MMT, UTC+06:30).
+     */
+    public static LocalDate getToday() {
+        return LocalDate.now(ZONE_YANGON);
+    }
 
     /**
      * Resolves the authoritative ExpiryState based on expiry date relative to today.
@@ -63,7 +77,7 @@ public class ExpiryStatusResolver {
         if (expiryDate == null) {
             return ExpiryState.SAFE;
         }
-        LocalDate current = (today != null) ? today : LocalDate.now();
+        LocalDate current = (today != null) ? today : getToday();
         long days = ChronoUnit.DAYS.between(current, expiryDate);
 
         if (days < 0) {
@@ -78,21 +92,23 @@ public class ExpiryStatusResolver {
     }
 
     public static ExpiryState resolveState(LocalDate expiryDate) {
-        return resolveState(expiryDate, LocalDate.now());
+        return resolveState(expiryDate, getToday());
     }
 
     public static ExpiryState resolveState(FoodItem item) {
         if (item == null || item.getExpiryDate() == null) {
             return ExpiryState.SAFE;
         }
-        return resolveState(item.getExpiryDate(), LocalDate.now());
+        return resolveState(item.getExpiryDate(), getToday());
     }
 
     /**
      * Resolves the database status column string ('EXPIRED', 'NEAR_EXPIRY', 'LOW_STOCK', 'OK').
+     * Compatible with MySQL ENUM('OK', 'NEAR_EXPIRY', 'EXPIRED', 'LOW_STOCK').
      */
     public static String resolveStatus(LocalDate expiryDate, BigDecimal quantity, BigDecimal minStockThreshold, LocalDate today) {
-        ExpiryState state = resolveState(expiryDate, today);
+        LocalDate current = (today != null) ? today : getToday();
+        ExpiryState state = resolveState(expiryDate, current);
         switch (state) {
             case EXPIRED:
                 return STATUS_EXPIRED;
@@ -114,7 +130,7 @@ public class ExpiryStatusResolver {
     }
 
     public static String resolveStatus(FoodItem item) {
-        return resolveStatus(item, LocalDate.now());
+        return resolveStatus(item, getToday());
     }
 
     /**
@@ -122,12 +138,12 @@ public class ExpiryStatusResolver {
      */
     public static int calculateDaysRemaining(LocalDate expiryDate, LocalDate today) {
         if (expiryDate == null) return 999;
-        LocalDate current = (today != null) ? today : LocalDate.now();
+        LocalDate current = (today != null) ? today : getToday();
         return (int) ChronoUnit.DAYS.between(current, expiryDate);
     }
 
     public static int calculateDaysRemaining(LocalDate expiryDate) {
-        return calculateDaysRemaining(expiryDate, LocalDate.now());
+        return calculateDaysRemaining(expiryDate, getToday());
     }
 
     public static boolean isExpired(LocalDate expiryDate, LocalDate today) {
@@ -135,7 +151,7 @@ public class ExpiryStatusResolver {
     }
 
     public static boolean isExpired(LocalDate expiryDate) {
-        return isExpired(expiryDate, LocalDate.now());
+        return isExpired(expiryDate, getToday());
     }
 
     public static boolean isSameDayExpiry(LocalDate expiryDate, LocalDate today) {
@@ -143,7 +159,7 @@ public class ExpiryStatusResolver {
     }
 
     public static boolean isSameDayExpiry(LocalDate expiryDate) {
-        return isSameDayExpiry(expiryDate, LocalDate.now());
+        return isSameDayExpiry(expiryDate, getToday());
     }
 
     public static boolean isNearExpiry(LocalDate expiryDate, LocalDate today) {
@@ -152,7 +168,7 @@ public class ExpiryStatusResolver {
     }
 
     public static boolean isNearExpiry(LocalDate expiryDate) {
-        return isNearExpiry(expiryDate, LocalDate.now());
+        return isNearExpiry(expiryDate, getToday());
     }
 
     /**

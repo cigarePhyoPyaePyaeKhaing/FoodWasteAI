@@ -45,7 +45,11 @@ public class FoodItemService {
             return foodItemDao.findAll();
         }
         logger.debug("Serving food items from in-memory fallback");
-        List<FoodItem> list = new ArrayList<>(memoryStore.values());
+        List<FoodItem> list = new ArrayList<>();
+        for (FoodItem item : memoryStore.values()) {
+            item.updateComputedExpiryFields();
+            list.add(item);
+        }
         list.sort(Comparator.comparing(FoodItem::getExpiryDate).thenComparing(FoodItem::getName));
         return list;
     }
@@ -55,7 +59,9 @@ public class FoodItemService {
         if (DatabaseConfig.isAvailable()) {
             return foodItemDao.findById(id);
         }
-        return Optional.ofNullable(memoryStore.get(id));
+        FoodItem item = memoryStore.get(id);
+        if (item != null) item.updateComputedExpiryFields();
+        return Optional.ofNullable(item);
     }
 
     public List<FoodItem> getFoodItemsByCategory(String category) throws SQLException {
@@ -64,6 +70,7 @@ public class FoodItemService {
         }
         List<FoodItem> list = new ArrayList<>();
         for (FoodItem item : memoryStore.values()) {
+            item.updateComputedExpiryFields();
             if (category == null || category.trim().isEmpty() || item.getCategory().equalsIgnoreCase(category.trim())) {
                 list.add(item);
             }
@@ -76,9 +83,10 @@ public class FoodItemService {
         if (DatabaseConfig.isAvailable()) {
             return foodItemDao.findNearExpiry(daysThreshold);
         }
-        LocalDate cutoff = LocalDate.now().plusDays(daysThreshold);
+        LocalDate cutoff = com.foodwasteai.util.ExpiryStatusResolver.getToday().plusDays(daysThreshold);
         List<FoodItem> list = new ArrayList<>();
         for (FoodItem item : memoryStore.values()) {
+            item.updateComputedExpiryFields();
             if (!item.getExpiryDate().isAfter(cutoff) && item.getQuantity().compareTo(BigDecimal.ZERO) > 0) {
                 list.add(item);
             }
@@ -93,6 +101,7 @@ public class FoodItemService {
         }
         List<FoodItem> list = new ArrayList<>();
         for (FoodItem item : memoryStore.values()) {
+            item.updateComputedExpiryFields();
             if (item.getQuantity().compareTo(item.getMinStockThreshold()) <= 0) {
                 list.add(item);
             }
@@ -106,6 +115,7 @@ public class FoodItemService {
 
         if (DatabaseConfig.isAvailable()) {
             FoodItem saved = foodItemDao.save(item);
+            saved.updateComputedExpiryFields();
             try {
                 InventoryTransaction tx = new InventoryTransaction(
                         saved.getId(),
@@ -128,7 +138,6 @@ public class FoodItemService {
         item.setCreatedAt(LocalDateTime.now());
         item.setUpdatedAt(LocalDateTime.now());
         memoryStore.put(newId, item);
-        logger.info("Created food item #{} in memory fallback", newId);
         return item;
     }
 
@@ -201,7 +210,7 @@ public class FoodItemService {
             try {
                 InventoryTransaction tx = new InventoryTransaction(
                         foodItemId,
-                        txType,
+                        txType != null ? txType : (deltaQuantity.compareTo(BigDecimal.ZERO) > 0 ? InventoryTransaction.Type.PURCHASE : InventoryTransaction.Type.WASTE_ADJUSTMENT),
                         deltaQuantity.abs(),
                         item.getUnit(),
                         notes,
@@ -217,8 +226,12 @@ public class FoodItemService {
         }
     }
 
+    public void adjustStock(Long foodItemId, BigDecimal deltaQuantity, String notes, Long userId) throws SQLException {
+        adjustStock(foodItemId, deltaQuantity, deltaQuantity.compareTo(BigDecimal.ZERO) > 0 ? InventoryTransaction.Type.PURCHASE : InventoryTransaction.Type.WASTE_ADJUSTMENT, notes, userId);
+    }
+
     private void computeStatus(FoodItem item) {
         if (item == null) return;
-        item.setStatus(com.foodwasteai.util.ExpiryStatusResolver.resolveStatus(item));
+        item.updateComputedExpiryFields();
     }
 }

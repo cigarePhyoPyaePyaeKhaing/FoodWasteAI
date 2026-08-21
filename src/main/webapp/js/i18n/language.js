@@ -359,8 +359,9 @@ const I18n = {
     if (!status) return '';
     const upper = String(status).toUpperCase();
     if (this.isMyanmar()) {
-      if (upper === 'OK') return 'ပုံမှန်ကောင်းမွန်';
+      if (upper === 'OK' || upper === 'SAFE') return 'ပုံမှန်ကောင်းမွန်';
       if (upper === 'NEAR_EXPIRY' || upper === 'NEAREXPIRY') return 'သက်တမ်းကုန်ရန်နီး';
+      if (upper === 'SAME_DAY_EXPIRY' || upper === 'SAMEDAYEXPIRY') return 'ယနေ့သက်တမ်းကုန်';
       if (upper === 'EXPIRED') return 'သက်တမ်းကုန်ပြီး';
       if (upper === 'LOW_STOCK' || upper === 'LOWSTOCK') return 'လက်ကျန်နည်း';
       if (upper === 'PENDING') return 'စောင့်ဆိုင်းဆဲ';
@@ -373,8 +374,9 @@ const I18n = {
       if (upper === 'ACTIVE') return 'အသုံးပြုဆဲ';
       if (upper === 'INACTIVE') return 'ပိတ်ထားသည်';
     }
-    if (upper === 'OK') return 'OK';
+    if (upper === 'OK' || upper === 'SAFE') return 'OK';
     if (upper === 'NEAR_EXPIRY' || upper === 'NEAREXPIRY') return 'NEAR EXPIRY';
+    if (upper === 'SAME_DAY_EXPIRY' || upper === 'SAMEDAYEXPIRY') return 'SAME DAY EXPIRY';
     if (upper === 'EXPIRED') return 'EXPIRED';
     if (upper === 'LOW_STOCK' || upper === 'LOWSTOCK') return 'LOW STOCK';
     if (upper === 'PENDING') return 'PENDING';

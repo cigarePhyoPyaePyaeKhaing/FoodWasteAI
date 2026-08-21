@@ -47,7 +47,7 @@ public class ExpiryStatusResolverTest {
     }
 
     @Test
-    @DisplayName("2. Expiry date today follows defined SAME_DAY_EXPIRY policy (NEAR_EXPIRY, IMMEDIATE_USE)")
+    @DisplayName("2. Expiry date today follows defined SAME_DAY_EXPIRY policy (SAME_DAY_EXPIRY, IMMEDIATE_USE)")
     void testExpiryTodayReturnsSameDayExpiry() {
         LocalDate today = LocalDate.of(2026, 8, 22);
         LocalDate todayExpiry = LocalDate.of(2026, 8, 22);
@@ -56,7 +56,7 @@ public class ExpiryStatusResolverTest {
         assertEquals(ExpiryStatusResolver.ExpiryState.SAME_DAY_EXPIRY, state, "State must be SAME_DAY_EXPIRY");
 
         String status = ExpiryStatusResolver.resolveStatus(todayExpiry, BigDecimal.valueOf(8.0), BigDecimal.valueOf(5.0), today);
-        assertEquals(ExpiryStatusResolver.STATUS_NEAR_EXPIRY, status, "Status for today must be NEAR_EXPIRY");
+        assertEquals(ExpiryStatusResolver.STATUS_NEAR_EXPIRY, status, "Database status for today must be NEAR_EXPIRY");
 
         int days = ExpiryStatusResolver.calculateDaysRemaining(todayExpiry, today);
         assertEquals(0, days, "Days remaining must be exactly 0");
@@ -67,6 +67,33 @@ public class ExpiryStatusResolverTest {
 
         String priority = ExpiryStatusResolver.getStandardPriority(state, days);
         assertEquals("IMMEDIATE_USE", priority);
+    }
+
+    @Test
+    @DisplayName("2b. Production Scenario: Fresh Milk (Expiry 2026-08-21, Current Date 2026-08-22) strictly returns EXPIRED")
+    void testFreshMilkProductionScenarioExpired() {
+        LocalDate today = LocalDate.of(2026, 8, 22);
+        LocalDate milkExpiry = LocalDate.of(2026, 8, 21);
+
+        FoodItem milk = new FoodItem();
+        milk.setId(1L);
+        milk.setName("Fresh Milk");
+        milk.setCategory("Dairy");
+        milk.setQuantity(BigDecimal.valueOf(8.0));
+        milk.setUnit("liter");
+        milk.setPricePerUnit(BigDecimal.valueOf(2000.0));
+        milk.setExpiryDate(milkExpiry);
+        milk.setMinStockThreshold(BigDecimal.valueOf(5.0));
+
+        milk.updateComputedExpiryFields(today);
+
+        assertEquals("EXPIRED", milk.getStatus(), "Status must be EXPIRED");
+        assertEquals("EXPIRED", milk.getExpiryStatus(), "expiryStatus must be EXPIRED");
+        assertEquals(-1, milk.getExpiryDaysRemaining(), "expiryDaysRemaining must be -1");
+        assertNotNull(milk.getExpiryReason());
+        assertTrue(milk.getExpiryReason().contains("passed expiration date"), "Reason must indicate expired item");
+        assertNotNull(milk.getExpiryReasonMy());
+        assertTrue(milk.getExpiryReasonMy().contains("သက်တမ်းကုန်ဆုံးသွားပါပြီ"), "Myanmar reason must indicate expired item");
     }
 
     @Test

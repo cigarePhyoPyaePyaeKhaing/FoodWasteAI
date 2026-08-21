@@ -103,7 +103,7 @@ public class SalesService {
             FoodItem foodItem = foodOpt.get();
 
             // 1. Expiry validation (items expired before today cannot be sold)
-            if (foodItem.getExpiryDate() != null && foodItem.getExpiryDate().isBefore(LocalDate.now())) {
+            if (foodItem.getExpiryDate() != null && com.foodwasteai.util.ExpiryStatusResolver.isExpired(foodItem.getExpiryDate())) {
                 throw new IllegalArgumentException(String.format("Cannot record sale for expired food item '%s' (Expired on %s)",
                         foodItem.getName(), foodItem.getExpiryDate()));
             }
