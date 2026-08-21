@@ -36,11 +36,13 @@ const Auth = {
       }
     } catch (e) {
       console.warn('Logout API notification error:', e);
+    } finally {
+      localStorage.removeItem('foodwaste_user');
+      localStorage.removeItem('foodwaste_token');
+      document.cookie = 'foodwaste_session=; Path=/; Max-Age=0; SameSite=Lax';
+      document.cookie = 'token=; Path=/; Max-Age=0; SameSite=Lax';
+      window.location.replace('/index.html');
     }
-    localStorage.removeItem('foodwaste_user');
-    localStorage.removeItem('foodwaste_token');
-    document.cookie = 'foodwaste_session=; Path=/; Max-Age=0; SameSite=Lax';
-    window.location.replace('/index.html');
   },
 
   isAdmin() {

@@ -24,6 +24,9 @@ window.I18N_MM = {
   "nav.users": "အသုံးပြုသူအကောင့်များ",
   "nav.settings": "စနစ်ဆက်တင်များ",
   "nav.signOut": "အကောင့်မှထွက်မည်",
+  "nav.logout": "ထွက်ရန်",
+  "auth.logout": "ထွက်ရန်",
+  "common.logout": "ထွက်ရန်",
 
   // Mobile Bottom Dock
   "dock.home": "ပင်မ",

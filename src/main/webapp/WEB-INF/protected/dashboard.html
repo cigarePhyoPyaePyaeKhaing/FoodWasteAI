@@ -59,16 +59,19 @@
       </a>
     </nav>
 
-    <div class="sidebar-user-pill">
-      <div class="user-profile-meta">
-        <div class="user-avatar-bubble" id="current-user-avatar">A</div>
-        <div class="user-text-box">
-          <div class="user-name-text" id="current-user-name">Manager</div>
-          <div class="user-role-badge" id="current-user-role">ADMIN</div>
+    <div class="sidebar-footer-group">
+      <div class="sidebar-user-pill">
+        <div class="user-profile-meta">
+          <div class="user-avatar-bubble" id="current-user-avatar">A</div>
+          <div class="user-text-box">
+            <div class="user-name-text" id="current-user-name">Manager</div>
+            <div class="user-role-badge" id="current-user-role">ADMIN</div>
+          </div>
         </div>
       </div>
-      <button class="btn-bubble btn-glass-subtle btn-sm-bubble" onclick="Auth.logout()" title="Sign Out" data-i18n-title="nav.signOut">
-        🚪
+      <button type="button" class="btn-sidebar-logout" onclick="Auth.logout()" title="Sign Out" data-i18n-title="nav.signOut">
+        <span class="logout-icon">🚪</span>
+        <span data-i18n="nav.logout">Logout</span>
       </button>
     </div>
   </aside>

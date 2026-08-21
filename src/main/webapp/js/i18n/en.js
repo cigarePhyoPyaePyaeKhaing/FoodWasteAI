@@ -23,6 +23,9 @@ window.I18N_EN = {
   "nav.users": "Users",
   "nav.settings": "Settings",
   "nav.signOut": "Sign Out",
+  "nav.logout": "Logout",
+  "auth.logout": "Logout",
+  "common.logout": "Logout",
 
   // Mobile Bottom Dock
   "dock.home": "Home",

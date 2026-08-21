@@ -434,4 +434,53 @@ public class SecurityAndAuthTest {
         assertNotNull(response.getSourceEngine());
         assertFalse(response.getSmartRecommendations().isEmpty());
     }
+
+    @Test
+    @DisplayName("Security: Full Logout Lifecycle - Invalidate session, clear cookie, block protected pages and APIs")
+    public void testCompleteLogoutLifecycle() throws Exception {
+        // 1. Authenticate user
+        Optional<AuthService.UserSession> sessionOpt = authService.authenticate("admin", "admin123");
+        assertTrue(sessionOpt.isPresent());
+        String token = sessionOpt.get().getToken();
+
+        // 2. Verify protected page access with valid session cookie
+        HttpResponse<String> beforeLogoutPage = sendGetWithCookie("/dashboard.html", token);
+        assertEquals(200, beforeLogoutPage.statusCode(), "Authenticated user should access dashboard");
+
+        // 3. Verify protected API access with valid token
+        HttpResponse<String> beforeLogoutApi = sendGet("/api/inventory", token);
+        assertEquals(200, beforeLogoutApi.statusCode(), "Authenticated user should access inventory API");
+
+        // 4. Perform POST /api/auth/logout
+        HttpRequest logoutRequest = HttpRequest.newBuilder()
+                .uri(URI.create(baseUrl + "/api/auth/logout"))
+                .header("Content-Type", "application/json")
+                .header("Authorization", "Bearer " + token)
+                .header("Cookie", "foodwaste_session=" + token)
+                .POST(HttpRequest.BodyPublishers.ofString("{}"))
+                .build();
+        HttpResponse<String> logoutResponse = client.send(logoutRequest, HttpResponse.BodyHandlers.ofString());
+
+        assertEquals(200, logoutResponse.statusCode(), "Logout endpoint must return HTTP 200");
+        assertTrue(logoutResponse.body().contains("Signed out successfully"));
+
+        // Verify Set-Cookie header clears cookie
+        String setCookieHeader = logoutResponse.headers().firstValue("Set-Cookie").orElse("");
+        assertTrue(setCookieHeader.contains("Max-Age=0") || setCookieHeader.contains("Expires="),
+                "Set-Cookie header must instruct browser to expire the session cookie");
+
+        // 5. Verify token is invalidated in backend
+        Optional<User> userAfterLogout = authService.validateToken(token);
+        assertFalse(userAfterLogout.isPresent(), "Session token must be deleted from active sessions");
+
+        // 6. Verify protected page access after logout redirects to /index.html
+        HttpResponse<String> afterLogoutPage = sendGetWithCookie("/dashboard.html", token);
+        assertEquals(302, afterLogoutPage.statusCode(), "Accessing dashboard after logout must return HTTP 302");
+        String location = afterLogoutPage.headers().firstValue("Location").orElse("");
+        assertEquals("/index.html", location, "Redirect destination must be /index.html");
+
+        // 7. Verify protected API access after logout returns 401
+        HttpResponse<String> afterLogoutApi = sendGet("/api/inventory", token);
+        assertEquals(401, afterLogoutApi.statusCode(), "Accessing API after logout must return HTTP 401");
+    }
 }

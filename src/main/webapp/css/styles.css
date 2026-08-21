@@ -173,17 +173,64 @@ body {
   text-align: center;
 }
 
+.sidebar-footer-group {
+  margin: 0.5rem 0.9rem 1rem 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
 .sidebar-user-pill {
-  margin: 0.75rem 0.9rem 1rem 0.9rem;
+  margin: 0;
   padding: 0.75rem 1rem;
-  background: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.82);
   backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-pill);
   box-shadow: var(--shadow-bubble);
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+
+.btn-sidebar-logout {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  padding: 0.62rem 1rem;
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(234, 179, 8, 0.35);
+  border-radius: var(--radius-pill);
+  color: var(--text-main);
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: var(--shadow-bubble);
+  transition: all var(--transition-bounce);
+}
+
+.btn-sidebar-logout:hover {
+  background: linear-gradient(135deg, rgba(254, 240, 138, 0.8) 0%, rgba(253, 224, 71, 0.95) 100%);
+  border-color: var(--accent-yellow-400);
+  color: var(--accent-yellow-dark);
+  box-shadow: 0 4px 14px rgba(234, 179, 8, 0.3);
+  transform: translateY(-1px);
+}
+
+.btn-sidebar-logout:active {
+  transform: translateY(1px) scale(0.98);
+  box-shadow: 0 2px 6px rgba(234, 179, 8, 0.2);
+}
+
+.btn-sidebar-logout .logout-icon {
+  font-size: 1.1rem;
+  line-height: 1;
 }
 
 .user-profile-meta {
