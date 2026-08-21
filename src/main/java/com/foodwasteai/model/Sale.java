@@ -13,6 +13,7 @@ public class Sale implements Serializable {
     private Long id;
     private Long foodItemId;
     private String foodItemName; // Joined
+    private String unit;         // Joined measurement unit (e.g. liter, kg, pieces)
     private BigDecimal quantitySold;
     private BigDecimal unitPrice;
     private BigDecimal totalAmount;
@@ -25,6 +26,16 @@ public class Sale implements Serializable {
     public Sale(Long foodItemId, BigDecimal quantitySold, BigDecimal unitPrice, BigDecimal totalAmount, Integer customerCount, LocalDateTime saleDate) {
         this.foodItemId = foodItemId;
         this.quantitySold = quantitySold;
+        this.unitPrice = unitPrice;
+        this.totalAmount = totalAmount;
+        this.customerCount = customerCount;
+        this.saleDate = saleDate;
+    }
+
+    public Sale(Long foodItemId, BigDecimal quantitySold, String unit, BigDecimal unitPrice, BigDecimal totalAmount, Integer customerCount, LocalDateTime saleDate) {
+        this.foodItemId = foodItemId;
+        this.quantitySold = quantitySold;
+        this.unit = unit;
         this.unitPrice = unitPrice;
         this.totalAmount = totalAmount;
         this.customerCount = customerCount;
@@ -54,6 +65,14 @@ public class Sale implements Serializable {
 
     public void setFoodItemName(String foodItemName) {
         this.foodItemName = foodItemName;
+    }
+
+    public String getUnit() {
+        return unit;
+    }
+
+    public void setUnit(String unit) {
+        this.unit = unit;
     }
 
     public BigDecimal getQuantitySold() {

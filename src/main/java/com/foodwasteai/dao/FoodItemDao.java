@@ -142,7 +142,7 @@ public class FoodItemDao extends BaseDao {
 
     public boolean updateQuantity(Long id, BigDecimal newQuantity) throws SQLException {
         String sql = "UPDATE food_items SET quantity = ?, status = CASE " +
-                     "WHEN expiry_date <= CURDATE() THEN 'EXPIRED' " +
+                     "WHEN expiry_date < CURDATE() THEN 'EXPIRED' " +
                      "WHEN expiry_date <= DATE_ADD(CURDATE(), INTERVAL 2 DAY) THEN 'NEAR_EXPIRY' " +
                      "WHEN ? <= min_stock_threshold THEN 'LOW_STOCK' " +
                      "ELSE 'OK' END WHERE id = ?";

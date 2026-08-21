@@ -1,22 +1,25 @@
 package com.foodwasteai.dao;
 
+import com.foodwasteai.model.FoodItem;
 import com.foodwasteai.model.Sale;
 import com.foodwasteai.util.ValidationUtils;
 
 import java.math.BigDecimal;
 import java.sql.*;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 /**
- * Data Access Object for Sales records and demand calculations with prepared statements.
+ * Data Access Object for Sales records and demand calculations with prepared statements
+ * and atomic stock deduction transactions.
  */
 public class SalesDao extends BaseDao {
 
     public Optional<Sale> findById(Long id) throws SQLException {
-        String sql = "SELECT s.id, s.food_item_id, f.name AS food_name, s.quantity_sold, s.unit_price, " +
+        String sql = "SELECT s.id, s.food_item_id, f.name AS food_name, f.unit AS food_unit, s.quantity_sold, s.unit_price, " +
                      "s.total_amount, s.customer_count, s.sale_date, s.created_at " +
                      "FROM sales s JOIN food_items f ON s.food_item_id = f.id WHERE s.id = ?";
         try (Connection conn = getConnection();
@@ -33,7 +36,7 @@ public class SalesDao extends BaseDao {
 
     public List<Sale> findAll() throws SQLException {
         List<Sale> list = new ArrayList<>();
-        String sql = "SELECT s.id, s.food_item_id, f.name AS food_name, s.quantity_sold, s.unit_price, " +
+        String sql = "SELECT s.id, s.food_item_id, f.name AS food_name, f.unit AS food_unit, s.quantity_sold, s.unit_price, " +
                      "s.total_amount, s.customer_count, s.sale_date, s.created_at " +
                      "FROM sales s JOIN food_items f ON s.food_item_id = f.id ORDER BY s.sale_date DESC";
         try (Connection conn = getConnection();
@@ -48,7 +51,7 @@ public class SalesDao extends BaseDao {
 
     public List<Sale> findByFoodItemId(Long foodItemId) throws SQLException {
         List<Sale> list = new ArrayList<>();
-        String sql = "SELECT s.id, s.food_item_id, f.name AS food_name, s.quantity_sold, s.unit_price, " +
+        String sql = "SELECT s.id, s.food_item_id, f.name AS food_name, f.unit AS food_unit, s.quantity_sold, s.unit_price, " +
                      "s.total_amount, s.customer_count, s.sale_date, s.created_at " +
                      "FROM sales s JOIN food_items f ON s.food_item_id = f.id " +
                      "WHERE s.food_item_id = ? ORDER BY s.sale_date DESC";
@@ -66,7 +69,7 @@ public class SalesDao extends BaseDao {
 
     public List<Sale> findByDateRange(LocalDate start, LocalDate end) throws SQLException {
         List<Sale> list = new ArrayList<>();
-        String sql = "SELECT s.id, s.food_item_id, f.name AS food_name, s.quantity_sold, s.unit_price, " +
+        String sql = "SELECT s.id, s.food_item_id, f.name AS food_name, f.unit AS food_unit, s.quantity_sold, s.unit_price, " +
                      "s.total_amount, s.customer_count, s.sale_date, s.created_at " +
                      "FROM sales s JOIN food_items f ON s.food_item_id = f.id " +
                      "WHERE DATE(s.sale_date) BETWEEN ? AND ? ORDER BY s.sale_date DESC";
@@ -100,34 +103,171 @@ public class SalesDao extends BaseDao {
         return BigDecimal.ZERO;
     }
 
-    public Sale save(Sale sale) throws SQLException {
+    /**
+     * Atomically validates stock, creates sale record, and deducts inventory inside one database transaction.
+     * Uses SELECT ... FOR UPDATE for row-level concurrency protection.
+     */
+    public Sale recordSaleWithStockDeduction(Sale sale, Long userId) throws SQLException {
         ValidationUtils.validateSale(sale);
-        if (sale.getTotalAmount() == null && sale.getUnitPrice() != null && sale.getQuantitySold() != null) {
-            sale.setTotalAmount(sale.getUnitPrice().multiply(sale.getQuantitySold()));
-        }
 
-        String sql = "INSERT INTO sales (food_item_id, quantity_sold, unit_price, total_amount, customer_count, sale_date) " +
-                     "VALUES (?, ?, ?, ?, ?, ?)";
-        try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-            stmt.setLong(1, sale.getFoodItemId());
-            stmt.setBigDecimal(2, sale.getQuantitySold());
-            stmt.setBigDecimal(3, sale.getUnitPrice());
-            stmt.setBigDecimal(4, sale.getTotalAmount());
-            stmt.setInt(5, sale.getCustomerCount() != null ? sale.getCustomerCount() : 1);
-            stmt.setTimestamp(6, sale.getSaleDate() != null ? Timestamp.valueOf(sale.getSaleDate()) : Timestamp.valueOf(java.time.LocalDateTime.now()));
+        String selectFoodSql = "SELECT id, name, category, quantity, unit, price_per_unit, expiry_date, min_stock_threshold, status " +
+                               "FROM food_items WHERE id = ? FOR UPDATE";
+        String insertSaleSql = "INSERT INTO sales (food_item_id, quantity_sold, unit_price, total_amount, customer_count, sale_date) " +
+                               "VALUES (?, ?, ?, ?, ?, ?)";
+        String updateFoodQtySql = "UPDATE food_items SET quantity = ?, status = CASE " +
+                                  "WHEN expiry_date < CURDATE() THEN 'EXPIRED' " +
+                                  "WHEN expiry_date <= DATE_ADD(CURDATE(), INTERVAL 2 DAY) THEN 'NEAR_EXPIRY' " +
+                                  "WHEN ? <= min_stock_threshold THEN 'LOW_STOCK' " +
+                                  "ELSE 'OK' END WHERE id = ?";
+        String insertTxSql = "INSERT INTO inventory_transactions (food_item_id, transaction_type, quantity, unit, notes, created_by) " +
+                             "VALUES (?, 'USAGE', ?, ?, ?, ?)";
 
-            int affected = stmt.executeUpdate();
-            if (affected > 0) {
-                try (ResultSet keys = stmt.getGeneratedKeys()) {
-                    if (keys.next()) {
-                        sale.setId(keys.getLong(1));
+        Connection conn = null;
+        boolean originalAutoCommit = true;
+        try {
+            conn = getConnection();
+            originalAutoCommit = conn.getAutoCommit();
+            conn.setAutoCommit(false);
+
+            // 1. Lock and read food item
+            FoodItem foodItem = null;
+            try (PreparedStatement stmt = conn.prepareStatement(selectFoodSql)) {
+                stmt.setLong(1, sale.getFoodItemId());
+                try (ResultSet rs = stmt.executeQuery()) {
+                    if (rs.next()) {
+                        foodItem = new FoodItem();
+                        foodItem.setId(rs.getLong("id"));
+                        foodItem.setName(rs.getString("name"));
+                        foodItem.setCategory(rs.getString("category"));
+                        foodItem.setQuantity(rs.getBigDecimal("quantity"));
+                        foodItem.setUnit(rs.getString("unit"));
+                        foodItem.setPricePerUnit(rs.getBigDecimal("price_per_unit"));
+                        Date exp = rs.getDate("expiry_date");
+                        if (exp != null) foodItem.setExpiryDate(exp.toLocalDate());
+                        foodItem.setMinStockThreshold(rs.getBigDecimal("min_stock_threshold"));
+                        foodItem.setStatus(rs.getString("status"));
                     }
                 }
             }
-            logger.info("Saved sales record: {} units of food #{}", sale.getQuantitySold(), sale.getFoodItemId());
+
+            if (foodItem == null) {
+                conn.rollback();
+                throw new IllegalArgumentException("Food item #" + sale.getFoodItemId() + " does not exist");
+            }
+
+            sale.setFoodItemName(foodItem.getName());
+            sale.setUnit(foodItem.getUnit());
+
+            // 2. Expiry validation (strictly expired before today cannot be sold)
+            if (foodItem.getExpiryDate() != null && foodItem.getExpiryDate().isBefore(LocalDate.now())) {
+                conn.rollback();
+                throw new IllegalArgumentException(String.format("Cannot record sale for expired food item '%s' (Expired on %s)",
+                        foodItem.getName(), foodItem.getExpiryDate()));
+            }
+
+            // 3. Strict stock validation
+            BigDecimal availableStock = foodItem.getQuantity() != null ? foodItem.getQuantity() : BigDecimal.ZERO;
+            BigDecimal requestedQty = sale.getQuantitySold();
+
+            if (requestedQty.compareTo(BigDecimal.ZERO) <= 0) {
+                conn.rollback();
+                throw new IllegalArgumentException("Sale quantity must be greater than 0");
+            }
+
+            if (requestedQty.compareTo(availableStock) > 0) {
+                conn.rollback();
+                throw new IllegalArgumentException(String.format(
+                        "Insufficient stock. Available: %s %s, requested: %s %s.",
+                        availableStock.stripTrailingZeros().toPlainString(),
+                        foodItem.getUnit(),
+                        requestedQty.stripTrailingZeros().toPlainString(),
+                        foodItem.getUnit()
+                ));
+            }
+
+            // 4. Exact deduction (never clamp with max(0, ...))
+            BigDecimal newStock = availableStock.subtract(requestedQty);
+            if (newStock.compareTo(BigDecimal.ZERO) < 0) {
+                conn.rollback();
+                throw new IllegalArgumentException("Deduction would result in negative stock");
+            }
+
+            // Pricing
+            if (sale.getUnitPrice() == null || sale.getUnitPrice().compareTo(BigDecimal.ZERO) == 0) {
+                sale.setUnitPrice(foodItem.getPricePerUnit());
+            }
+            if (sale.getTotalAmount() == null) {
+                sale.setTotalAmount(sale.getUnitPrice().multiply(requestedQty).setScale(2, java.math.RoundingMode.HALF_UP));
+            }
+            if (sale.getSaleDate() == null) {
+                sale.setSaleDate(LocalDateTime.now());
+            }
+
+            // 5. Insert sales record
+            try (PreparedStatement insertStmt = conn.prepareStatement(insertSaleSql, Statement.RETURN_GENERATED_KEYS)) {
+                insertStmt.setLong(1, sale.getFoodItemId());
+                insertStmt.setBigDecimal(2, sale.getQuantitySold());
+                insertStmt.setBigDecimal(3, sale.getUnitPrice());
+                insertStmt.setBigDecimal(4, sale.getTotalAmount());
+                insertStmt.setInt(5, sale.getCustomerCount() != null ? sale.getCustomerCount() : 1);
+                insertStmt.setTimestamp(6, Timestamp.valueOf(sale.getSaleDate()));
+
+                int affected = insertStmt.executeUpdate();
+                if (affected > 0) {
+                    try (ResultSet keys = insertStmt.getGeneratedKeys()) {
+                        if (keys.next()) {
+                            sale.setId(keys.getLong(1));
+                        }
+                    }
+                }
+            }
+
+            // 6. Update inventory quantity
+            try (PreparedStatement updateStmt = conn.prepareStatement(updateFoodQtySql)) {
+                updateStmt.setBigDecimal(1, newStock);
+                updateStmt.setBigDecimal(2, newStock);
+                updateStmt.setLong(3, foodItem.getId());
+                updateStmt.executeUpdate();
+            }
+
+            // 7. Insert inventory transaction audit log
+            try (PreparedStatement txStmt = conn.prepareStatement(insertTxSql)) {
+                txStmt.setLong(1, foodItem.getId());
+                txStmt.setBigDecimal(2, requestedQty);
+                txStmt.setString(3, foodItem.getUnit());
+                txStmt.setString(4, "Customer sale (" + requestedQty.stripTrailingZeros().toPlainString() + " " + foodItem.getUnit() + ")");
+                txStmt.setObject(5, userId);
+                txStmt.executeUpdate();
+            }
+
+            // 8. Commit atomic transaction
+            conn.commit();
+            logger.info("Transaction committed: Recorded sale #{} ({} {}) for food item '{}'. Stock updated: {} -> {}",
+                    sale.getId(), requestedQty, foodItem.getUnit(), foodItem.getName(), availableStock, newStock);
             return sale;
+        } catch (Exception e) {
+            if (conn != null) {
+                try {
+                    conn.rollback();
+                } catch (SQLException rollbackEx) {
+                    logger.error("Failed to rollback transaction: {}", rollbackEx.getMessage());
+                }
+            }
+            throw e;
+        } finally {
+            if (conn != null) {
+                try {
+                    conn.setAutoCommit(originalAutoCommit);
+                    conn.close();
+                } catch (SQLException closeEx) {
+                    logger.error("Failed to reset autocommit / close connection: {}", closeEx.getMessage());
+                }
+            }
         }
+    }
+
+    public Sale save(Sale sale) throws SQLException {
+        return recordSaleWithStockDeduction(sale, 1L);
     }
 
     public boolean delete(Long id) throws SQLException {
@@ -144,6 +284,7 @@ public class SalesDao extends BaseDao {
         sale.setId(rs.getLong("id"));
         sale.setFoodItemId(rs.getLong("food_item_id"));
         sale.setFoodItemName(rs.getString("food_name"));
+        sale.setUnit(rs.getString("food_unit"));
         sale.setQuantitySold(rs.getBigDecimal("quantity_sold"));
         sale.setUnitPrice(rs.getBigDecimal("unit_price"));
         sale.setTotalAmount(rs.getBigDecimal("total_amount"));

@@ -165,14 +165,24 @@
       <div class="modal-glass-body">
         <div class="form-group-bubble">
           <label class="form-label-bubble" data-i18n="sales.modal.selectFood">Select Food Item Sold</label>
-          <select class="form-select-bubble" id="sale-food-id" required>
+          <select class="form-select-bubble" id="sale-food-id" required onchange="Sales.onFoodItemChanged()">
             <!-- Dynamically populated from /api/inventory -->
           </select>
         </div>
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
+
+        <!-- Available Stock Indicator -->
+        <div id="sale-stock-indicator" style="margin-bottom:0.75rem; padding:0.55rem 0.85rem; background:rgba(254, 240, 138, 0.35); border:1px solid rgba(234, 179, 8, 0.4); border-radius:var(--radius-md); font-size:0.85rem; font-weight:700; color:var(--accent-yellow-dark); display:none;">
+          <span data-i18n="sales.modal.availableStock">Available Stock:</span> <span id="sale-available-stock-text">0.00 kg</span>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1.2fr 1fr; gap:0.75rem;">
           <div class="form-group-bubble">
             <label class="form-label-bubble" data-i18n="sales.modal.qtySold">Quantity Sold</label>
-            <input class="form-input-bubble" type="number" step="0.1" id="sale-qty" required placeholder="5.0">
+            <div style="position:relative; display:flex; align-items:center;">
+              <input class="form-input-bubble" type="number" step="0.01" min="0.01" id="sale-qty" required placeholder="5.00" oninput="Sales.onQuantityInput()" style="padding-right:3.8rem; width:100%;">
+              <span id="sale-unit-addon" style="position:absolute; right:0.85rem; font-size:0.85rem; font-weight:700; color:var(--text-muted); pointer-events:none;">kg</span>
+            </div>
+            <div id="sale-qty-error" style="color:#ef4444; font-size:0.78rem; font-weight:700; margin-top:0.35rem; display:none;"></div>
           </div>
           <div class="form-group-bubble">
             <label class="form-label-bubble" data-i18n="sales.modal.diners">Customer Diners Served</label>
@@ -182,7 +192,7 @@
       </div>
       <div class="modal-glass-footer">
         <button type="button" class="btn-bubble btn-glass" onclick="Sales.closeModal()" data-i18n="action.cancel">Cancel</button>
-        <button type="submit" class="btn-bubble btn-yellow" data-i18n="action.save">Record Sale & Update Stock</button>
+        <button type="submit" class="btn-bubble btn-yellow" id="sale-submit-btn" data-i18n="action.save">Record Sale & Update Stock</button>
       </div>
     </form>
   </div>

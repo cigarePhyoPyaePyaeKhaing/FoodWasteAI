@@ -483,4 +483,46 @@ public class SecurityAndAuthTest {
         HttpResponse<String> afterLogoutApi = sendGet("/api/inventory", token);
         assertEquals(401, afterLogoutApi.statusCode(), "Accessing API after logout must return HTTP 401");
     }
+
+    @Test
+    @DisplayName("Security & Business Logic: POST /api/sales rejects overselling with HTTP 400")
+    public void testSalesEndpointRejectsOversellingWith400() throws Exception {
+        // Authenticate as staff/admin
+        Optional<AuthService.UserSession> sessionOpt = authService.authenticate("admin", "admin123");
+        assertTrue(sessionOpt.isPresent());
+        String token = sessionOpt.get().getToken();
+
+        // 1. Create a food item with stock = 20.00 liter
+        FoodItem item = new FoodItem(null, "HTTP Test Milk " + System.currentTimeMillis(), "Dairy",
+                new BigDecimal("20.00"), "liter", new BigDecimal("2500.00"), LocalDate.now().plusDays(5), new BigDecimal("5.00"));
+        String createJson = String.format("{\"name\":\"%s\",\"category\":\"%s\",\"quantity\":20.00,\"unit\":\"liter\",\"pricePerUnit\":2500.00,\"expiryDate\":\"%s\",\"minStockThreshold\":5.00}",
+                item.getName(), item.getCategory(), item.getExpiryDate());
+
+        HttpResponse<String> createResp = sendPostJson("/api/inventory", createJson, token);
+        assertEquals(201, createResp.statusCode());
+
+        // Extract ID
+        com.google.gson.JsonObject createdObj = com.google.gson.JsonParser.parseString(createResp.body()).getAsJsonObject();
+        long itemId = createdObj.getAsJsonObject("data").get("id").getAsLong();
+
+        // 2. Attempt sale of 5.00 liter (Valid -> 201 Created)
+        String validSaleJson = String.format("{\"foodItemId\":%d,\"quantitySold\":5.00,\"unitPrice\":2500.00,\"customerCount\":1}", itemId);
+        HttpResponse<String> validResp = sendPostJson("/api/sales", validSaleJson, token);
+        assertEquals(201, validResp.statusCode());
+        assertTrue(validResp.body().contains("\"unit\":\"liter\""), "Sale response should contain unit");
+
+        // 3. Attempt overselling 100.00 liter (Invalid -> 400 Bad Request)
+        String overSaleJson = String.format("{\"foodItemId\":%d,\"quantitySold\":100.00,\"unitPrice\":2500.00,\"customerCount\":1}", itemId);
+        HttpResponse<String> overResp = sendPostJson("/api/sales", overSaleJson, token);
+        assertEquals(400, overResp.statusCode());
+        assertTrue(overResp.body().contains("Insufficient stock"), "Response message must state Insufficient stock");
+        assertTrue(overResp.body().contains("15") && overResp.body().contains("100"), "Response message must indicate available and requested quantities");
+
+        // 4. Verify inventory is still 15.00 liter
+        HttpResponse<String> invResp = sendGet("/api/inventory/" + itemId, token);
+        assertEquals(200, invResp.statusCode());
+        com.google.gson.JsonObject invObj = com.google.gson.JsonParser.parseString(invResp.body()).getAsJsonObject();
+        double remainingQty = invObj.getAsJsonObject("data").get("quantity").getAsDouble();
+        assertEquals(15.00, remainingQty, 0.001, "Inventory must remain 15.00 liter after rejected sale");
+    }
 }

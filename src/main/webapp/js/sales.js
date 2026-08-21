@@ -13,6 +13,7 @@ const Sales = {
       this.render();
       this.updateKpis();
       this.populateFoodSelect();
+      this.onFoodItemChanged();
     });
   },
 
@@ -34,15 +35,102 @@ const Sales = {
 
     if (this.foodItems.length === 0) {
       select.innerHTML = `<option value="">${isMm ? 'ကုန်ပစ္စည်းစာရင်း မရှိသေးပါ' : 'No food items in inventory'}</option>`;
+      this.onFoodItemChanged();
       return;
     }
 
     select.innerHTML = this.foodItems.map(f => {
       const price = Number(f.pricePerUnit || 0).toLocaleString();
-      const qty = Number(f.quantity || 0).toFixed(1);
+      const qty = Number(f.quantity || 0).toFixed(2);
+      const unit = f.unit || 'kg';
       const stockLabel = isMm ? 'လက်ကျန်' : 'Stock';
-      return `<option value="${f.id}" data-price="${f.pricePerUnit}" data-unit="${f.unit || 'kg'}">${f.name} (${stockLabel}: ${qty} ${f.unit || 'kg'} @ ${price} MMK)</option>`;
+      return `<option value="${f.id}" data-price="${f.pricePerUnit || 0}" data-stock="${f.quantity || 0}" data-unit="${unit}" data-name="${f.name}">${f.name} (${stockLabel}: ${qty} ${unit} @ ${price} MMK)</option>`;
     }).join('');
+
+    this.onFoodItemChanged();
+  },
+
+  onFoodItemChanged() {
+    const select = document.getElementById('sale-food-id');
+    const indicator = document.getElementById('sale-stock-indicator');
+    const stockText = document.getElementById('sale-available-stock-text');
+    const unitAddon = document.getElementById('sale-unit-addon');
+    if (!select) return;
+
+    const selectedOption = select.options[select.selectedIndex];
+    if (!selectedOption || !selectedOption.value) {
+      if (indicator) indicator.style.display = 'none';
+      if (unitAddon) unitAddon.textContent = '';
+      return;
+    }
+
+    const stock = parseFloat(selectedOption.getAttribute('data-stock')) || 0;
+    const unit = selectedOption.getAttribute('data-unit') || 'kg';
+
+    if (indicator && stockText) {
+      indicator.style.display = 'block';
+      stockText.textContent = `${stock.toFixed(2)} ${unit}`;
+    }
+
+    if (unitAddon) {
+      unitAddon.textContent = unit;
+    }
+
+    this.onQuantityInput();
+  },
+
+  onQuantityInput() {
+    const select = document.getElementById('sale-food-id');
+    const qtyInput = document.getElementById('sale-qty');
+    const errorEl = document.getElementById('sale-qty-error');
+    const submitBtn = document.getElementById('sale-submit-btn');
+    if (!select || !qtyInput) return;
+
+    const isMm = typeof I18n !== 'undefined' && I18n.getLanguage() === 'mm';
+    const selectedOption = select.options[select.selectedIndex];
+    if (!selectedOption || !selectedOption.value) {
+      if (errorEl) errorEl.style.display = 'none';
+      return;
+    }
+
+    const availableStock = parseFloat(selectedOption.getAttribute('data-stock')) || 0;
+    const unit = selectedOption.getAttribute('data-unit') || 'kg';
+    const valStr = qtyInput.value.trim();
+    const qty = parseFloat(valStr);
+
+    if (valStr === '' || isNaN(qty)) {
+      if (errorEl) errorEl.style.display = 'none';
+      qtyInput.style.borderColor = '';
+      if (submitBtn) submitBtn.disabled = false;
+      return;
+    }
+
+    if (qty <= 0) {
+      if (errorEl) {
+        errorEl.textContent = isMm ? 'ပမာဏသည် သုညထက် ကြီးရပါမည်' : 'Quantity must be greater than 0';
+        errorEl.style.display = 'block';
+      }
+      qtyInput.style.borderColor = '#ef4444';
+      if (submitBtn) submitBtn.disabled = true;
+      return;
+    }
+
+    if (qty > availableStock) {
+      if (errorEl) {
+        errorEl.textContent = isMm
+          ? `လက်ကျန် ${availableStock.toFixed(2)} ${unit} သာ ရရှိနိုင်ပါသည်`
+          : `Only ${availableStock.toFixed(2)} ${unit} is currently available.`;
+        errorEl.style.display = 'block';
+      }
+      qtyInput.style.borderColor = '#ef4444';
+      if (submitBtn) submitBtn.disabled = true;
+      return;
+    }
+
+    // Valid quantity
+    if (errorEl) errorEl.style.display = 'none';
+    qtyInput.style.borderColor = '';
+    if (submitBtn) submitBtn.disabled = false;
   },
 
   async fetchSales() {
@@ -100,7 +188,8 @@ const Sales = {
     }
 
     tbody.innerHTML = this.sales.map(s => {
-      const qtyFmt = Number(s.quantitySold || 0).toFixed(2) + ' ' + (isMm ? 'ခု/ပမာဏ' : 'units');
+      const unitStr = s.unit ? s.unit : 'kg';
+      const qtyFmt = Number(s.quantitySold || 0).toFixed(2) + ' ' + unitStr;
       const priceFmt = Number(s.unitPrice || 0).toLocaleString() + ' MMK';
       const totalFmt = Number(s.totalAmount || 0).toLocaleString() + ' MMK';
       const diners = s.customerCount || 1;
@@ -111,7 +200,7 @@ const Sales = {
         <tr>
           <td>${dateFmt}</td>
           <td><strong>${s.foodItemName || ('Food Item #' + s.foodItemId)}</strong></td>
-          <td><strong>${qtyFmt}</strong></td>
+          <td><strong style="color:var(--text-main);">${qtyFmt}</strong></td>
           <td>${priceFmt}</td>
           <td><strong style="color:var(--accent-yellow-dark);">${totalFmt}</strong></td>
           <td><span class="badge-bubble badge-optimization">${dinersText}</span></td>
@@ -143,6 +232,13 @@ const Sales = {
     this.fetchFoodItems();
     const form = document.getElementById('sale-form');
     if (form) form.reset();
+    const errorEl = document.getElementById('sale-qty-error');
+    if (errorEl) errorEl.style.display = 'none';
+    const qtyInput = document.getElementById('sale-qty');
+    if (qtyInput) qtyInput.style.borderColor = '';
+    const submitBtn = document.getElementById('sale-submit-btn');
+    if (submitBtn) submitBtn.disabled = false;
+
     const modal = document.getElementById('record-sale-modal');
     if (modal) modal.classList.add('active');
   },
@@ -166,7 +262,18 @@ const Sales = {
     }
 
     const selectedOption = foodSelect.options[foodSelect.selectedIndex];
+    const availableStock = parseFloat(selectedOption.getAttribute('data-stock')) || 0;
+    const unit = selectedOption.getAttribute('data-unit') || 'kg';
     const unitPrice = parseFloat(selectedOption.getAttribute('data-price')) || 5000;
+    const foodName = selectedOption.getAttribute('data-name') || selectedOption.text.split('(')[0].trim();
+
+    if (quantitySold > availableStock) {
+      const msg = isMm
+        ? `လက်ကျန် ${availableStock.toFixed(2)} ${unit} သာ ရရှိနိုင်ပါသည်`
+        : `Insufficient stock. Only ${availableStock.toFixed(2)} ${unit} available.`;
+      API.showToast(msg, 'error');
+      return;
+    }
 
     const payload = {
       foodItemId,
@@ -177,12 +284,16 @@ const Sales = {
 
     try {
       await API.post('/api/sales', payload);
-      API.showToast(isMm ? 'ရောင်းချမှု မှတ်တမ်းတင်ပြီးပါပြီ!' : `Recorded sale for ${selectedOption.text.split('(')[0].trim()}!`, 'success');
+      API.showToast(isMm ? 'ရောင်းချမှု မှတ်တမ်းတင်ပြီး လက်ကျန်စာရင်း လျှော့ချပြီးပါပြီ!' : `Recorded sale: ${quantitySold} ${unit} of ${foodName}!`, 'success');
       this.closeModal();
-      await this.fetchSales();
+      await Promise.all([
+        this.fetchSales(),
+        this.fetchFoodItems()
+      ]);
     } catch (err) {
       console.error('Error saving sale:', err);
-      API.showToast(isMm ? ('ရောင်းချမှု မှတ်တမ်းတင်ရန် မအောင်မြင်ပါ: ' + err.message) : ('Failed to record sale: ' + err.message), 'error');
+      const errMsg = err && err.message ? err.message : 'Unknown error';
+      API.showToast(isMm ? ('ရောင်းချမှု မှတ်တမ်းတင်ရန် မအောင်မြင်ပါ: ' + errMsg) : ('Failed to record sale: ' + errMsg), 'error');
     }
   },
 
@@ -193,7 +304,10 @@ const Sales = {
     try {
       await API.delete(`/api/sales/${id}`);
       API.showToast(isMm ? 'ရောင်းချမှု မှတ်တမ်း ဖျက်ပြီးပါပြီ' : 'Sale record deleted', 'info');
-      await this.fetchSales();
+      await Promise.all([
+        this.fetchSales(),
+        this.fetchFoodItems()
+      ]);
     } catch (err) {
       console.error('Error deleting sale:', err);
       API.showToast(isMm ? ('ဖျက်ရန် မအောင်မြင်ပါ: ' + err.message) : ('Failed to delete sale: ' + err.message), 'error');

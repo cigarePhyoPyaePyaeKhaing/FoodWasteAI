@@ -66,7 +66,7 @@ public class ValidationUtils {
         if (sale.getQuantitySold() == null || sale.getQuantitySold().compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("Quantity sold must be greater than 0");
         }
-        if (sale.getUnitPrice() == null || sale.getUnitPrice().compareTo(BigDecimal.ZERO) < 0) {
+        if (sale.getUnitPrice() != null && sale.getUnitPrice().compareTo(BigDecimal.ZERO) < 0) {
             throw new IllegalArgumentException("Unit price must be non-negative");
         }
     }

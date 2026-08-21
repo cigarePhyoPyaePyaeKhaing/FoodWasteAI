@@ -85,53 +85,84 @@ public class SalesService {
         return list;
     }
 
+    private static final Object memoryLock = new Object();
+
     public Sale recordSale(Sale sale, Long userId) throws SQLException {
         ValidationUtils.validateSale(sale);
 
-        // Fetch food item details
-        Optional<FoodItem> foodOpt = foodItemService.getFoodItemById(sale.getFoodItemId());
-        if (foodOpt.isEmpty()) {
-            throw new IllegalArgumentException("Food item #" + sale.getFoodItemId() + " does not exist");
-        }
-        FoodItem foodItem = foodOpt.get();
-        sale.setFoodItemName(foodItem.getName());
-
-        if (sale.getUnitPrice() == null || sale.getUnitPrice().compareTo(BigDecimal.ZERO) == 0) {
-            sale.setUnitPrice(foodItem.getPricePerUnit());
-        }
-        sale.setTotalAmount(sale.getUnitPrice().multiply(sale.getQuantitySold()).setScale(2, java.math.RoundingMode.HALF_UP));
-
-        if (sale.getSaleDate() == null) {
-            sale.setSaleDate(LocalDateTime.now());
-        }
-
-        Sale saved;
         if (DatabaseConfig.isAvailable()) {
-            saved = salesDao.save(sale);
-        } else {
+            return salesDao.recordSaleWithStockDeduction(sale, userId);
+        }
+
+        // Memory Store Fallback with strict thread-safe synchronization
+        synchronized (memoryLock) {
+            Optional<FoodItem> foodOpt = foodItemService.getFoodItemById(sale.getFoodItemId());
+            if (foodOpt.isEmpty()) {
+                throw new IllegalArgumentException("Food item #" + sale.getFoodItemId() + " does not exist");
+            }
+            FoodItem foodItem = foodOpt.get();
+
+            // 1. Expiry validation (items expired before today cannot be sold)
+            if (foodItem.getExpiryDate() != null && foodItem.getExpiryDate().isBefore(LocalDate.now())) {
+                throw new IllegalArgumentException(String.format("Cannot record sale for expired food item '%s' (Expired on %s)",
+                        foodItem.getName(), foodItem.getExpiryDate()));
+            }
+
+            // 2. Strict stock validation
+            BigDecimal availableStock = foodItem.getQuantity() != null ? foodItem.getQuantity() : BigDecimal.ZERO;
+            BigDecimal requestedQty = sale.getQuantitySold();
+
+            if (requestedQty.compareTo(BigDecimal.ZERO) <= 0) {
+                throw new IllegalArgumentException("Sale quantity must be greater than 0");
+            }
+
+            if (requestedQty.compareTo(availableStock) > 0) {
+                throw new IllegalArgumentException(String.format(
+                        "Insufficient stock. Available: %s %s, requested: %s %s.",
+                        availableStock.stripTrailingZeros().toPlainString(),
+                        foodItem.getUnit(),
+                        requestedQty.stripTrailingZeros().toPlainString(),
+                        foodItem.getUnit()
+                ));
+            }
+
+            // 3. Exact deduction
+            BigDecimal newStock = availableStock.subtract(requestedQty);
+            if (newStock.compareTo(BigDecimal.ZERO) < 0) {
+                throw new IllegalArgumentException("Deduction would result in negative stock");
+            }
+
+            sale.setFoodItemName(foodItem.getName());
+            sale.setUnit(foodItem.getUnit());
+
+            if (sale.getUnitPrice() == null || sale.getUnitPrice().compareTo(BigDecimal.ZERO) == 0) {
+                sale.setUnitPrice(foodItem.getPricePerUnit());
+            }
+            if (sale.getTotalAmount() == null) {
+                sale.setTotalAmount(sale.getUnitPrice().multiply(requestedQty).setScale(2, java.math.RoundingMode.HALF_UP));
+            }
+            if (sale.getSaleDate() == null) {
+                sale.setSaleDate(LocalDateTime.now());
+            }
+
             long newId = salesIdGen.incrementAndGet();
             sale.setId(newId);
             sale.setCreatedAt(LocalDateTime.now());
             memorySales.put(newId, sale);
-            saved = sale;
-        }
 
-        // Deduct sold quantity from inventory
-        try {
+            // Deduct stock in memory store
             foodItemService.adjustStock(
                     foodItem.getId(),
-                    sale.getQuantitySold().negate(),
+                    requestedQty.negate(),
                     InventoryTransaction.Type.USAGE,
-                    "Customer sale (" + sale.getQuantitySold() + " " + foodItem.getUnit() + ")",
+                    "Customer sale (" + requestedQty.stripTrailingZeros().toPlainString() + " " + foodItem.getUnit() + ")",
                     userId
             );
-        } catch (Exception e) {
-            logger.error("Error adjusting stock after sale: {}", e.getMessage());
-        }
 
-        logger.info("Recorded sale #{} for food item '{}': {} units (Total: {})",
-                saved.getId(), foodItem.getName(), saved.getQuantitySold(), saved.getTotalAmount());
-        return saved;
+            logger.info("Recorded sale #{} for food item '{}': {} {} (Total: {})",
+                    newId, foodItem.getName(), requestedQty, foodItem.getUnit(), sale.getTotalAmount());
+            return sale;
+        }
     }
 
     public boolean deleteSale(Long id) throws SQLException {

@@ -186,6 +186,7 @@ window.I18N_MM = {
   "sales.th.actions": "လုပ်ဆောင်ချက်",
   "sales.modal.title": "+ ရောင်းချမှု စာရင်းသွင်းခြင်း",
   "sales.modal.selectFood": "ရောင်းချသည့် အစားအစာ ရွေးပါ",
+  "sales.modal.availableStock": "လက်ရှိ ပစ္စည်းလက်ကျန်:",
   "sales.modal.qtySold": "ရောင်းချသည့် ပမာဏ",
   "sales.modal.diners": "စားသုံးသူ ဧည့်သည်ဦးရေ",
   "sales.empty.title": "ယနေ့ ရောင်းချမှု မှတ်တမ်း မရှိသေးပါ",

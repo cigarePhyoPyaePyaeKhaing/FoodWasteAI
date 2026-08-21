@@ -185,6 +185,7 @@ window.I18N_EN = {
   "sales.th.actions": "Actions",
   "sales.modal.title": "+ Record Customer Sale",
   "sales.modal.selectFood": "Select Food Item Sold",
+  "sales.modal.availableStock": "Available Stock:",
   "sales.modal.qtySold": "Quantity Sold",
   "sales.modal.diners": "Customer Diners Served",
   "sales.empty.title": "No Sales Recorded Today",

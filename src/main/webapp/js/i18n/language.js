@@ -171,7 +171,8 @@ const I18n = {
   translateError(err) {
     if (!err) return 'An error occurred';
     const msg = typeof err === 'string' ? err : (err.message || err.error || JSON.stringify(err));
-    if (this.isMyanmar()) {
+      if (msg.includes('Insufficient stock') || msg.includes('insufficient stock')) return 'ပစ္စည်းလက်ကျန် မလုံလောက်ပါ။ ' + msg;
+      if (msg.includes('Cannot record sale for expired') || msg.includes('expired food item')) return 'သက်တမ်းကုန်ဆုံးသွားသော ကုန်ပစ္စည်းကို ရောင်းချ၍မရပါ';
       if (msg.includes('Recipient not found') || msg.includes('inactive')) return 'ပရဟိတ မိတ်ဖက်အဖွဲ့အစည်းကို ရှာမတွေ့ပါ သို့မဟုတ် ပိတ်ထားပါသည်';
       if (msg.includes('Food item not found')) return 'ကုန်ပစ္စည်းကို ရှာမတွေ့ပါ';
       if (msg.includes('greater than zero') || msg.includes('greater than 0')) return 'ပမာဏသည် သုညထက် ကြီးရပါမည်';

@@ -184,7 +184,14 @@ public class FoodItemService {
         FoodItem item = opt.get();
         BigDecimal newQty = item.getQuantity().add(deltaQuantity);
         if (newQty.compareTo(BigDecimal.ZERO) < 0) {
-            newQty = BigDecimal.ZERO;
+            throw new IllegalArgumentException(String.format(
+                    "Stock adjustment failed: insufficient stock for item '%s'. Available: %s %s, requested deduction: %s %s.",
+                    item.getName(),
+                    item.getQuantity().stripTrailingZeros().toPlainString(),
+                    item.getUnit(),
+                    deltaQuantity.abs().stripTrailingZeros().toPlainString(),
+                    item.getUnit()
+            ));
         }
         item.setQuantity(newQty);
         computeStatus(item);
@@ -212,7 +219,7 @@ public class FoodItemService {
 
     private void computeStatus(FoodItem item) {
         LocalDate today = LocalDate.now();
-        if (item.getExpiryDate().isBefore(today) || item.getExpiryDate().isEqual(today)) {
+        if (item.getExpiryDate().isBefore(today)) {
             item.setStatus("EXPIRED");
         } else if (!item.getExpiryDate().isAfter(today.plusDays(2))) {
             item.setStatus("NEAR_EXPIRY");
