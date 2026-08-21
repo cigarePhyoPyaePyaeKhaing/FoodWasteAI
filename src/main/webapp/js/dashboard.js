@@ -160,6 +160,27 @@ const Dashboard = {
     }
   },
 
+  getDemoTrendData() {
+    let predVal = 8.0;
+    if (this.data.kpis.predictedTomorrow && this.data.kpis.predictedTomorrow !== '0.0') {
+      const match = String(this.data.kpis.predictedTomorrow).match(/[\d.]+/);
+      if (match && Number(match[0]) > 0) {
+        predVal = Number(Number(match[0]).toFixed(1));
+      }
+    }
+
+    return [
+      { day: 'Mon', actual: 2.0, predicted: null, unit: 'liter' },
+      { day: 'Tue', actual: 3.5, predicted: null, unit: 'liter' },
+      { day: 'Wed', actual: 1.5, predicted: null, unit: 'liter' },
+      { day: 'Thu', actual: 5.0, predicted: null, unit: 'liter' },
+      { day: 'Fri', actual: 3.0, predicted: null, unit: 'liter' },
+      { day: 'Sat', actual: 2.5, predicted: null, unit: 'liter' },
+      { day: 'Sun', actual: 3.0, predicted: null, unit: 'liter' },
+      { day: 'Tomorrow', actual: null, predicted: predVal, unit: 'liter' }
+    ];
+  },
+
   buildTrendFromLogs(wasteLogs) {
     const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const now = new Date();
@@ -172,12 +193,30 @@ const Dashboard = {
       const dayName = days[d.getDay()];
 
       const dayLogs = wasteLogs.filter(w => w.wasteDate && w.wasteDate.startsWith(dateStr));
-      const totalDayWaste = dayLogs.reduce((acc, curr) => acc + (Number(curr.quantity) || 0), 0);
+      const totalDayWaste = dayLogs.reduce((acc, curr) => acc + (Number(curr.quantity || curr.quantityWasted) || 0), 0);
 
       result.push({
         day: i === 0 ? `${dayName} (Today)` : dayName,
         actual: totalDayWaste > 0 ? Number(totalDayWaste.toFixed(1)) : 0,
-        predicted: null
+        predicted: null,
+        unit: (dayLogs[0] && dayLogs[0].unit) ? dayLogs[0].unit : 'liter'
+      });
+    }
+
+    // Append Tomorrow's AI prediction bar if prediction data is available
+    let predVal = null;
+    if (this.data.kpis.predictedTomorrow && this.data.kpis.predictedTomorrow !== '0.0') {
+      const match = String(this.data.kpis.predictedTomorrow).match(/[\d.]+/);
+      if (match && Number(match[0]) > 0) {
+        predVal = Number(Number(match[0]).toFixed(1));
+      }
+    }
+    if (predVal !== null && predVal > 0) {
+      result.push({
+        day: 'Tomorrow',
+        actual: null,
+        predicted: predVal,
+        unit: 'liter'
       });
     }
 
@@ -218,36 +257,43 @@ const Dashboard = {
 
     const isMm = typeof I18n !== 'undefined' && I18n.getLanguage() === 'mm';
 
-    if (!this.data.trend7Days || this.data.trend7Days.length === 0) {
-      container.innerHTML = `
-        <div style="height: 220px; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:1.5rem; background:rgba(255,255,255,0.4); border-radius:var(--radius-lg); border:1px dashed var(--glass-border);">
-          <div style="font-size:2rem; margin-bottom:0.5rem;">📊</div>
-          <div style="font-weight:700; font-size:0.95rem; color:var(--text-main);">
-            ${isMm ? '၇ ရက်တာ အလေအလွင့် မှတ်တမ်း မရှိသေးပါ' : 'No 7-Day Waste Logs Recorded Yet'}
-          </div>
-          <div style="font-size:0.8rem; color:var(--text-muted); margin-top:0.25rem; max-width:320px;">
-            ${isMm ? 'မီးဖိုချောင် ကုန်ပစ္စည်းများနှင့် နေ့စဉ် အလေအလွင့်များကို စာရင်းသွင်း၍ ဇယားကြည့်ရှုပါ' : 'Add inventory items and record daily waste logs to visualize 7-day trend analytics.'}
-          </div>
-        </div>
-      `;
-      return;
-    }
+    // 1. Check if real historical waste logs exist with non-zero volume
+    const hasRealWasteLogs = this.data.trend7Days && 
+                             this.data.trend7Days.length > 0 && 
+                             this.data.trend7Days.some(d => (d.actual || 0) > 0);
 
-    const maxVal = Math.max(25, ...this.data.trend7Days.map(d => d.actual || 0));
+    // 2. Use real data if present, otherwise use demo visualization fallback
+    const items = hasRealWasteLogs ? this.data.trend7Days : this.getDemoTrendData();
+
+    const maxVal = Math.max(10, ...items.map(d => (d.actual !== null && d.actual !== undefined ? d.actual : d.predicted) || 0));
+
     let html = `
-      <div style="display:flex; align-items:flex-end; justify-content:space-between; height:220px; padding:1.5rem 0.5rem 0.5rem 0.5rem; gap:12px;">
+      <div style="display:flex; align-items:flex-end; justify-content:space-between; height:220px; padding:1.5rem 0.5rem 0.5rem 0.5rem; gap:10px;">
     `;
 
-    this.data.trend7Days.forEach((item) => {
-      const isPredictedOnly = item.actual === null;
-      const heightActual = !isPredictedOnly ? Math.max(8, (item.actual / maxVal) * 170) : 0;
+    items.forEach((item) => {
+      const isPredicted = item.predicted !== null && item.predicted !== undefined;
+      const val = isPredicted ? item.predicted : item.actual;
+      const height = Math.max(14, ((val || 0) / maxVal) * 150);
+      const unitStr = item.unit || 'liter';
+
+      const dayLabel = typeof I18n !== 'undefined' && typeof I18n.translateDay === 'function' 
+        ? I18n.translateDay(item.day) 
+        : (isMm ? (item.day === 'Tomorrow' ? 'မနက်ဖြန် (ခန့်မှန်း)' : item.day) : (item.day === 'Tomorrow' ? 'Tomorrow (AI)' : item.day));
+
+      const barStyle = isPredicted
+        ? 'background:rgba(254, 240, 138, 0.85); border:2px dashed #eab308; box-shadow:0 6px 14px rgba(234, 179, 8, 0.15);'
+        : 'background:linear-gradient(180deg, #facc15 0%, #eab308 100%); border:1px solid rgba(255,255,255,0.8); box-shadow:0 6px 14px rgba(234, 179, 8, 0.25);';
+
+      const valColor = isPredicted ? 'var(--accent-yellow-dark)' : 'var(--text-muted)';
+      const unitLabel = isMm ? (unitStr === 'liter' ? 'လီတာ' : unitStr) : (unitStr === 'liter' ? 'liter' : unitStr);
 
       html += `
         <div style="flex:1; display:flex; flex-direction:column; align-items:center; height:100%; justify-content:flex-end; cursor:pointer;" 
-             title="${item.day}: ${item.actual}">
-          <span style="font-size:0.75rem; font-weight:700; color:var(--text-muted); margin-bottom:6px;">${item.actual}</span>
-          <div style="width:100%; max-width:38px; height:${heightActual}px; background:linear-gradient(180deg, #facc15 0%, #eab308 100%); border-radius:12px; box-shadow:0 6px 14px rgba(234, 179, 8, 0.25); border:1px solid rgba(255,255,255,0.8); transition:transform 0.2s;" onmouseover="this.style.transform='scaleY(1.05)'" onmouseout="this.style.transform='scaleY(1)'"></div>
-          <span style="font-size:0.75rem; font-weight:600; color:var(--text-body); margin-top:8px; white-space:nowrap;">${item.day}</span>
+             title="${dayLabel}: ${Number(val).toFixed(1)} ${unitLabel}">
+          <span style="font-size:0.72rem; font-weight:700; color:${valColor}; margin-bottom:6px; white-space:nowrap;">${Number(val).toFixed(1)}</span>
+          <div style="width:100%; max-width:36px; height:${height}px; ${barStyle} border-radius:12px; transition:transform 0.2s;" onmouseover="this.style.transform='scaleY(1.05)'" onmouseout="this.style.transform='scaleY(1)'"></div>
+          <span style="font-size:0.72rem; font-weight:600; color:var(--text-body); margin-top:8px; white-space:nowrap; text-align:center;">${dayLabel}</span>
         </div>
       `;
     });

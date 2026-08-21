@@ -5,7 +5,16 @@
 window.I18N_MM = {
   // Brand & Slogan
   "brand.name": "FoodWaste AI",
-  "brand.tagline": "ကြိုတင်ခန့်မှန်း → ကာကွယ် → ပြန်လည်ဖြန့်ဝေ → အလေအလွင့်လျှော့ချ",
+
+  // Days of Week (Domain Glossary)
+  "day.mon": "တနင်္လာ",
+  "day.tue": "အင်္ဂါ",
+  "day.wed": "ဗုဒ္ဓဟူး",
+  "day.thu": "ကြာသပတေး",
+  "day.fri": "သောကြာ",
+  "day.sat": "စနေ",
+  "day.sun": "တနင်္ဂနွေ",
+  "day.tomorrow": "မနက်ဖြန် (ခန့်မှန်း)",
 
   // Navigation (Domain Glossary)
   "nav.core": "အဓိက လုပ်ငန်းဆောင်တာများ",

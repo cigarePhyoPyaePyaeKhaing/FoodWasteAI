@@ -446,6 +446,31 @@ const I18n = {
     return category;
   },
 
+  translateDay(day) {
+    if (!day) return '';
+    const str = String(day).trim();
+    if (this.isMyanmar()) {
+      if (str === 'Monday' || str.startsWith('Mon')) return str.includes('Today') ? 'တနင်္လာ (ယနေ့)' : 'တနင်္လာ';
+      if (str === 'Tuesday' || str.startsWith('Tue')) return str.includes('အင်္ဂါ') ? 'အင်္ဂါ (ယနေ့)' : 'အင်္ဂါ';
+      if (str === 'Wednesday' || str.startsWith('Wed')) return str.includes('Today') ? 'ဗုဒ္ဓဟူး (ယနေ့)' : 'ဗုဒ္ဓဟူး';
+      if (str === 'Thursday' || str.startsWith('Thu')) return str.includes('Today') ? 'ကြာသပတေး (ယနေ့)' : 'ကြာသပတေး';
+      if (str === 'Friday' || str.startsWith('Fri')) return str.includes('Today') ? 'သောကြာ (ယနေ့)' : 'သောကြာ';
+      if (str === 'Saturday' || str.startsWith('Sat')) return str.includes('Today') ? 'စနေ (ယနေ့)' : 'စနေ';
+      if (str === 'Sunday' || str.startsWith('Sun')) return str.includes('Today') ? 'တနင်္ဂနွေ (ယနေ့)' : 'တနင်္ဂနွေ';
+      if (str.toLowerCase().includes('tomorrow') || str.toLowerCase().includes('predict')) return 'မနက်ဖြန် (ခန့်မှန်း)';
+    } else {
+      if (str === 'Monday' || str.startsWith('Mon')) return str.includes('Today') ? 'Mon (Today)' : 'Mon';
+      if (str === 'Tuesday' || str.startsWith('Tue')) return str.includes('Today') ? 'Tue (Today)' : 'Tue';
+      if (str === 'Wednesday' || str.startsWith('Wed')) return str.includes('Today') ? 'Wed (Today)' : 'Wed';
+      if (str === 'Thursday' || str.startsWith('Thu')) return str.includes('Today') ? 'Thu (Today)' : 'Thu';
+      if (str === 'Friday' || str.startsWith('Fri')) return str.includes('Today') ? 'Fri (Today)' : 'Fri';
+      if (str === 'Saturday' || str.startsWith('Sat')) return str.includes('Today') ? 'Sat (Today)' : 'Sat';
+      if (str === 'Sunday' || str.startsWith('Sun')) return str.includes('Today') ? 'Sun (Today)' : 'Sun';
+      if (str.toLowerCase().includes('tomorrow') || str.toLowerCase().includes('predict')) return 'Tomorrow (AI)';
+    }
+    return str;
+  },
+
   translateError(err) {
     if (!err) return 'An error occurred';
     const msg = typeof err === 'string' ? err : (err.message || err.error || JSON.stringify(err));

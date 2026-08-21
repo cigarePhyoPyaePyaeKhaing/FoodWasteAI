@@ -4,7 +4,16 @@
 window.I18N_EN = {
   // Brand & Slogan
   "brand.name": "FoodWaste AI",
-  "brand.tagline": "Predict → Prevent → Redistribute → Reduce Waste",
+
+  // Days of Week
+  "day.mon": "Mon",
+  "day.tue": "Tue",
+  "day.wed": "Wed",
+  "day.thu": "Thu",
+  "day.fri": "Fri",
+  "day.sat": "Sat",
+  "day.sun": "Sun",
+  "day.tomorrow": "Tomorrow (AI)",
 
   // Navigation
   "nav.core": "Core Operations",
