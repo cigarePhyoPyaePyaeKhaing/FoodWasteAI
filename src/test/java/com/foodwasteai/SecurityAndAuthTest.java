@@ -216,6 +216,17 @@ public class SecurityAndAuthTest {
         assertTrue(cacheControl.contains("no-store") || cacheControl.contains("no-cache"), "Protected pages must have Cache-Control header");
     }
 
+    @Test
+    @DisplayName("Security: Task 8 - Production Embedded Tomcat Integration Test: GET /dashboard.html without auth asserts 302 and Location /index.html")
+    public void testProductionEmbeddedTomcatUnauthenticatedDashboardRedirect() throws Exception {
+        HttpResponse<String> response = sendGet("/dashboard.html", null);
+        assertEquals(302, response.statusCode(), "GET /dashboard.html on embedded Tomcat must return HTTP 302");
+        String location = response.headers().firstValue("Location").orElse("");
+        assertEquals("/index.html", location, "Location header must be exactly /index.html");
+        String cacheControl = response.headers().firstValue("Cache-Control").orElse("");
+        assertTrue(cacheControl.contains("no-cache") && cacheControl.contains("no-store"), "Must have no-store/no-cache headers");
+    }
+
     @ParameterizedTest
     @DisplayName("Security: Direct access to protected APIs without token returns HTTP 401")
     @ValueSource(strings = {

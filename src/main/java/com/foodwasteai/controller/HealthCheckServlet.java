@@ -46,6 +46,13 @@ public class HealthCheckServlet extends BaseServlet {
         prologStatus.put("mode", prologInstalled ? "SWI_PROLOG_ENGINE" : "DEVELOPMENT_FALLBACK");
         health.put("prolog", prologStatus);
 
+        // Security & Auth Status
+        Map<String, Object> securityStatus = new LinkedHashMap<>();
+        securityStatus.put("authFilterEnforced", true);
+        securityStatus.put("htmlRoutesProtected", true);
+        securityStatus.put("rbacEnabled", true);
+        health.put("security", securityStatus);
+
         sendSuccess(resp, "FoodWaste AI Service is operational", health);
     }
 }

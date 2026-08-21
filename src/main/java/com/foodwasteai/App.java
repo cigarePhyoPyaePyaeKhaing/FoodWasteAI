@@ -4,6 +4,7 @@ import com.foodwasteai.config.AppConfig;
 import com.foodwasteai.controller.*;
 import com.foodwasteai.filter.AuthenticationFilter;
 import com.foodwasteai.filter.CorsFilter;
+import jakarta.servlet.DispatcherType;
 import org.apache.catalina.Context;
 import org.apache.catalina.LifecycleException;
 import org.apache.catalina.startup.Tomcat;
@@ -88,6 +89,9 @@ public class App {
         FilterMap corsFilterMap = new FilterMap();
         corsFilterMap.setFilterName("CorsFilter");
         corsFilterMap.addURLPattern("/*");
+        corsFilterMap.setDispatcher(DispatcherType.REQUEST.name());
+        corsFilterMap.setDispatcher(DispatcherType.FORWARD.name());
+        corsFilterMap.setDispatcher(DispatcherType.ASYNC.name());
         ctx.addFilterMap(corsFilterMap);
 
         // Register Security Authentication Filter (scoped to all routes /*)
@@ -99,6 +103,9 @@ public class App {
         FilterMap authFilterMap = new FilterMap();
         authFilterMap.setFilterName("AuthenticationFilter");
         authFilterMap.addURLPattern("/*");
+        authFilterMap.setDispatcher(DispatcherType.REQUEST.name());
+        authFilterMap.setDispatcher(DispatcherType.FORWARD.name());
+        authFilterMap.setDispatcher(DispatcherType.ASYNC.name());
         ctx.addFilterMap(authFilterMap);
 
         // Register Core API Servlets
