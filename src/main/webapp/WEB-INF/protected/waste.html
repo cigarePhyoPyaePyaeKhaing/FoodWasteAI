@@ -165,14 +165,24 @@
       <div class="modal-glass-body">
         <div class="form-group-bubble">
           <label class="form-label-bubble" data-i18n="waste.modal.selectFood">Select Wasted Food Item</label>
-          <select class="form-select-bubble" id="waste-food-id" required>
+          <select class="form-select-bubble" id="waste-food-id" required onchange="Waste.onFoodItemChanged()">
             <!-- Dynamically populated from /api/inventory -->
           </select>
         </div>
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
+
+        <!-- Available Stock Indicator -->
+        <div id="waste-stock-indicator" style="margin-bottom:0.75rem; padding:0.55rem 0.85rem; background:rgba(254, 240, 138, 0.35); border:1px solid rgba(234, 179, 8, 0.4); border-radius:var(--radius-md); font-size:0.85rem; font-weight:700; color:var(--accent-yellow-dark); display:none;">
+          <span data-i18n="waste.modal.availableStock">Available Stock:</span> <span id="waste-available-stock-text">0.00 kg</span>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1.2fr 1fr; gap:0.75rem;">
           <div class="form-group-bubble">
             <label class="form-label-bubble" data-i18n="waste.modal.qtyWasted">Quantity Wasted</label>
-            <input class="form-input-bubble" type="number" step="0.1" id="waste-qty" required placeholder="4.5">
+            <div style="position:relative; display:flex; align-items:center;">
+              <input class="form-input-bubble" type="number" step="0.01" min="0.01" id="waste-qty" required placeholder="3.00" oninput="Waste.onQuantityInput()" style="padding-right:3.8rem; width:100%;">
+              <span id="waste-unit-addon" style="position:absolute; right:0.85rem; font-size:0.85rem; font-weight:700; color:var(--text-muted); pointer-events:none;">kg</span>
+            </div>
+            <div id="waste-qty-error" style="color:#ef4444; font-size:0.78rem; font-weight:700; margin-top:0.35rem; display:none;"></div>
           </div>
           <div class="form-group-bubble">
             <label class="form-label-bubble" data-i18n="waste.modal.reason">Primary Spoilage Reason</label>
@@ -194,7 +204,7 @@
       </div>
       <div class="modal-glass-footer">
         <button type="button" class="btn-bubble btn-glass" onclick="Waste.closeModal()" data-i18n="action.cancel">Cancel</button>
-        <button type="submit" class="btn-bubble btn-yellow" data-i18n="action.save">Save Waste Log</button>
+        <button type="submit" class="btn-bubble btn-yellow" id="waste-submit-btn" data-i18n="action.save">Save Waste Log</button>
       </div>
     </form>
   </div>

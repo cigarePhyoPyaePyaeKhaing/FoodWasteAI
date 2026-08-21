@@ -212,6 +212,7 @@ window.I18N_MM = {
   "waste.th.actions": "လုပ်ဆောင်ချက်",
   "waste.modal.title": "+ အလေအလွင့် ဖြစ်စဉ် စာရင်းသွင်းခြင်း",
   "waste.modal.selectFood": "အလေအလွင့်ဖြစ်သော ပစ္စည်း ရွေးပါ",
+  "waste.modal.availableStock": "လက်ရှိ လက်ကျန်:",
   "waste.modal.qtyWasted": "အလေအလွင့် ပမာဏ",
   "waste.modal.reason": "အဓိက ဆုံးရှုံးရသည့် အကြောင်းရင်း",
   "waste.modal.notes": "အသေးစိတ် မှတ်ချက်",

@@ -23,6 +23,7 @@ public class WasteRecord implements Serializable {
     private Long id;
     private Long foodItemId;
     private String foodItemName; // Joined
+    private String unit;         // Joined measurement unit (e.g. liter, kg, pieces)
     private BigDecimal quantityWasted;
     private Reason reason;
     private BigDecimal monetaryLoss;
@@ -35,6 +36,16 @@ public class WasteRecord implements Serializable {
     public WasteRecord(Long foodItemId, BigDecimal quantityWasted, Reason reason, BigDecimal monetaryLoss, LocalDateTime wasteDate, String notes) {
         this.foodItemId = foodItemId;
         this.quantityWasted = quantityWasted;
+        this.reason = reason;
+        this.monetaryLoss = monetaryLoss;
+        this.wasteDate = wasteDate;
+        this.notes = notes;
+    }
+
+    public WasteRecord(Long foodItemId, BigDecimal quantityWasted, String unit, Reason reason, BigDecimal monetaryLoss, LocalDateTime wasteDate, String notes) {
+        this.foodItemId = foodItemId;
+        this.quantityWasted = quantityWasted;
+        this.unit = unit;
         this.reason = reason;
         this.monetaryLoss = monetaryLoss;
         this.wasteDate = wasteDate;
@@ -64,6 +75,14 @@ public class WasteRecord implements Serializable {
 
     public void setFoodItemName(String foodItemName) {
         this.foodItemName = foodItemName;
+    }
+
+    public String getUnit() {
+        return unit;
+    }
+
+    public void setUnit(String unit) {
+        this.unit = unit;
     }
 
     public BigDecimal getQuantityWasted() {

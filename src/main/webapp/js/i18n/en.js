@@ -211,6 +211,7 @@ window.I18N_EN = {
   "waste.th.actions": "Actions",
   "waste.modal.title": "+ Log Food Waste Incident",
   "waste.modal.selectFood": "Select Wasted Food Item",
+  "waste.modal.availableStock": "Available Stock:",
   "waste.modal.qtyWasted": "Quantity Wasted",
   "waste.modal.reason": "Primary Spoilage Reason",
   "waste.modal.notes": "Incident Notes",

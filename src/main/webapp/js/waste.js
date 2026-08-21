@@ -13,6 +13,7 @@ const Waste = {
       this.render();
       this.updateKpis();
       this.populateFoodSelect();
+      this.onFoodItemChanged();
     });
   },
 
@@ -34,15 +35,85 @@ const Waste = {
 
     if (this.foodItems.length === 0) {
       select.innerHTML = `<option value="">${isMm ? 'ကုန်ပစ္စည်းစာရင်း မရှိသေးပါ' : 'No food items in inventory'}</option>`;
+      const indicator = document.getElementById('waste-stock-indicator');
+      if (indicator) indicator.style.display = 'none';
       return;
     }
 
     select.innerHTML = this.foodItems.map(f => {
       const price = Number(f.pricePerUnit || 0).toLocaleString();
-      const qty = Number(f.quantity || 0).toFixed(1);
+      const qty = Number(f.quantity || 0).toFixed(2);
+      const unit = f.unit || 'kg';
       const stockLabel = isMm ? 'လက်ကျန်' : 'Stock';
-      return `<option value="${f.id}" data-price="${f.pricePerUnit}" data-unit="${f.unit || 'kg'}">${f.name} (${stockLabel}: ${qty} ${f.unit || 'kg'} @ ${price} MMK)</option>`;
+      return `<option value="${f.id}" data-price="${f.pricePerUnit || 0}" data-stock="${f.quantity || 0}" data-unit="${unit}" data-name="${f.name}">${f.name} (${stockLabel}: ${qty} ${unit} @ ${price} MMK)</option>`;
     }).join('');
+
+    this.onFoodItemChanged();
+  },
+
+  onFoodItemChanged() {
+    const select = document.getElementById('waste-food-id');
+    const indicator = document.getElementById('waste-stock-indicator');
+    const stockText = document.getElementById('waste-available-stock-text');
+    const unitAddon = document.getElementById('waste-unit-addon');
+
+    if (!select || select.selectedIndex < 0) {
+      if (indicator) indicator.style.display = 'none';
+      return;
+    }
+
+    const selectedOpt = select.options[select.selectedIndex];
+    if (!selectedOpt || !selectedOpt.value) {
+      if (indicator) indicator.style.display = 'none';
+      return;
+    }
+
+    const stock = parseFloat(selectedOpt.getAttribute('data-stock') || '0');
+    const unit = selectedOpt.getAttribute('data-unit') || 'kg';
+
+    if (indicator && stockText) {
+      indicator.style.display = 'block';
+      stockText.textContent = `${stock.toFixed(2)} ${unit}`;
+    }
+
+    if (unitAddon) {
+      unitAddon.textContent = unit;
+    }
+
+    this.onQuantityInput();
+  },
+
+  onQuantityInput() {
+    const select = document.getElementById('waste-food-id');
+    const qtyInput = document.getElementById('waste-qty');
+    const errorEl = document.getElementById('waste-qty-error');
+    const submitBtn = document.getElementById('waste-submit-btn');
+
+    if (!qtyInput || !select || select.selectedIndex < 0) return;
+
+    const selectedOpt = select.options[select.selectedIndex];
+    if (!selectedOpt || !selectedOpt.value) return;
+
+    const availableStock = parseFloat(selectedOpt.getAttribute('data-stock') || '0');
+    const unit = selectedOpt.getAttribute('data-unit') || 'kg';
+    const requestedQty = parseFloat(qtyInput.value);
+    const isMm = typeof I18n !== 'undefined' && I18n.getLanguage() === 'mm';
+
+    if (!isNaN(requestedQty) && requestedQty > availableStock) {
+      if (errorEl) {
+        errorEl.style.display = 'block';
+        errorEl.textContent = isMm
+          ? `လက်ကျန်မလုံလောက်ပါ: ${requestedQty} ${unit} လျှော့ချရန် တောင်းဆိုထားသော်လည်း လက်ကျန် ${availableStock.toFixed(2)} ${unit} သာ ရှိပါသည်`
+          : `Insufficient stock: ${requestedQty} ${unit} requested, but only ${availableStock.toFixed(2)} ${unit} available.`;
+      }
+      if (submitBtn) submitBtn.disabled = true;
+    } else {
+      if (errorEl) {
+        errorEl.style.display = 'none';
+        errorEl.textContent = '';
+      }
+      if (submitBtn) submitBtn.disabled = false;
+    }
   },
 
   async fetchWaste() {
@@ -105,7 +176,8 @@ const Waste = {
       else if (r.reason === 'PREPARATION_WASTE') badgeClass = 'badge-optimization';
 
       const reasonText = typeof I18n !== 'undefined' ? I18n.translateWasteReason(r.reason) : r.reason;
-      const qtyFmt = Number(r.quantityWasted || 0).toFixed(2) + ' kg';
+      const unit = r.unit || 'kg';
+      const qtyFmt = Number(r.quantityWasted || 0).toFixed(2) + ' ' + unit;
       const lossFmt = Number(r.monetaryLoss || 0).toLocaleString() + ' MMK';
       const dateFmt = r.wasteDate ? r.wasteDate.replace('T', ' ').substring(0, 16) : (isMm ? 'မကြာသေးမီက' : 'Recently');
 
@@ -127,14 +199,14 @@ const Waste = {
 
   updateKpis() {
     const totalLoss = this.records.reduce((sum, r) => sum + Number(r.monetaryLoss || 0), 0);
-    const totalWasteKg = this.records.reduce((sum, r) => sum + Number(r.quantityWasted || 0), 0);
-    const co2Kg = totalWasteKg * 2.5;
+    const totalWasteUnits = this.records.reduce((sum, r) => sum + Number(r.quantityWasted || 0), 0);
+    const co2Kg = totalWasteUnits * 2.5;
 
     const lossEl = document.getElementById('kpi-waste-loss');
     if (lossEl) lossEl.textContent = totalLoss.toLocaleString() + ' MMK';
 
     const wasteEl = document.getElementById('kpi-waste-kg');
-    if (wasteEl) wasteEl.textContent = totalWasteKg.toFixed(1) + ' kg';
+    if (wasteEl) wasteEl.textContent = totalWasteUnits.toFixed(1) + ' units';
 
     const co2El = document.getElementById('kpi-waste-co2');
     if (co2El) co2El.textContent = co2Kg.toFixed(1) + ' kg CO₂e';
@@ -146,6 +218,9 @@ const Waste = {
     if (form) form.reset();
     const modal = document.getElementById('log-waste-modal');
     if (modal) modal.classList.add('active');
+    setTimeout(() => {
+      this.onFoodItemChanged();
+    }, 100);
   },
 
   closeModal() {
@@ -167,6 +242,17 @@ const Waste = {
       return;
     }
 
+    const selectedOpt = foodSelect.options[foodSelect.selectedIndex];
+    const availableStock = selectedOpt ? parseFloat(selectedOpt.getAttribute('data-stock') || '0') : 0;
+    const unit = selectedOpt ? (selectedOpt.getAttribute('data-unit') || 'kg') : 'kg';
+
+    if (quantityWasted > availableStock) {
+      API.showToast(isMm
+        ? `လက်ကျန်မလုံလောက်ပါ: လက်ကျန် ${availableStock.toFixed(2)} ${unit} သာ ရှိပါသည်`
+        : `Insufficient stock: only ${availableStock.toFixed(2)} ${unit} available in inventory.`, 'error');
+      return;
+    }
+
     const payload = {
       foodItemId,
       quantityWasted,
@@ -176,9 +262,12 @@ const Waste = {
 
     try {
       await API.post('/api/waste', payload);
-      API.showToast(isMm ? `${quantityWasted} kg အလေအလွင့် စာရင်းသွင်းပြီး ကုန်ပစ္စည်းလက်ကျန်ကို ချိန်ညှိပြီးပါပြီ!` : `Logged ${quantityWasted} kg waste and adjusted stock!`, 'warning');
+      API.showToast(isMm ? `${quantityWasted.toFixed(2)} ${unit} အလေအလွင့် စာရင်းသွင်းပြီး ကုန်ပစ္စည်းလက်ကျန်ကို ချိန်ညှိပြီးပါပြီ!` : `Logged ${quantityWasted.toFixed(2)} ${unit} waste and adjusted stock!`, 'warning');
       this.closeModal();
-      await this.fetchWaste();
+      await Promise.all([
+        this.fetchWaste(),
+        this.fetchFoodItems()
+      ]);
     } catch (err) {
       console.error('Error logging waste:', err);
       API.showToast(isMm ? ('အလေအလွင့် စာရင်းသွင်းရန် မအောင်မြင်ပါ: ' + err.message) : ('Failed to log waste: ' + err.message), 'error');
@@ -192,7 +281,10 @@ const Waste = {
     try {
       await API.delete(`/api/waste/${id}`);
       API.showToast(isMm ? 'အလေအလွင့် မှတ်တမ်း ဖျက်ပြီးပါပြီ' : 'Waste record deleted', 'info');
-      await this.fetchWaste();
+      await Promise.all([
+        this.fetchWaste(),
+        this.fetchFoodItems()
+      ]);
     } catch (err) {
       console.error('Error deleting waste:', err);
       API.showToast(isMm ? ('ဖျက်ရန် မအောင်မြင်ပါ: ' + err.message) : ('Failed to delete waste record: ' + err.message), 'error');
