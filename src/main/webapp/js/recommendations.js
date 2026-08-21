@@ -83,7 +83,7 @@ const Recommendations = {
       container.innerHTML = `
         <div style="grid-column: 1 / -1; text-align:center; padding:3rem; color:var(--text-muted); background:var(--glass-bg); border-radius:var(--radius-lg); border:1px solid var(--glass-border);">
           <div style="font-size:2rem; margin-bottom:0.5rem;">💡</div>
-          <div style="font-weight:700; color:var(--text-main); font-size:1.05rem;" data-i18n="rec.emptyTitle">${isMm ? 'လက်ရှိ အကြံပြုချက် မရှိသေးပါ' : 'No active recommendations'}</div>
+          <div style="font-weight:700; color:var(--text-main); font-size:1.05rem;" data-i18n="rec.empty.title">${isMm ? 'လက်ရှိ အကြံပြုချက် မရှိသေးပါ' : 'No active recommendations'}</div>
           <div style="font-size:0.85rem; margin-top:0.25rem;">${isMm ? 'ဤကဏ္ဍတွင် အကြံပြုချက် မရှိသေးပါ။ အကြံပြုချက်အသစ်များ ထုတ်ယူရန် "⚡ Re-Evaluate Inventory" ကို နှိပ်ပါ။' : 'No active recommendations in this category. Click "⚡ Re-Evaluate Inventory" to generate fresh directives.'}</div>
         </div>
       `;

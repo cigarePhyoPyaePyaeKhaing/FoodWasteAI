@@ -103,6 +103,14 @@ public class BilingualAndUnitConsistencyTest {
         assertEquals("Predicted Waste Quantity", enMap.get("pred.kpi.predictedVolume"), "Prediction KPI in EN must be 'Predicted Waste Quantity'");
         assertEquals("ခန့်မှန်း အလေအလွင့်ပမာဏ", mmMap.get("pred.kpi.predictedVolume"), "Prediction KPI in MM must be 'ခန့်မှန်း အလေအလွင့်ပမာဏ'");
 
+        // Prediction Risk Level verification
+        assertTrue(enMap.containsKey("pred.kpi.risk") || enMap.containsKey("PRED.KPI.RISK"), "Must have pred.kpi.risk in EN");
+        assertTrue(mmMap.containsKey("pred.kpi.risk") || mmMap.containsKey("PRED.KPI.RISK"), "Must have pred.kpi.risk in MM");
+
+        // chat.status verification
+        assertTrue(enMap.containsKey("chat.status"), "Must have chat.status in EN");
+        assertTrue(mmMap.containsKey("chat.status"), "Must have chat.status in MM");
+
         // Logout verification
         assertEquals("Logout", enMap.get("nav.logout"), "Logout in EN must be 'Logout'");
         assertEquals("ထွက်ရန်", mmMap.get("nav.logout"), "Logout in MM must be 'ထွက်ရန်'");
@@ -118,6 +126,52 @@ public class BilingualAndUnitConsistencyTest {
             assertTrue(mmMap.containsKey(key), "MM dictionary must contain key: " + key);
             assertFalse(enMap.get(key).trim().isEmpty(), "EN translation must not be empty for key: " + key);
             assertFalse(mmMap.get(key).trim().isEmpty(), "MM translation must not be empty for key: " + key);
+        }
+    }
+
+    @Test
+    @DisplayName("4b. Audit every data-i18n in all webapp HTML files against dictionaries")
+    void testAllHtmlDataI18nAttributesExistInDictionaries() throws IOException {
+        Map<String, String> enMap = parseJsDictionary(new File(I18N_DIR + "en.js"));
+        Map<String, String> mmMap = parseJsDictionary(new File(I18N_DIR + "mm.js"));
+
+        // Scan all HTML files in webapp
+        File webappDir = new File("src/main/webapp");
+        List<File> htmlFiles = new ArrayList<>();
+        findFilesByExtension(webappDir, ".html", htmlFiles);
+
+        Set<String> missingInEn = new TreeSet<>();
+        Set<String> missingInMm = new TreeSet<>();
+
+        Pattern pattern = Pattern.compile("data-i18n(?:-placeholder|-title)?=\"([^\"]+)\"");
+
+        for (File htmlFile : htmlFiles) {
+            String content = Files.readString(htmlFile.toPath(), StandardCharsets.UTF_8);
+            Matcher matcher = pattern.matcher(content);
+            while (matcher.find()) {
+                String key = matcher.group(1).trim();
+                if (!enMap.containsKey(key) && !enMap.containsKey(key.toLowerCase()) && !enMap.containsKey(key.toUpperCase())) {
+                    missingInEn.add(key + " (in " + htmlFile.getName() + ")");
+                }
+                if (!mmMap.containsKey(key) && !mmMap.containsKey(key.toLowerCase()) && !mmMap.containsKey(key.toUpperCase())) {
+                    missingInMm.add(key + " (in " + htmlFile.getName() + ")");
+                }
+            }
+        }
+
+        assertTrue(missingInEn.isEmpty(), "Missing keys in en.js: " + missingInEn);
+        assertTrue(missingInMm.isEmpty(), "Missing keys in mm.js: " + missingInMm);
+    }
+
+    private void findFilesByExtension(File dir, String ext, List<File> result) {
+        File[] files = dir.listFiles();
+        if (files == null) return;
+        for (File f : files) {
+            if (f.isDirectory()) {
+                findFilesByExtension(f, ext, result);
+            } else if (f.getName().endsWith(ext)) {
+                result.add(f);
+            }
         }
     }
 

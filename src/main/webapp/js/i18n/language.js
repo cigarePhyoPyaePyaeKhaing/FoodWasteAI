@@ -265,15 +265,33 @@ const I18n = {
   },
 
   t(key, defaultText = '') {
-    const dict = this.isMyanmar() ? window.I18N_MM : window.I18N_EN;
-    if (dict && dict[key]) {
-      return dict[key];
+    if (!key) return defaultText || '';
+    const normKey = String(key).trim();
+    const lowerKey = normKey.toLowerCase();
+    const upperKey = normKey.toUpperCase();
+
+    const dict = this.isMyanmar() ? (window.I18N_MM || {}) : (window.I18N_EN || {});
+    const enDict = window.I18N_EN || {};
+
+    // 1. Check current language dictionary (exact, lower, upper)
+    if (dict[normKey] !== undefined) return dict[normKey];
+    if (dict[lowerKey] !== undefined) return dict[lowerKey];
+    if (dict[upperKey] !== undefined) return dict[upperKey];
+
+    // 2. Fallback to English dictionary (exact, lower, upper)
+    if (enDict[normKey] !== undefined) return enDict[normKey];
+    if (enDict[lowerKey] !== undefined) return enDict[lowerKey];
+    if (enDict[upperKey] !== undefined) return enDict[upperKey];
+
+    // 3. Fallback to defaultText if provided and valid
+    if (defaultText && defaultText !== normKey && defaultText !== lowerKey && defaultText !== upperKey) {
+      return defaultText;
     }
-    // Fallback to English dictionary
-    if (window.I18N_EN && window.I18N_EN[key]) {
-      return window.I18N_EN[key];
-    }
-    return defaultText || key;
+
+    // 4. Safe humanized fallback - NEVER leak raw dot-separated or uppercase key names
+    const lastPart = normKey.includes('.') ? normKey.split('.').pop() : normKey;
+    const humanized = lastPart.replace(/([A-Z])/g, ' $1').replace(/[_-]/g, ' ').trim();
+    return humanized.charAt(0).toUpperCase() + humanized.slice(1);
   },
 
   applyTranslations() {
@@ -281,7 +299,14 @@ const I18n = {
     document.querySelectorAll('[data-i18n]').forEach(el => {
       const key = el.getAttribute('data-i18n');
       if (key) {
-        const translation = this.t(key);
+        if (!el.hasAttribute('data-i18n-default')) {
+          const original = el.textContent ? el.textContent.trim() : '';
+          if (original && original !== key) {
+            el.setAttribute('data-i18n-default', original);
+          }
+        }
+        const fallback = el.getAttribute('data-i18n-default') || '';
+        const translation = this.t(key, fallback);
         if (translation) {
           el.textContent = translation;
         }
@@ -292,7 +317,14 @@ const I18n = {
     document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
       const key = el.getAttribute('data-i18n-placeholder');
       if (key) {
-        const translation = this.t(key);
+        if (!el.hasAttribute('data-i18n-placeholder-default')) {
+          const original = el.getAttribute('placeholder') || '';
+          if (original && original !== key) {
+            el.setAttribute('data-i18n-placeholder-default', original);
+          }
+        }
+        const fallback = el.getAttribute('data-i18n-placeholder-default') || '';
+        const translation = this.t(key, fallback);
         if (translation) {
           el.setAttribute('placeholder', translation);
         }
@@ -303,7 +335,14 @@ const I18n = {
     document.querySelectorAll('[data-i18n-title]').forEach(el => {
       const key = el.getAttribute('data-i18n-title');
       if (key) {
-        const translation = this.t(key);
+        if (!el.hasAttribute('data-i18n-title-default')) {
+          const original = el.getAttribute('title') || '';
+          if (original && original !== key) {
+            el.setAttribute('data-i18n-title-default', original);
+          }
+        }
+        const fallback = el.getAttribute('data-i18n-title-default') || '';
+        const translation = this.t(key, fallback);
         if (translation) {
           el.setAttribute('title', translation);
         }

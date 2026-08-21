@@ -74,8 +74,8 @@ const Prediction = {
         breakdownContainer.innerHTML = `
           <div style="text-align:center; padding:2.5rem 1.5rem; color:var(--text-muted);">
             <div style="font-size:2rem; margin-bottom:0.5rem;">🔮</div>
-            <div style="font-weight:700; color:var(--text-main); font-size:1.05rem;" data-i18n="pred.emptyTitle">${isMm ? 'ကုန်ပစ္စည်း စာရင်း မရှိသေးပါ' : 'No inventory data available'}</div>
-            <div style="font-size:0.85rem; margin-top:0.25rem;" data-i18n="pred.emptyDesc">${isMm ? 'အလေအလွင့် ခန့်မှန်းချက်များ တွက်ချက်ရန် Inventory တွင် ကုန်ပစ္စည်းများ ထည့်သွင်းပါ။' : 'Add your restaurant items in the Inventory section to generate waste predictions.'}</div>
+            <div style="font-weight:700; color:var(--text-main); font-size:1.05rem;" data-i18n="pred.empty.title">${isMm ? 'ကုန်ပစ္စည်း စာရင်း မရှိသေးပါ' : 'No inventory data available'}</div>
+            <div style="font-size:0.85rem; margin-top:0.25rem;" data-i18n="pred.empty.desc">${isMm ? 'အလေအလွင့် ခန့်မှန်းချက်များ တွက်ချက်ရန် Inventory တွင် ကုန်ပစ္စည်းများ ထည့်သွင်းပါ။' : 'Add your restaurant items in the Inventory section to generate waste predictions.'}</div>
           </div>
         `;
       } else {
@@ -122,7 +122,7 @@ const Prediction = {
         reasoningContainer.innerHTML = `
           <div style="text-align:center; padding:2.5rem 1.5rem; color:var(--text-muted); background:var(--glass-bg); border-radius:var(--radius-md); border:1px solid var(--glass-border);">
             <div style="font-size:2rem; margin-bottom:0.5rem;">🧠</div>
-            <div style="font-weight:700; color:var(--text-main); font-size:1.05rem;" data-i18n="pred.emptyTitle">${isMm ? 'ကုန်ပစ္စည်း စာရင်း မရှိသေးပါ' : 'No inventory data available'}</div>
+            <div style="font-weight:700; color:var(--text-main); font-size:1.05rem;" data-i18n="pred.empty.title">${isMm ? 'ကုန်ပစ္စည်း စာရင်း မရှိသေးပါ' : 'No inventory data available'}</div>
             <div style="font-size:0.85rem; margin-top:0.25rem;">${isMm ? 'အစားအစာများ ထည့်သွင်းပြီးပါက ပထမအဆင့် ယုတ္တိဗေဒ အင်ဂျင်မှ ရှင်းလင်းချက်များကို ဤနေရာတွင် ဖော်ပြပေးမည်ဖြစ်ပါသည်။' : 'Once ingredients are added to inventory, the first-order logic reasoning engine will provide transparent explanations here.'}</div>
           </div>
         `;

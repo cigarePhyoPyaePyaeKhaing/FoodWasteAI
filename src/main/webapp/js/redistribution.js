@@ -192,7 +192,7 @@ const Redistribution = {
         <tr>
           <td colspan="7" style="text-align:center; padding:3rem; color:var(--text-muted);">
             <div style="font-size:2rem; margin-bottom:0.5rem;">🤝</div>
-            <div style="font-weight:700; color:var(--text-main); font-size:1.05rem;" data-i18n="redist.emptyTitle">${isMm ? 'ပိုလျှံသော အစားအစာ မရှိသေးပါ' : 'No surplus available'}</div>
+            <div style="font-weight:700; color:var(--text-main); font-size:1.05rem;" data-i18n="redist.empty.title">${isMm ? 'ပိုလျှံသော အစားအစာ မရှိသေးပါ' : 'No surplus available'}</div>
             <div style="font-size:0.85rem; margin-top:0.25rem;">${isMm ? '"+ ပိုလျှံစာရင်း အသစ်ထည့်မည်" သို့မဟုတ် AI အကြံပြုချက်များမှတစ်ဆင့် ဆောင်ရွက်ပါ။' : 'Click "+ Schedule Surplus Dispatch" or trigger via AI Recommendation Directives.'}</div>
           </td>
         </tr>
