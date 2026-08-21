@@ -17,8 +17,8 @@ import java.util.Map;
 @WebServlet(name = "VersionServlet", urlPatterns = {"/api/version"})
 public class VersionServlet extends BaseServlet {
     private static final long serialVersionUID = 1L;
-    public static final String BUILD_COMMIT = "fix(security): enforce server-side protected page delivery";
-    public static final String BUILD_VERSION = "1.0.0-SECURE";
+    public static final String BUILD_COMMIT = "37fa554 - fix(auth): restore production DB config and prevent login redirect loops";
+    public static final String BUILD_VERSION = "1.0.0-PROD";
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
@@ -27,6 +27,9 @@ public class VersionServlet extends BaseServlet {
         versionInfo.put("version", BUILD_VERSION);
         versionInfo.put("buildTime", Instant.now().toString());
         versionInfo.put("environment", AppConfig.getAppEnv());
+        versionInfo.put("databaseHost", AppConfig.getDbHost());
+        versionInfo.put("databasePort", AppConfig.getDbPort());
+        versionInfo.put("databaseName", AppConfig.getDbName());
         versionInfo.put("protectedPageArchitecture", "WEB-INF/protected + ProtectedPageServlet");
         versionInfo.put("status", "ACTIVE");
 
