@@ -10,9 +10,8 @@ import java.sql.Connection;
 import java.sql.SQLException;
 
 /**
- * High-performance JDBC connection pool manager for MySQL (Aiven / Local).
- * Provides safe fallback handling so the web application can boot even when
- * database credentials have not been configured yet during early development.
+ * High-performance JDBC connection pool manager for MySQL (Aiven / Production / Local).
+ * Enforces production connection validity without silent mock fallbacks in production.
  */
 public class DatabaseConfig {
     private static final Logger logger = LoggerFactory.getLogger(DatabaseConfig.class);
@@ -32,13 +31,21 @@ public class DatabaseConfig {
         String user = AppConfig.getDbUser();
         String password = AppConfig.getDbPassword();
         String sslMode = AppConfig.getDbSslMode();
+        boolean isProd = AppConfig.isProduction();
+
+        logger.info("Initializing HikariCP DataSource for MySQL at {}:{}/{} (SSL Mode: {}, Environment: {})",
+                host, port, dbName, sslMode, AppConfig.getAppEnv());
+
+        if (isProd && ("localhost".equalsIgnoreCase(host) || "127.0.0.1".equals(host))) {
+            logger.error("[FATAL CONFIGURATION ERROR] APP_ENV=production is active, but DB_HOST is configured as '{}'. " +
+                    "Production strictly requires a remote database (e.g. Aiven MySQL host: mysql-33833560-foodwasteai.h.aivencloud.com). " +
+                    "Please configure DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD in Railway environment variables.", host);
+        }
 
         String jdbcUrl = String.format(
                 "jdbc:mysql://%s:%d/%s?useSSL=true&sslMode=%s&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=UTF-8",
                 host, port, dbName, sslMode
         );
-
-        logger.info("Initializing HikariCP DataSource for MySQL at {}:{}/{}", host, port, dbName);
 
         try {
             HikariConfig config = new HikariConfig();
@@ -49,7 +56,7 @@ public class DatabaseConfig {
 
             config.setMinimumIdle(AppConfig.getInt("DB_POOL_MIN_IDLE", 2));
             config.setMaximumPoolSize(AppConfig.getInt("DB_POOL_MAX_SIZE", 10));
-            config.setConnectionTimeout(AppConfig.getInt("DB_POOL_TIMEOUT", 5000)); // 5s fast timeout
+            config.setConnectionTimeout(AppConfig.getInt("DB_POOL_TIMEOUT", 8000));
             config.setIdleTimeout(600000);
             config.setMaxLifetime(1800000);
             config.setPoolName("FoodWasteAI-HikariPool");
@@ -64,14 +71,20 @@ public class DatabaseConfig {
 
             // Test connection and apply migrations
             try (Connection conn = dataSource.getConnection()) {
-                if (conn.isValid(2)) {
+                if (conn.isValid(3)) {
                     available = true;
                     applyBilingualMigrations(conn);
-                    logger.info("Database connection established successfully!");
+                    logger.info("Production database connection established successfully to {}:{}/{}!", host, port, dbName);
                 }
             }
         } catch (Exception e) {
-            logger.warn("Database connection could not be established: {}. Running in offline/mock fallback mode.", e.getMessage());
+            if (isProd) {
+                logger.error("[FATAL DATABASE ERROR] Production database connection to {}:{}/{} failed: {}. " +
+                        "In-memory mock fallback is strictly disabled in production mode.", host, port, dbName, e.getMessage());
+            } else {
+                logger.warn("Database connection could not be established to {}:{}/{}: {}. Running in development offline/mock fallback mode.",
+                        host, port, dbName, e.getMessage());
+            }
             available = false;
         }
     }
@@ -109,7 +122,11 @@ public class DatabaseConfig {
     public static Connection getConnection() throws SQLException {
         DataSource ds = getDataSource();
         if (ds == null || !available) {
-            throw new SQLException("Database connection is currently unavailable. Please verify Aiven MySQL credentials.");
+            if (AppConfig.isProduction()) {
+                throw new SQLException("CRITICAL: Production database is unavailable at " + AppConfig.getDbHost() + ":" +
+                        AppConfig.getDbPort() + "/" + AppConfig.getDbName() + ". Check Railway DB environment variables and Aiven MySQL status.");
+            }
+            throw new SQLException("Database connection is currently unavailable. Please verify MySQL credentials.");
         }
         return ds.getConnection();
     }

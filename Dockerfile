@@ -44,4 +44,4 @@ ENV APP_ENV=production
 EXPOSE 8080
 
 # Launch application
-CMD ["sh", "-c", "java -Dserver.port=${PORT:-8080} -jar /app/foodwaste-ai.jar"]
+CMD ["java", "-jar", "/app/foodwaste-ai.jar"]

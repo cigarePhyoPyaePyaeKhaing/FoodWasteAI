@@ -14,11 +14,13 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * REST API Controller for User Authentication & Session Management.
+ * REST API Controller for User Authentication & Session Verification.
+ * Authoritative source of truth for session validity.
  * Endpoints:
  *   POST /api/auth/login
  *   POST /api/auth/logout
  *   GET  /api/auth/me
+ *   GET  /api/auth/session
  */
 @WebServlet(name = "AuthServlet", urlPatterns = {"/api/auth", "/api/auth/*"})
 public class AuthServlet extends BaseServlet {
@@ -41,8 +43,12 @@ public class AuthServlet extends BaseServlet {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         String path = req.getPathInfo();
-        if (path != null && path.contains("me")) {
+        if (path == null || path.isEmpty() || "/".equals(path) || path.contains("me") || path.contains("session") || path.contains("validate")) {
             String token = extractToken(req);
+            if (token == null || token.trim().isEmpty()) {
+                sendUnauthorized(resp, "Authentication required: no active session");
+                return;
+            }
             Optional<User> userOpt = authService.validateToken(token);
             if (userOpt.isPresent()) {
                 User u = userOpt.get();
@@ -52,9 +58,13 @@ public class AuthServlet extends BaseServlet {
                 userData.put("fullName", u.getFullName());
                 userData.put("email", u.getEmail());
                 userData.put("role", u.getRole().name());
-                sendSuccess(resp, userData);
+
+                Map<String, Object> data = new LinkedHashMap<>();
+                data.put("user", userData);
+                data.put("token", token);
+                sendSuccess(resp, "Session is valid", data);
             } else {
-                sendUnauthorized(resp, "Session expired or invalid token");
+                sendUnauthorized(resp, "Authentication required: session expired or invalid token");
             }
             return;
         }
@@ -107,7 +117,7 @@ public class AuthServlet extends BaseServlet {
             if (token != null) {
                 authService.logout(token);
             }
-            // Clear session cookie
+            // Clear session cookies
             String clearCookieHeader = "foodwaste_session=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax";
             if (req.isSecure()) {
                 clearCookieHeader += "; Secure";
@@ -124,7 +134,10 @@ public class AuthServlet extends BaseServlet {
     private String extractToken(HttpServletRequest req) {
         String authHeader = req.getHeader("Authorization");
         if (authHeader != null && !authHeader.trim().isEmpty()) {
-            return authHeader;
+            if (authHeader.startsWith("Bearer ")) {
+                return authHeader.substring(7).trim();
+            }
+            return authHeader.trim();
         }
         if (req.getCookies() != null) {
             for (Cookie c : req.getCookies()) {

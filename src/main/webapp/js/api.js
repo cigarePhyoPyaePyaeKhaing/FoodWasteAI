@@ -1,6 +1,6 @@
 /**
  * FoodWaste AI - Central API Client
- * Wraps Fetch API with JSON envelopes, error handling, and toast alerts.
+ * Wraps Fetch API with JSON envelopes, error handling, credentials, and toast alerts.
  */
 const API = {
   baseUrl: '',
@@ -17,6 +17,7 @@ const API = {
     }
 
     const config = {
+      credentials: 'same-origin',
       ...options,
       headers: {
         ...defaultHeaders,
@@ -33,22 +34,39 @@ const API = {
       const data = await response.json().catch(() => null);
 
       if (!response.ok) {
-        if (response.status === 401 && !endpoint.includes('/api/auth/login')) {
-          localStorage.removeItem('foodwaste_user');
-          localStorage.removeItem('foodwaste_token');
+        const isAuthCheck = endpoint.includes('/api/auth/me') || endpoint.includes('/api/auth/session');
+        const isLogin = endpoint.includes('/api/auth/login');
+
+        if (response.status === 401 && !isLogin) {
+          if (typeof Auth !== 'undefined' && typeof Auth.clearAuth === 'function') {
+            Auth.clearAuth();
+          } else {
+            localStorage.removeItem('foodwaste_user');
+            localStorage.removeItem('foodwaste_token');
+            document.cookie = 'foodwaste_session=; Path=/; Max-Age=0; SameSite=Lax';
+            document.cookie = 'token=; Path=/; Max-Age=0; SameSite=Lax';
+          }
+
           const path = window.location.pathname;
           if (path !== '/' && !path.endsWith('/index.html') && !path.endsWith('/index.htm')) {
             window.location.replace('/index.html');
           }
         }
+
         const errorMsg = data && data.message ? data.message : `HTTP Error ${response.status}: ${response.statusText}`;
-        throw new Error(errorMsg);
+        const err = new Error(errorMsg);
+        err.status = response.status;
+        err.isAuthCheck = isAuthCheck;
+        throw err;
       }
 
       return data;
     } catch (err) {
-      console.error(`API Error [${endpoint}]:`, err);
-      this.showToast(err.message, 'error');
+      // Don't toast background session checks that return 401
+      if (!err.isAuthCheck) {
+        console.error(`API Error [${endpoint}]:`, err);
+        this.showToast(err.message, 'error');
+      }
       throw err;
     }
   },

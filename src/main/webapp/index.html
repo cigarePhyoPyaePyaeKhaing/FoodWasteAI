@@ -119,11 +119,6 @@
 <script src="/js/api.js"></script>
 <script src="/js/auth.js"></script>
 <script>
-  // Redirect to dashboard if already authenticated
-  if (Auth.isAuthenticated()) {
-    window.location.replace('/dashboard.html');
-  }
-
   async function handleLogin(e) {
     e.preventDefault();
     const username = document.getElementById('username').value.trim();

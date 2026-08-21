@@ -133,8 +133,8 @@ public class AuthenticationFilter implements Filter {
             return true;
         }
 
-        // Public APIs
-        if ("/api/health".equals(path) || "/api/auth/login".equals(path) || "/api/version".equals(path)) {
+        // Public APIs and Auth Controller endpoints
+        if ("/api/health".equals(path) || path.startsWith("/api/auth") || "/api/version".equals(path)) {
             return true;
         }
 
