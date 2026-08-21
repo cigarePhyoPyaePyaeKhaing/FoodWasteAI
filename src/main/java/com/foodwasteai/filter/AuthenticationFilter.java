@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Security & Role-Based Authorization Filter.
@@ -22,6 +23,18 @@ import java.util.Optional;
 @WebFilter(filterName = "AuthenticationFilter", urlPatterns = {"/*"})
 public class AuthenticationFilter implements Filter {
     private static final Logger logger = LoggerFactory.getLogger(AuthenticationFilter.class);
+    private static final Set<String> PROTECTED_HTML_PAGES = Set.of(
+            "/dashboard.html", "/dashboard",
+            "/inventory.html", "/inventory",
+            "/sales.html", "/sales",
+            "/waste.html", "/waste",
+            "/prediction.html", "/prediction",
+            "/recommendations.html", "/recommendations",
+            "/redistribution.html", "/redistribution",
+            "/reports.html", "/reports",
+            "/settings.html", "/settings",
+            "/users.html", "/users"
+    );
     private final AuthService authService = new AuthService();
     private final Gson gson = new Gson();
 
@@ -159,7 +172,7 @@ public class AuthenticationFilter implements Filter {
         if (lower.equals("/index.html") || lower.equals("/index.htm") || lower.equals("/")) {
             return false;
         }
-        return lower.endsWith(".html") || lower.endsWith(".htm");
+        return PROTECTED_HTML_PAGES.contains(lower) || lower.endsWith(".html") || lower.endsWith(".htm");
     }
 
     /**
@@ -168,7 +181,7 @@ public class AuthenticationFilter implements Filter {
     private boolean isAdminOnlyPage(String path) {
         if (path == null) return false;
         String lower = path.toLowerCase();
-        return lower.equals("/users.html") || lower.endsWith("/users.html");
+        return lower.equals("/users.html") || lower.endsWith("/users.html") || lower.equals("/users");
     }
 
     /**

@@ -74,6 +74,17 @@ public class SecurityAndAuthTest {
         return client.send(builder.build(), HttpResponse.BodyHandlers.ofString());
     }
 
+    private HttpResponse<String> sendGetWithCookie(String path, String cookieToken) throws IOException, InterruptedException {
+        HttpRequest.Builder builder = HttpRequest.newBuilder()
+                .uri(URI.create(baseUrl + path))
+                .GET()
+                .timeout(Duration.ofSeconds(5));
+        if (cookieToken != null) {
+            builder.header("Cookie", "foodwaste_session=" + cookieToken);
+        }
+        return client.send(builder.build(), HttpResponse.BodyHandlers.ofString());
+    }
+
     private HttpResponse<String> sendPostJson(String path, String jsonBody, String token) throws IOException, InterruptedException {
         HttpRequest.Builder builder = HttpRequest.newBuilder()
                 .uri(URI.create(baseUrl + path))
@@ -276,6 +287,65 @@ public class SecurityAndAuthTest {
         HttpResponse<String> getResp = sendGet("/api/users", adminToken);
         assertEquals(200, getResp.statusCode(), "ADMIN accessing /api/users must return HTTP 200 OK");
         assertTrue(getResp.body().contains("admin"));
+    }
+
+    @Test
+    @DisplayName("Security: Production Requirement 9 - ADMIN GET /users.html returns 200 with HTML content")
+    public void testAdminAccessToUsersHtmlPageAllowed() throws Exception {
+        Optional<AuthService.UserSession> adminSession = authService.authenticate("admin", "admin123");
+        assertTrue(adminSession.isPresent(), "Admin should authenticate successfully");
+        String adminToken = adminSession.get().getToken();
+
+        // 1. With Authorization header
+        HttpResponse<String> respHeader = sendGet("/users.html", adminToken);
+        assertEquals(200, respHeader.statusCode(), "ADMIN with Bearer token must get 200 on /users.html");
+        assertTrue(respHeader.body().contains("<!DOCTYPE html>") || respHeader.body().contains("User Management") || respHeader.body().contains("users"),
+                "Response body must contain users.html content");
+
+        // 2. With Cookie (standard browser navigation)
+        HttpResponse<String> respCookie = sendGetWithCookie("/users.html", adminToken);
+        assertEquals(200, respCookie.statusCode(), "ADMIN with session cookie must get 200 on /users.html");
+    }
+
+    @Test
+    @DisplayName("Security: Production Requirement 9 - Logout then access /dashboard.html is blocked (302 to /index.html)")
+    public void testLogoutThenAccessDashboardHtmlBlocked() throws Exception {
+        // Step 1: Login
+        Optional<AuthService.UserSession> session = authService.authenticate("admin", "admin123");
+        assertTrue(session.isPresent());
+        String token = session.get().getToken();
+
+        // Step 2: Access dashboard while logged in -> 200
+        HttpResponse<String> activeResp = sendGet("/dashboard.html", token);
+        assertEquals(200, activeResp.statusCode(), "Active session must access dashboard.html");
+
+        // Step 3: Logout
+        HttpResponse<String> logoutResp = sendPostJson("/api/auth/logout", "{}", token);
+        assertEquals(200, logoutResp.statusCode());
+
+        // Step 4: Access dashboard after logout -> blocked (302 redirect to /index.html)
+        HttpResponse<String> postLogoutResp = sendGet("/dashboard.html", token);
+        assertEquals(302, postLogoutResp.statusCode(), "Accessing dashboard.html after logout must be blocked with 302 redirect");
+        String location = postLogoutResp.headers().firstValue("Location").orElse("");
+        assertTrue(location.endsWith("/index.html"), "Redirect location must end with /index.html");
+
+        // Also verify cookie-based access after logout is blocked
+        HttpResponse<String> postLogoutCookieResp = sendGetWithCookie("/dashboard.html", token);
+        assertEquals(302, postLogoutCookieResp.statusCode(), "Cookie access to dashboard.html after logout must be blocked with 302");
+    }
+
+    @Test
+    @DisplayName("Security: Authenticated STAFF can access /dashboard.html and /inventory.html (HTTP 200)")
+    public void testStaffAccessToGeneralProtectedPagesAllowed() throws Exception {
+        Optional<AuthService.UserSession> staffSession = authService.authenticate("staff", "staff123");
+        assertTrue(staffSession.isPresent());
+        String staffToken = staffSession.get().getToken();
+
+        HttpResponse<String> dashResp = sendGet("/dashboard.html", staffToken);
+        assertEquals(200, dashResp.statusCode(), "STAFF must be able to view /dashboard.html");
+
+        HttpResponse<String> invResp = sendGet("/inventory.html", staffToken);
+        assertEquals(200, invResp.statusCode(), "STAFF must be able to view /inventory.html");
     }
 
     @Test
