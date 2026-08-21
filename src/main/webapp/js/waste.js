@@ -206,7 +206,13 @@ const Waste = {
     if (lossEl) lossEl.textContent = totalLoss.toLocaleString() + ' MMK';
 
     const wasteEl = document.getElementById('kpi-waste-kg');
-    if (wasteEl) wasteEl.textContent = totalWasteUnits.toFixed(1) + ' units';
+    if (wasteEl) {
+      if (typeof I18n !== 'undefined' && typeof I18n.formatUnitAggregate === 'function') {
+        wasteEl.textContent = I18n.formatUnitAggregate(this.records, r => r.quantityWasted, r => r.unit, '');
+      } else {
+        wasteEl.textContent = totalWasteUnits.toFixed(1);
+      }
+    }
 
     const co2El = document.getElementById('kpi-waste-co2');
     if (co2El) co2El.textContent = co2Kg.toFixed(1) + ' kg CO₂e';

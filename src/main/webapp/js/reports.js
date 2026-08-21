@@ -47,7 +47,6 @@ const Reports = {
   },
 
   render() {
-    const totalWasteKg = this.wasteRecords.reduce((sum, r) => sum + Number(r.quantityWasted || 0), 0);
     const totalLoss = this.wasteRecords.reduce((sum, r) => sum + Number(r.monetaryLoss || 0), 0);
     const savedKg = Number(this.redistStats.wasteReductionImpactKg || 0);
 
@@ -60,8 +59,25 @@ const Reports = {
     const lossEl = document.getElementById('report-kpi-loss');
     const adoptionEl = document.getElementById('report-kpi-adoption');
 
-    if (wasteEl) wasteEl.textContent = totalWasteKg.toFixed(1) + ' kg';
-    if (savedEl) savedEl.textContent = savedKg.toFixed(1) + ' kg';
+    if (wasteEl) {
+      if (typeof I18n !== 'undefined' && typeof I18n.formatUnitAggregate === 'function') {
+        wasteEl.textContent = I18n.formatUnitAggregate(this.wasteRecords, r => r.quantityWasted, r => r.unit, '');
+      } else {
+        const totalQty = this.wasteRecords.reduce((sum, r) => sum + Number(r.quantityWasted || 0), 0);
+        wasteEl.textContent = totalQty.toFixed(1);
+      }
+    }
+
+    if (savedEl) {
+      if (this.redistStats && this.redistStats.rescuedDispatches && Array.isArray(this.redistStats.rescuedDispatches) && typeof I18n !== 'undefined') {
+        savedEl.textContent = I18n.formatUnitAggregate(this.redistStats.rescuedDispatches, d => d.quantity, d => d.unit, '');
+      } else if (savedKg > 0) {
+        savedEl.textContent = savedKg.toFixed(1) + ' kg';
+      } else {
+        savedEl.textContent = '0.0';
+      }
+    }
+
     if (lossEl) lossEl.textContent = totalLoss.toLocaleString() + ' MMK';
     if (adoptionEl) adoptionEl.textContent = adoptionRate + '%';
 
@@ -83,23 +99,26 @@ const Reports = {
     }
 
     const categoryMap = {};
+    const totalWasteQty = this.wasteRecords.reduce((sum, r) => sum + Number(r.quantityWasted || 0), 0);
+
     for (const r of this.wasteRecords) {
       const cat = r.foodItemName || ('Food Item #' + r.foodItemId);
       if (!categoryMap[cat]) {
-        categoryMap[cat] = { qty: 0, loss: 0, reason: r.reason || 'SPOILED' };
+        categoryMap[cat] = { qty: 0, loss: 0, reason: r.reason || 'SPOILED', unit: r.unit || 'units' };
       }
       categoryMap[cat].qty += Number(r.quantityWasted || 0);
       categoryMap[cat].loss += Number(r.monetaryLoss || 0);
+      if (r.unit) categoryMap[cat].unit = r.unit;
     }
 
     tbody.innerHTML = Object.keys(categoryMap).map(cat => {
       const item = categoryMap[cat];
-      const sharePct = totalWasteKg > 0 ? ((item.qty / totalWasteKg) * 100).toFixed(1) : '0.0';
+      const sharePct = totalWasteQty > 0 ? ((item.qty / totalWasteQty) * 100).toFixed(1) : '0.0';
       const reasonText = typeof I18n !== 'undefined' ? I18n.translateWasteReason(item.reason) : item.reason;
       return `
         <tr>
           <td><strong>${cat}</strong></td>
-          <td>${item.qty.toFixed(1)} kg</td>
+          <td>${item.qty.toFixed(1)} ${item.unit}</td>
           <td><strong style="color:var(--risk-high-text);">${item.loss.toLocaleString()} MMK</strong></td>
           <td>${sharePct}%</td>
           <td>${reasonText}</td>

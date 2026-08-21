@@ -1,6 +1,7 @@
 /**
  * FoodWaste AI - Internationalization (i18n) Engine
  * Supports Seamless English (EN) & Professional Myanmar (MM) Switching
+ * Includes Unit-Aware Aggregation formatting across all operational modules.
  */
 const I18n = {
   currentLang: 'en',
@@ -35,6 +36,83 @@ const I18n = {
 
     // Trigger custom event for dynamic controllers to re-render immediately
     window.dispatchEvent(new CustomEvent('languageChanged', { detail: { language: normalized } }));
+  },
+
+  toggleLanguage() {
+    this.setLanguage(this.isMyanmar() ? 'en' : 'mm');
+  },
+
+  /**
+   * Unit-Aware Aggregate Formatting Helper
+   * Safely groups quantities by unit.
+   * - Single unit: "4.0 liter", "3.0 kg", "12 pieces"
+   * - Mixed units: "5.0 liter • 3.0 kg • 12 pieces" (never adds incompatible numbers together!)
+   * - Empty: "0.0" or "0.0 <defaultUnit>"
+   */
+  formatUnitAggregate(items, getQuantity, getUnit, defaultUnit = '') {
+    if (!items || items.length === 0) {
+      return defaultUnit ? `0.0 ${defaultUnit}` : '0.0';
+    }
+
+    const totalsByUnit = {};
+    items.forEach(item => {
+      let rawQty = 0;
+      if (getQuantity) {
+        rawQty = getQuantity(item);
+      } else if (item.quantity !== undefined) {
+        rawQty = item.quantity;
+      } else if (item.quantitySold !== undefined) {
+        rawQty = item.quantitySold;
+      } else if (item.quantityWasted !== undefined) {
+        rawQty = item.quantityWasted;
+      } else if (item.predictedWasteQuantity !== undefined) {
+        rawQty = item.predictedWasteQuantity;
+      } else if (item.predictedWasteQty !== undefined) {
+        rawQty = item.predictedWasteQty;
+      } else if (item.stock !== undefined) {
+        rawQty = item.stock;
+      }
+      const qty = Number(rawQty) || 0;
+
+      let rawUnit = '';
+      if (getUnit) {
+        rawUnit = getUnit(item);
+      } else if (item.unit) {
+        rawUnit = item.unit;
+      } else if (item.foodUnit) {
+        rawUnit = item.foodUnit;
+      } else {
+        rawUnit = defaultUnit || 'units';
+      }
+      const unit = (rawUnit && String(rawUnit).trim()) ? String(rawUnit).trim() : (defaultUnit || 'units');
+
+      if (qty > 0 || Object.keys(totalsByUnit).length === 0) {
+        totalsByUnit[unit] = (totalsByUnit[unit] || 0) + qty;
+      }
+    });
+
+    const units = Object.keys(totalsByUnit);
+    if (units.length === 0) {
+      return defaultUnit ? `0.0 ${defaultUnit}` : '0.0';
+    }
+
+    const formatVal = (val, u) => {
+      const num = Number(val) || 0;
+      const lower = String(u).toLowerCase();
+      if ((lower === 'pieces' || lower === 'piece' || lower === 'units') && num % 1 === 0) {
+        return Math.round(num).toString();
+      }
+      return num.toFixed(1);
+    };
+
+    if (units.length === 1) {
+      const u = units[0];
+      const val = totalsByUnit[u];
+      return `${formatVal(val, u)} ${u}`;
+    }
+
+    // Mixed units: Render compact unit-specific totals e.g. "5.0 liter • 3.0 kg • 12 pieces"
+    return units.map(u => `${formatVal(totalsByUnit[u], u)} ${u}`).join(' • ');
   },
 
   /**
@@ -171,6 +249,7 @@ const I18n = {
   translateError(err) {
     if (!err) return 'An error occurred';
     const msg = typeof err === 'string' ? err : (err.message || err.error || JSON.stringify(err));
+    if (this.isMyanmar()) {
       if (msg.includes('Insufficient stock') || msg.includes('insufficient stock')) return 'ပစ္စည်းလက်ကျန် မလုံလောက်ပါ။ ' + msg;
       if (msg.includes('Cannot record sale for expired') || msg.includes('expired food item')) return 'သက်တမ်းကုန်ဆုံးသွားသော ကုန်ပစ္စည်းကို ရောင်းချ၍မရပါ';
       if (msg.includes('Recipient not found') || msg.includes('inactive')) return 'ပရဟိတ မိတ်ဖက်အဖွဲ့အစည်းကို ရှာမတွေ့ပါ သို့မဟုတ် ပိတ်ထားပါသည်';
@@ -232,7 +311,7 @@ const I18n = {
     });
 
     // 4. Update dynamic document title if specified
-    const pageTitleKey = document.body.getAttribute('data-i18n-page-title');
+    const pageTitleKey = document.body ? document.body.getAttribute('data-i18n-page-title') : null;
     if (pageTitleKey) {
       document.title = "FoodWaste AI - " + this.t(pageTitleKey);
     }
@@ -247,9 +326,6 @@ const I18n = {
       if (topbarRight) {
         container = document.createElement('div');
         container.id = 'language-switcher-container';
-        container.style.display = 'inline-flex';
-        container.style.alignItems = 'center';
-        container.style.marginRight = '0.75rem';
         topbarRight.insertBefore(container, topbarRight.firstChild);
       } else {
         const loginCard = document.getElementById('login-lang-container') || document.querySelector('.brand-hero-box');
@@ -265,40 +341,14 @@ const I18n = {
     }
 
     if (container) {
+      const isEn = this.currentLang === 'en';
+      const isMm = this.isMyanmar();
       container.innerHTML = `
-        <div class="lang-switch-bubble" style="
-          display: inline-flex;
-          background: var(--bg-surface-glass);
-          backdrop-filter: var(--glass-blur);
-          -webkit-backdrop-filter: var(--glass-blur);
-          border: 1px solid var(--glass-border);
-          border-radius: var(--radius-pill);
-          padding: 3px;
-          gap: 2px;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-        ">
-          <button type="button" id="lang-btn-en" onclick="I18n.setLanguage('en')" style="
-            border: none;
-            cursor: pointer;
-            padding: 4px 10px;
-            font-size: 0.78rem;
-            font-weight: 700;
-            border-radius: var(--radius-pill);
-            transition: all 0.2s ease;
-            ${this.currentLang === 'en' ? 'background: var(--accent-yellow-400); color: var(--text-main); box-shadow: 0 1px 4px rgba(234,179,8,0.3);' : 'background: transparent; color: var(--text-muted);'}
-          ">
+        <div class="lang-switch-bubble">
+          <button type="button" id="lang-btn-en" onclick="I18n.setLanguage('en')" class="lang-btn ${isEn ? 'active' : ''}">
             🌐 English
           </button>
-          <button type="button" id="lang-btn-mm" onclick="I18n.setLanguage('mm')" style="
-            border: none;
-            cursor: pointer;
-            padding: 4px 10px;
-            font-size: 0.78rem;
-            font-weight: 700;
-            border-radius: var(--radius-pill);
-            transition: all 0.2s ease;
-            ${this.currentLang === 'mm' ? 'background: var(--accent-yellow-400); color: var(--text-main); box-shadow: 0 1px 4px rgba(234,179,8,0.3);' : 'background: transparent; color: var(--text-muted);'}
-          ">
+          <button type="button" id="lang-btn-mm" onclick="I18n.setLanguage('mm')" class="lang-btn ${isMm ? 'active' : ''}">
             မြန်မာ
           </button>
         </div>
@@ -312,26 +362,20 @@ const I18n = {
 
     if (btnEn && btnMm) {
       if (this.currentLang === 'en') {
-        btnEn.style.background = 'var(--accent-yellow-400)';
-        btnEn.style.color = 'var(--text-main)';
-        btnEn.style.boxShadow = '0 1px 4px rgba(234,179,8,0.3)';
-
-        btnMm.style.background = 'transparent';
-        btnMm.style.color = 'var(--text-muted)';
-        btnMm.style.boxShadow = 'none';
+        btnEn.classList.add('active');
+        btnMm.classList.remove('active');
       } else {
-        btnMm.style.background = 'var(--accent-yellow-400)';
-        btnMm.style.color = 'var(--text-main)';
-        btnMm.style.boxShadow = '0 1px 4px rgba(234,179,8,0.3)';
-
-        btnEn.style.background = 'transparent';
-        btnEn.style.color = 'var(--text-muted)';
-        btnEn.style.boxShadow = 'none';
+        btnMm.classList.add('active');
+        btnEn.classList.remove('active');
       }
     }
   }
 };
 
-document.addEventListener('DOMContentLoaded', () => {
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
+    I18n.init();
+  });
+} else {
   I18n.init();
-});
+}

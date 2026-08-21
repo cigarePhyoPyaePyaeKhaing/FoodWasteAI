@@ -81,6 +81,7 @@
         <h1 class="page-headline-glass" data-i18n="pred.headline">Waste Prediction & Prolog Reasoning</h1>
       </div>
       <div class="topbar-right">
+        <div id="language-switcher-container"></div>
         <button class="btn-bubble btn-yellow btn-sm-bubble" onclick="Prediction.runPrologInference()" data-i18n="pred.btn.evaluate">+ Run Expert Evaluation</button>
       </div>
     </header>
@@ -100,11 +101,11 @@
 
         <div class="kpi-bubble-card">
           <div class="kpi-bubble-top">
-            <span class="kpi-bubble-label" data-i18n="pred.kpi.predictedVolume">Predicted Waste Volume</span>
+            <span class="kpi-bubble-label" data-i18n="pred.kpi.predictedVolume">Predicted Waste Quantity</span>
             <div class="kpi-bubble-icon kpi-icon-red">⚖️</div>
           </div>
           <div>
-            <div class="kpi-bubble-value" id="kpi-pred-waste">0.0 kg</div>
+            <div class="kpi-bubble-value" id="kpi-pred-waste">0.0</div>
             <div class="kpi-bubble-sub" data-i18n="pred.kpi.withoutMitigation">Without proactive mitigation</div>
           </div>
         </div>

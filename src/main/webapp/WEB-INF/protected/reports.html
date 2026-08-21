@@ -81,6 +81,7 @@
         <h1 class="page-headline-glass" data-i18n="reports.headline">Sustainability & Financial Reports</h1>
       </div>
       <div class="topbar-right">
+        <div id="language-switcher-container"></div>
         <button class="btn-bubble btn-yellow btn-sm-bubble" onclick="API.showToast('Exporting Report...', 'info')" data-i18n="reports.exportBtn">📥 Export Report</button>
       </div>
     </header>
@@ -102,7 +103,7 @@
             <div class="kpi-bubble-icon kpi-icon-red">🗑️</div>
           </div>
           <div>
-            <div class="kpi-bubble-value" id="report-kpi-waste">0.0 kg</div>
+            <div class="kpi-bubble-value" id="report-kpi-waste">0.0</div>
             <div class="kpi-bubble-sub" style="color:var(--text-muted);" data-i18n="reports.kpi.totalWasteSub">Tracked kitchen waste</div>
           </div>
         </div>
@@ -113,7 +114,7 @@
             <div class="kpi-bubble-icon kpi-icon-green">🌿</div>
           </div>
           <div>
-            <div class="kpi-bubble-value" id="report-kpi-saved">0.0 kg</div>
+            <div class="kpi-bubble-value" id="report-kpi-saved">0.0</div>
             <div class="kpi-bubble-sub" style="color:#047857; font-weight:700;" data-i18n="reports.kpi.foodSavedSub">Rescued & redistributed</div>
           </div>
         </div>

@@ -55,7 +55,11 @@ const Prediction = {
 
     const wasteKgEl = document.getElementById('kpi-pred-waste');
     if (wasteKgEl) {
-      wasteKgEl.textContent = (hasItems ? Number(this.report.expectedTotalWasteKg || 0).toFixed(1) : '0.0') + ' kg';
+      if (typeof I18n !== 'undefined' && typeof I18n.formatUnitAggregate === 'function') {
+        wasteKgEl.textContent = hasItems ? I18n.formatUnitAggregate(items, i => (i.predictedWasteQuantity !== undefined ? i.predictedWasteQuantity : (i.predictedWasteQty !== undefined ? i.predictedWasteQty : Math.max(0, i.stock - i.expectedDemand))), i => i.unit, '') : '0.0';
+      } else {
+        wasteKgEl.textContent = (hasItems ? Number(this.report.expectedTotalWasteKg || 0).toFixed(1) : '0.0');
+      }
     }
 
     const savingsEl = document.getElementById('kpi-pred-savings');

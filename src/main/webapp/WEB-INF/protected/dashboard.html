@@ -84,6 +84,7 @@
         <h1 class="page-headline-glass" data-i18n="nav.dashboard">Dashboard</h1>
       </div>
       <div class="topbar-right">
+        <div id="language-switcher-container"></div>
         <div class="system-status-bubble">
           <span class="status-dot-yellow"></span>
           <span data-i18n="chat.status">AI Engine: Active</span>
@@ -103,7 +104,7 @@
             <div class="kpi-bubble-icon kpi-icon-red">🗑️</div>
           </div>
           <div>
-            <div class="kpi-bubble-value" id="kpi-today-waste">0.0 kg</div>
+            <div class="kpi-bubble-value" id="kpi-today-waste">0.0</div>
             <div class="kpi-bubble-sub" id="kpi-today-sub" style="color:var(--text-muted);">
               <span>No waste logged today</span>
             </div>
@@ -117,7 +118,7 @@
             <div class="kpi-bubble-icon kpi-icon-yellow">🔮</div>
           </div>
           <div>
-            <div class="kpi-bubble-value" id="kpi-predicted-tomorrow">0.0 kg</div>
+            <div class="kpi-bubble-value" id="kpi-predicted-tomorrow">0.0</div>
             <div class="kpi-bubble-sub" id="kpi-pred-sub" style="color:var(--accent-yellow-dark); font-weight:700;">
               <span>No prediction available</span>
             </div>
@@ -171,11 +172,11 @@
             <div style="display:flex; justify-content:center; gap:24px; margin-top:1.25rem; font-size:0.8rem; font-weight:600;">
               <div style="display:flex; align-items:center; gap:6px;">
                 <span style="display:inline-block; width:14px; height:14px; background:linear-gradient(180deg, #facc15 0%, #eab308 100%); border-radius:4px;"></span>
-                <span data-i18n="dash.chart.actual">Actual Waste (kg)</span>
+                <span data-i18n="dash.chart.actual">Actual Recorded Waste</span>
               </div>
               <div style="display:flex; align-items:center; gap:6px;">
                 <span style="display:inline-block; width:14px; height:14px; background:rgba(254, 240, 138, 0.8); border:2px dashed #eab308; border-radius:4px;"></span>
-                <span data-i18n="dash.chart.predicted">Predicted Tomorrow (kg)</span>
+                <span data-i18n="dash.chart.predicted">AI Predicted Baseline</span>
               </div>
             </div>
           </div>

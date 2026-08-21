@@ -6,9 +6,9 @@
 const Dashboard = {
   data: {
     kpis: {
-      todayWaste: '0.0 kg',
+      todayWaste: '0.0',
       todayWasteSub: 'No waste logged today',
-      predictedTomorrow: '0.0 kg',
+      predictedTomorrow: '0.0',
       predictedTrend: 'No prediction available',
       moneyLost: '0 MMK',
       moneyLostSub: "Today's financial spoilage",
@@ -47,10 +47,14 @@ const Dashboard = {
         const totalItems = d.totalItemsEvaluated || 0;
 
         if (totalItems > 0) {
-          const predKg = d.expectedTotalWasteKg !== undefined ? Number(d.expectedTotalWasteKg).toFixed(1) : '0.0';
           const moneyVal = d.estimatedMoneyLost !== undefined ? Number(d.estimatedMoneyLost).toLocaleString() : '0';
 
-          this.data.kpis.predictedTomorrow = `${predKg} kg`;
+          if (typeof I18n !== 'undefined' && typeof I18n.formatUnitAggregate === 'function' && d.items && d.items.length > 0) {
+            this.data.kpis.predictedTomorrow = I18n.formatUnitAggregate(d.items, i => (i.predictedWasteQuantity !== undefined ? i.predictedWasteQuantity : (i.predictedWasteQty !== undefined ? i.predictedWasteQty : Math.max(0, i.stock - i.expectedDemand))), i => i.unit, '');
+          } else {
+            this.data.kpis.predictedTomorrow = '0.0';
+          }
+
           this.data.kpis.predictedTrend = `Evaluated across ${totalItems} item(s)`;
           this.data.kpis.moneyLost = `${moneyVal} MMK`;
 
@@ -68,7 +72,7 @@ const Dashboard = {
             this.data.highRiskFoods = [];
           }
         } else {
-          this.data.kpis.predictedTomorrow = '0.0 kg';
+          this.data.kpis.predictedTomorrow = '0.0';
           this.data.kpis.predictedTrend = 'No prediction available';
           this.data.kpis.moneyLost = '0 MMK';
           this.data.highRiskFoods = [];
@@ -81,24 +85,30 @@ const Dashboard = {
         const wasteLogs = wasteRes.data;
         const todayStr = new Date().toISOString().split('T')[0];
 
-        let todayKg = 0;
         let todayLoss = 0;
+        const todayItems = [];
 
         wasteLogs.forEach(w => {
-          if (w.wasteDate && w.wasteDate.startsWith(todayStr)) {
-            todayKg += Number(w.quantity) || 0;
-            todayLoss += Number(w.financialLoss) || 0;
+          if (!w.wasteDate || w.wasteDate.startsWith(todayStr)) {
+            todayItems.push(w);
+            todayLoss += Number(w.monetaryLoss || w.financialLoss) || 0;
           }
         });
 
         if (wasteLogs.length > 0) {
-          const totalWasteKg = wasteLogs.reduce((acc, curr) => acc + (Number(curr.quantity) || 0), 0);
-          const carbonKg = (totalWasteKg * 2.5).toFixed(1);
+          const totalWasteQty = wasteLogs.reduce((acc, curr) => acc + (Number(curr.quantityWasted || curr.quantity) || 0), 0);
+          const carbonKg = (totalWasteQty * 2.5).toFixed(1);
 
-          this.data.kpis.todayWaste = `${todayKg.toFixed(1)} kg`;
-          this.data.kpis.todayWasteSub = todayKg > 0 ? `Logged today` : `No waste logged today`;
+          const itemsForTodayWaste = todayItems.length > 0 ? todayItems : wasteLogs;
+          if (typeof I18n !== 'undefined' && typeof I18n.formatUnitAggregate === 'function') {
+            this.data.kpis.todayWaste = I18n.formatUnitAggregate(itemsForTodayWaste, w => (w.quantityWasted !== undefined ? w.quantityWasted : w.quantity), w => w.unit, '');
+          } else {
+            this.data.kpis.todayWaste = '0.0';
+          }
+
+          this.data.kpis.todayWasteSub = todayItems.length > 0 ? `Logged today` : `Based on recent logs`;
           this.data.kpis.carbonImpact = `${carbonKg} kg CO₂e`;
-          this.data.kpis.carbonSub = `Based on logged waste`;
+          this.data.kpis.carbonSub = `Avoidable greenhouse impact`;
 
           if (todayLoss > 0) {
             this.data.kpis.moneyLost = `${todayLoss.toLocaleString()} MMK`;
@@ -184,8 +194,11 @@ const Dashboard = {
     if (elMoney) elMoney.textContent = k.moneyLost;
     if (elCarbon) elCarbon.textContent = k.carbonImpact;
 
-    if (elTodaySub) elTodaySub.textContent = isMm ? (k.todayWaste === '0.0 kg' ? 'ယနေ့ အလေအလွင့် မရှိသေးပါ' : 'ယနေ့ မှတ်တမ်းတင်ထားသော ပမာဏ') : k.todayWasteSub;
-    if (elPredSub) elPredSub.textContent = isMm ? (k.predictedTomorrow === '0.0 kg' ? 'ခန့်မှန်းချက် မရှိသေးပါ' : 'SWI-Prolog ယုတ္တိဗေဒ ခန့်မှန်းချက်') : k.predictedTrend;
+    const isTodayZero = !k.todayWaste || k.todayWaste === '0.0' || k.todayWaste.startsWith('0.0');
+    const isPredZero = !k.predictedTomorrow || k.predictedTomorrow === '0.0' || k.predictedTomorrow.startsWith('0.0');
+
+    if (elTodaySub) elTodaySub.textContent = isMm ? (isTodayZero ? 'ယနေ့ အလေအလွင့် မရှိသေးပါ' : 'ယနေ့ မှတ်တမ်းတင်ထားသော ပမာဏ') : k.todayWasteSub;
+    if (elPredSub) elPredSub.textContent = isMm ? (isPredZero ? 'ခန့်မှန်းချက် မရှိသေးပါ' : 'SWI-Prolog ယုတ္တိဗေဒ ခန့်မှန်းချက်') : k.predictedTrend;
     if (elMoneySub) elMoneySub.textContent = isMm ? 'ယနေ့ ငွေကြေးဆုံးရှုံးမှု' : k.moneyLostSub;
     if (elCarbonSub) elCarbonSub.textContent = isMm ? 'သဘာဝပတ်ဝန်းကျင် သက်ရောက်မှု' : k.carbonSub;
   },
@@ -222,8 +235,8 @@ const Dashboard = {
 
       html += `
         <div style="flex:1; display:flex; flex-direction:column; align-items:center; height:100%; justify-content:flex-end; cursor:pointer;" 
-             title="${item.day}: ${item.actual} kg">
-          <span style="font-size:0.75rem; font-weight:700; color:var(--text-muted); margin-bottom:6px;">${item.actual}k</span>
+             title="${item.day}: ${item.actual}">
+          <span style="font-size:0.75rem; font-weight:700; color:var(--text-muted); margin-bottom:6px;">${item.actual}</span>
           <div style="width:100%; max-width:38px; height:${heightActual}px; background:linear-gradient(180deg, #facc15 0%, #eab308 100%); border-radius:12px; box-shadow:0 6px 14px rgba(234, 179, 8, 0.25); border:1px solid rgba(255,255,255,0.8); transition:transform 0.2s;" onmouseover="this.style.transform='scaleY(1.05)'" onmouseout="this.style.transform='scaleY(1)'"></div>
           <span style="font-size:0.75rem; font-weight:600; color:var(--text-body); margin-top:8px; white-space:nowrap;">${item.day}</span>
         </div>

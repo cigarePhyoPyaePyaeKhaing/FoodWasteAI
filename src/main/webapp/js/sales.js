@@ -215,14 +215,20 @@ const Sales = {
   updateKpis() {
     const isMm = typeof I18n !== 'undefined' && I18n.getLanguage() === 'mm';
     const totalRev = this.sales.reduce((sum, s) => sum + Number(s.totalAmount || 0), 0);
-    const totalVol = this.sales.reduce((sum, s) => sum + Number(s.quantitySold || 0), 0);
     const totalDiners = this.sales.reduce((sum, s) => sum + Number(s.customerCount || 0), 0);
 
     const revEl = document.getElementById('kpi-sales-revenue');
     if (revEl) revEl.textContent = totalRev.toLocaleString() + ' MMK';
 
     const volEl = document.getElementById('kpi-sales-volume');
-    if (volEl) volEl.textContent = totalVol.toFixed(1) + ' kg';
+    if (volEl) {
+      if (typeof I18n !== 'undefined' && typeof I18n.formatUnitAggregate === 'function') {
+        volEl.textContent = I18n.formatUnitAggregate(this.sales, s => s.quantitySold, s => s.unit, '');
+      } else {
+        const totalVol = this.sales.reduce((sum, s) => sum + Number(s.quantitySold || 0), 0);
+        volEl.textContent = totalVol.toFixed(1);
+      }
+    }
 
     const dinersEl = document.getElementById('kpi-sales-diners');
     if (dinersEl) dinersEl.textContent = totalDiners + (isMm ? ' ဦး' : ' Diners');
