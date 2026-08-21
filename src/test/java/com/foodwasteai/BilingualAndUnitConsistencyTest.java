@@ -67,7 +67,7 @@ public class BilingualAndUnitConsistencyTest {
     }
 
     @Test
-    @DisplayName("3. Language switcher UI renders 🌐 English | မြန်မာ in iOS 26 Bubble Edition")
+    @DisplayName("3. Language switcher UI renders 🌐 English | မြန်မာ")
     void testLanguageSwitcherRenderingLogic() throws IOException {
         File langFile = new File(I18N_DIR + "language.js");
         assertTrue(langFile.exists(), "language.js must exist");

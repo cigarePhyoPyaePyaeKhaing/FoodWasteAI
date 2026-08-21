@@ -93,7 +93,7 @@ const AIAssistant = {
 
     document.body.appendChild(widget);
 
-    // CSS Styling for the iOS 26 Glass Chat
+    // CSS Styling for the Glass Chat
     const style = document.createElement('style');
     style.innerHTML = `
       .gemini-fab {

@@ -1,6 +1,6 @@
 /* ==========================================================================
    FoodWaste AI - Main Layout & Responsive Styles
-   iOS 26 Inspired Floating Glass Bubble System
+   Floating Glass System
    ========================================================================== */
 
 @import url('./variables.css');
@@ -82,6 +82,7 @@ body {
 .brand-title-group {
   display: flex;
   flex-direction: column;
+  justify-content: center;
 }
 
 .brand-main-title {
@@ -464,7 +465,7 @@ body {
   }
 }
 
-/* Language Switcher Bubble - iOS 26 Aesthetic */
+/* Language Switcher */
 .lang-switch-bubble {
   display: inline-flex;
   align-items: center;

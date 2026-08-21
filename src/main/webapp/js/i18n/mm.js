@@ -6,8 +6,6 @@ window.I18N_MM = {
   // Brand & Slogan
   "brand.name": "FoodWaste AI",
   "brand.tagline": "ကြိုတင်ခန့်မှန်း → ကာကွယ် → ပြန်လည်ဖြန့်ဝေ → အလေအလွင့်လျှော့ချ",
-  "brand.subBadge": "iOS 26 Bubble ဗားရှင်း",
-  "brand.edition": "iOS 26 Bubble စနစ် • တက္ကသိုလ်ပြိုင်ပွဲဝင် အထူးဗားရှင်း",
 
   // Navigation (Domain Glossary)
   "nav.core": "အဓိက လုပ်ငန်းဆောင်တာများ",

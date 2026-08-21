@@ -5,8 +5,6 @@ window.I18N_EN = {
   // Brand & Slogan
   "brand.name": "FoodWaste AI",
   "brand.tagline": "Predict → Prevent → Redistribute → Reduce Waste",
-  "brand.subBadge": "iOS 26 Bubble Edition",
-  "brand.edition": "iOS 26 Bubble System • University Competition Edition",
 
   // Navigation
   "nav.core": "Core Operations",

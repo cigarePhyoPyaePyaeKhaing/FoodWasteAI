@@ -20,7 +20,7 @@ FoodWaste AI pioneers a hybrid **Conversational + Symbolic AI** architecture:
 
 ```
 [ User (Web Browser Client) ]
-       │  (iOS 26 Bubble Glassmorphic UI / Vanilla JavaScript)
+       │  (Glassmorphic UI / Vanilla JavaScript)
        ▼
 [ Jakarta REST Servlets & Security Filter ]
        │  (Role-based Auth: ADMIN / STAFF, BCrypt Hashing)
@@ -46,8 +46,8 @@ FoodWaste AI pioneers a hybrid **Conversational + Symbolic AI** architecture:
 
 ## ✨ 3. Core Features
 
-1. **iOS 26 Bubble Design System:**
-   - Apple-inspired glassmorphism, floating soft cards, golden yellow accent theme, rounded bubble components, clean typography, fully responsive across desktop, tablet, and mobile with an iPhone-style bottom dock.
+1. **Modern Glassmorphic Design System:**
+   - Apple-inspired glassmorphism, floating soft cards, golden yellow accent theme, rounded components, clean typography, fully responsive across desktop, tablet, and mobile with an ergonomic bottom dock.
 2. **Food Inventory Management (CRUD):**
    - Live tracking with category filtering (Poultry, Produce, Seafood, Grains, Dairy, Bakery), near-expiry indicators, and low-stock alerts.
 3. **Sales & Customer Demand Tracking:**
@@ -71,7 +71,7 @@ FoodWaste AI pioneers a hybrid **Conversational + Symbolic AI** architecture:
 
 | Component | Technology |
 |---|---|
-| **Frontend** | HTML5, CSS3 (iOS 26 Glass Bubble Design System), Vanilla JavaScript (No heavy frameworks) |
+| **Frontend** | HTML5, CSS3 (Glassmorphic Design System), Vanilla JavaScript (No heavy frameworks) |
 | **Backend** | Java 17, Jakarta Servlets 6.0, Embedded Apache Tomcat 10.1, Maven |
 | **Symbolic AI** | SWI-Prolog 8.4+ (Subprocess integration with fallback reasoner) |
 | **Conversational AI** | Google Gemini Generative AI (Interactions / REST API) |
