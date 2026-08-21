@@ -3,6 +3,7 @@ package com.foodwasteai.controller;
 import com.foodwasteai.model.User;
 import com.foodwasteai.service.AuthService;
 import jakarta.servlet.annotation.WebServlet;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
@@ -46,8 +47,44 @@ public class UsersServlet extends BaseServlet {
         public void setRole(String role) { this.role = role; }
     }
 
+    private boolean checkAdminPermission(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        User currentUser = (User) req.getAttribute("currentUser");
+        if (currentUser == null) {
+            String token = extractToken(req);
+            currentUser = authService.validateToken(token).orElse(null);
+        }
+        if (currentUser == null) {
+            sendUnauthorized(resp, "Authentication required to access user management");
+            return false;
+        }
+        if (currentUser.getRole() != User.Role.ADMIN) {
+            sendError(resp, HttpServletResponse.SC_FORBIDDEN, "Forbidden: ADMIN privileges required");
+            return false;
+        }
+        return true;
+    }
+
+    private String extractToken(HttpServletRequest req) {
+        String authHeader = req.getHeader("Authorization");
+        if (authHeader != null && !authHeader.trim().isEmpty()) {
+            return authHeader;
+        }
+        if (req.getCookies() != null) {
+            for (Cookie c : req.getCookies()) {
+                if ("foodwaste_session".equals(c.getName()) || "token".equals(c.getName())) {
+                    return c.getValue();
+                }
+            }
+        }
+        return req.getParameter("token");
+    }
+
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        if (!checkAdminPermission(req, resp)) {
+            return;
+        }
+
         try {
             List<User> users = authService.getAllUsers();
             List<Map<String, Object>> dtos = new ArrayList<>();
@@ -71,6 +108,10 @@ public class UsersServlet extends BaseServlet {
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        if (!checkAdminPermission(req, resp)) {
+            return;
+        }
+
         try {
             CreateUserRequest payload = parseJsonBody(req, CreateUserRequest.class);
             if (payload == null || payload.getUsername() == null || payload.getPassword() == null) {

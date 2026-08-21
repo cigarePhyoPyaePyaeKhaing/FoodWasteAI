@@ -20,10 +20,7 @@ const Users = {
       this.users = (res && res.data) ? res.data : [];
     } catch (err) {
       console.warn('Error fetching users:', err);
-      this.users = [
-        { id: 1, fullName: 'Restaurant Manager', username: 'admin', email: 'admin@foodwaste.ai', role: 'ADMIN', active: true },
-        { id: 2, fullName: 'Sarah Jenkins', username: 'staff', email: 'staff@foodwaste.ai', role: 'STAFF', active: true }
-      ];
+      this.users = [];
     } finally {
       this.loading = false;
       this.render();

@@ -33,6 +33,14 @@ const API = {
       const data = await response.json().catch(() => null);
 
       if (!response.ok) {
+        if (response.status === 401 && !endpoint.includes('/api/auth/login')) {
+          localStorage.removeItem('foodwaste_user');
+          localStorage.removeItem('foodwaste_token');
+          const path = window.location.pathname;
+          if (path !== '/' && !path.endsWith('/index.html') && !path.endsWith('/index.htm')) {
+            window.location.replace('/index.html');
+          }
+        }
         const errorMsg = data && data.message ? data.message : `HTTP Error ${response.status}: ${response.statusText}`;
         throw new Error(errorMsg);
       }

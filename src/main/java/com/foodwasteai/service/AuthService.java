@@ -7,6 +7,7 @@ import org.mindrot.jbcrypt.BCrypt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.security.SecureRandom;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -18,8 +19,12 @@ import java.util.concurrent.ConcurrentHashMap;
 public class AuthService {
     private static final Logger logger = LoggerFactory.getLogger(AuthService.class);
     private final UserDao userDao;
+    private static final SecureRandom secureRandom = new SecureRandom();
 
-    // In-memory token session registry: token -> User
+    // Default session validity: 24 hours
+    public static final long DEFAULT_SESSION_HOURS = 24;
+
+    // In-memory token session registry: token -> UserSession
     private static final Map<String, UserSession> activeSessions = new ConcurrentHashMap<>();
     // In-memory users fallback when database is in offline mode
     private static final Map<String, User> memoryUsers = new ConcurrentHashMap<>();
@@ -37,6 +42,7 @@ public class AuthService {
 
         public User getUser() { return user; }
         public String getToken() { return token; }
+        public LocalDateTime getExpiresAt() { return expiresAt; }
         public boolean isExpired() { return LocalDateTime.now().isAfter(expiresAt); }
     }
 
@@ -66,7 +72,21 @@ public class AuthService {
     }
 
     /**
+     * Generates a cryptographically strong random token using SecureRandom (256-bit entropy).
+     */
+    public static String generateSecureToken() {
+        byte[] randomBytes = new byte[32];
+        secureRandom.nextBytes(randomBytes);
+        StringBuilder hexString = new StringBuilder("fwt_");
+        for (byte b : randomBytes) {
+            hexString.append(String.format("%02x", b));
+        }
+        return hexString.toString();
+    }
+
+    /**
      * Authenticates user against BCrypt password hash and creates an active session.
+     * Role is loaded strictly from the authenticated database user record (or backend memory registry).
      */
     public Optional<UserSession> authenticate(String username, String plainPassword) {
         if (username == null || plainPassword == null || username.trim().isEmpty() || plainPassword.isEmpty()) {
@@ -105,17 +125,24 @@ public class AuthService {
             return Optional.empty();
         }
 
-        // Generate session token (e.g. 30 days expiry)
-        String token = "fwt_" + UUID.randomUUID().toString().replace("-", "");
-        UserSession session = new UserSession(user, token, LocalDateTime.now().plusDays(30));
-        activeSessions.put(token, session);
-
-        logger.info("User '{}' authenticated successfully with role '{}'", user.getUsername(), user.getRole());
+        UserSession session = createSession(user, DEFAULT_SESSION_HOURS * 60);
+        logger.info("User '{}' authenticated successfully with backend role '{}'", user.getUsername(), user.getRole());
         return Optional.of(session);
     }
 
     /**
+     * Creates an active session for a verified User with specific duration.
+     */
+    public UserSession createSession(User user, long durationMinutes) {
+        String token = generateSecureToken();
+        UserSession session = new UserSession(user, token, LocalDateTime.now().plusMinutes(durationMinutes));
+        activeSessions.put(token, session);
+        return session;
+    }
+
+    /**
      * Validates session token and returns active User if authenticated.
+     * Expired or non-existent tokens are rejected.
      */
     public Optional<User> validateToken(String token) {
         if (token == null || token.trim().isEmpty()) {
@@ -125,15 +152,11 @@ public class AuthService {
         // Check if token starts with Bearer prefix
         String cleanToken = token.startsWith("Bearer ") ? token.substring(7).trim() : token.trim();
 
-        // Support demo/development token
-        if ("demo-session-token".equals(cleanToken)) {
-            return Optional.of(memoryUsers.get("admin"));
-        }
-
         UserSession session = activeSessions.get(cleanToken);
         if (session != null) {
             if (session.isExpired()) {
                 activeSessions.remove(cleanToken);
+                logger.warn("Session token expired and evicted for user: {}", session.getUser().getUsername());
                 return Optional.empty();
             }
             return Optional.of(session.getUser());
@@ -149,7 +172,15 @@ public class AuthService {
         if (token != null) {
             String cleanToken = token.startsWith("Bearer ") ? token.substring(7).trim() : token.trim();
             activeSessions.remove(cleanToken);
+            logger.info("Session terminated for token: {}...", cleanToken.substring(0, Math.min(cleanToken.length(), 10)));
         }
+    }
+
+    /**
+     * Clears all sessions (useful for tests).
+     */
+    public static void clearAllSessions() {
+        activeSessions.clear();
     }
 
     /**

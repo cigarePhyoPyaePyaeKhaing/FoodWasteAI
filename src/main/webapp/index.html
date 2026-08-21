@@ -94,20 +94,12 @@
     <form id="login-form" onsubmit="handleLogin(event)">
       <div class="form-group-bubble">
         <label class="form-label-bubble" for="username" data-i18n="login.username">Username</label>
-        <input class="form-input-bubble" type="text" id="username" value="admin" required placeholder="e.g. admin">
+        <input class="form-input-bubble" type="text" id="username" value="" required placeholder="e.g. admin or staff">
       </div>
 
       <div class="form-group-bubble">
         <label class="form-label-bubble" for="password" data-i18n="login.password">Password</label>
-        <input class="form-input-bubble" type="password" id="password" value="admin123" required placeholder="••••••••">
-      </div>
-
-      <div class="form-group-bubble">
-        <label class="form-label-bubble" for="role-select" data-i18n="login.roleSelect">Select Demonstration Role</label>
-        <select class="form-select-bubble" id="role-select">
-          <option value="ADMIN" data-i18n="login.roleAdmin">Restaurant Manager (Admin Role)</option>
-          <option value="STAFF" data-i18n="login.roleStaff">Kitchen Staff Member (Staff Role)</option>
-        </select>
+        <input class="form-input-bubble" type="password" id="password" value="" required placeholder="••••••••">
       </div>
 
       <button type="submit" class="btn-bubble btn-yellow" style="width: 100%; margin-top: 1.25rem; padding: 0.85rem; font-size: 0.95rem;" data-i18n="login.submit">
@@ -127,11 +119,20 @@
 <script src="/js/api.js"></script>
 <script src="/js/auth.js"></script>
 <script>
+  // Redirect to dashboard if already authenticated
+  if (Auth.isAuthenticated()) {
+    window.location.replace('/dashboard.html');
+  }
+
   async function handleLogin(e) {
     e.preventDefault();
     const username = document.getElementById('username').value.trim();
     const password = document.getElementById('password').value;
-    const roleSelect = document.getElementById('role-select').value;
+
+    if (!username || !password) {
+      API.showToast('Please enter username and password', 'warning');
+      return;
+    }
 
     try {
       const res = await API.post('/api/auth/login', { username, password });
@@ -139,21 +140,15 @@
         Auth.setUser(res.data.user, res.data.token);
         API.showToast(`Welcome back, ${res.data.user.fullName || res.data.user.username}!`, 'success');
         setTimeout(() => {
-          window.location.href = '/dashboard.html';
-        }, 400);
-        return;
+          window.location.replace('/dashboard.html');
+        }, 300);
+      } else {
+        API.showToast(res && res.message ? res.message : 'Invalid credentials', 'error');
       }
     } catch (err) {
-      console.warn('API login error, using local fallback credentials:', err);
+      console.error('Authentication error:', err);
+      // Explicit error handling: do NOT proceed or set fake demo user
     }
-
-    // Fallback demo sign-in
-    const fullName = roleSelect === 'ADMIN' ? 'Restaurant Manager' : 'Sarah Jenkins';
-    Auth.setUser({ username, fullName, role: roleSelect }, 'demo-session-token');
-    API.showToast(`Welcome back, ${fullName}!`, 'success');
-    setTimeout(() => {
-      window.location.href = '/dashboard.html';
-    }, 400);
   }
 </script>
 </body>

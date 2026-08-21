@@ -3,6 +3,7 @@ package com.foodwasteai.controller;
 import com.foodwasteai.model.User;
 import com.foodwasteai.service.AuthService;
 import jakarta.servlet.annotation.WebServlet;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
@@ -41,8 +42,8 @@ public class AuthServlet extends BaseServlet {
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         String path = req.getPathInfo();
         if (path != null && path.contains("me")) {
-            String authHeader = req.getHeader("Authorization");
-            Optional<User> userOpt = authService.validateToken(authHeader);
+            String token = extractToken(req);
+            Optional<User> userOpt = authService.validateToken(token);
             if (userOpt.isPresent()) {
                 User u = userOpt.get();
                 Map<String, Object> userData = new LinkedHashMap<>();
@@ -75,6 +76,14 @@ public class AuthServlet extends BaseServlet {
                 AuthService.UserSession session = sessionOpt.get();
                 User u = session.getUser();
 
+                // Set HttpOnly session cookie for seamless and secure browser navigation
+                String cookieHeader = String.format("foodwaste_session=%s; Path=/; Max-Age=%d; HttpOnly; SameSite=Lax",
+                        session.getToken(), AuthService.DEFAULT_SESSION_HOURS * 3600);
+                if (req.isSecure()) {
+                    cookieHeader += "; Secure";
+                }
+                resp.addHeader("Set-Cookie", cookieHeader);
+
                 Map<String, Object> userDto = new LinkedHashMap<>();
                 userDto.put("id", u.getId());
                 userDto.put("username", u.getUsername());
@@ -94,12 +103,36 @@ public class AuthServlet extends BaseServlet {
         }
 
         if (path != null && path.contains("logout")) {
-            String authHeader = req.getHeader("Authorization");
-            authService.logout(authHeader);
+            String token = extractToken(req);
+            if (token != null) {
+                authService.logout(token);
+            }
+            // Clear session cookie
+            String clearCookieHeader = "foodwaste_session=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax";
+            if (req.isSecure()) {
+                clearCookieHeader += "; Secure";
+            }
+            resp.addHeader("Set-Cookie", clearCookieHeader);
+
             sendSuccess(resp, "Signed out successfully", null);
             return;
         }
 
         sendBadRequest(resp, "Invalid auth endpoint");
+    }
+
+    private String extractToken(HttpServletRequest req) {
+        String authHeader = req.getHeader("Authorization");
+        if (authHeader != null && !authHeader.trim().isEmpty()) {
+            return authHeader;
+        }
+        if (req.getCookies() != null) {
+            for (Cookie c : req.getCookies()) {
+                if ("foodwaste_session".equals(c.getName()) || "token".equals(c.getName())) {
+                    return c.getValue();
+                }
+            }
+        }
+        return req.getParameter("token");
     }
 }

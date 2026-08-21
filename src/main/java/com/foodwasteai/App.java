@@ -90,7 +90,7 @@ public class App {
         corsFilterMap.addURLPattern("/*");
         ctx.addFilterMap(corsFilterMap);
 
-        // Register Security Authentication Filter (scoped strictly to /api/*)
+        // Register Security Authentication Filter (scoped to all routes /*)
         FilterDef authFilterDef = new FilterDef();
         authFilterDef.setFilterName("AuthenticationFilter");
         authFilterDef.setFilterClass(AuthenticationFilter.class.getName());
@@ -98,7 +98,7 @@ public class App {
 
         FilterMap authFilterMap = new FilterMap();
         authFilterMap.setFilterName("AuthenticationFilter");
-        authFilterMap.addURLPattern("/api/*");
+        authFilterMap.addURLPattern("/*");
         ctx.addFilterMap(authFilterMap);
 
         // Register Core API Servlets

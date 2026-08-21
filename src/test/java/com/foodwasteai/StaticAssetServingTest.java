@@ -69,9 +69,17 @@ public class StaticAssetServingTest {
         assertTrue(response.body().contains("FoodWaste AI"), "Root response must contain page brand");
     }
 
+    @Test
+    public void testIndexHtmlReturns200AndTextHtml() throws Exception {
+        HttpResponse<String> response = fetch("/index.html");
+        assertEquals(200, response.statusCode(), "Page /index.html must return HTTP 200");
+        String contentType = response.headers().firstValue("Content-Type").orElse("");
+        assertTrue(contentType.contains("text/html"), "Page /index.html must have text/html Content-Type, got: " + contentType);
+        assertTrue(response.body().contains("<!DOCTYPE html>"), "Page /index.html must contain DOCTYPE");
+    }
+
     @ParameterizedTest
     @ValueSource(strings = {
-        "/index.html",
         "/dashboard.html",
         "/inventory.html",
         "/prediction.html",
@@ -83,12 +91,11 @@ public class StaticAssetServingTest {
         "/users.html",
         "/waste.html"
     })
-    public void testHtmlPagesReturn200AndTextHtml(String page) throws Exception {
+    public void testProtectedHtmlPagesRedirectUnauthenticatedUsers(String page) throws Exception {
         HttpResponse<String> response = fetch(page);
-        assertEquals(200, response.statusCode(), "Page " + page + " must return HTTP 200");
-        String contentType = response.headers().firstValue("Content-Type").orElse("");
-        assertTrue(contentType.contains("text/html"), "Page " + page + " must have text/html Content-Type, got: " + contentType);
-        assertTrue(response.body().contains("<!DOCTYPE html>"), "Page " + page + " must contain DOCTYPE");
+        assertEquals(302, response.statusCode(), "Protected page " + page + " must redirect unauthenticated users (HTTP 302)");
+        String location = response.headers().firstValue("Location").orElse("");
+        assertTrue(location.endsWith("/index.html"), "Protected page " + page + " must redirect to /index.html, got: " + location);
     }
 
     @ParameterizedTest
