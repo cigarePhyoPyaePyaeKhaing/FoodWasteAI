@@ -218,15 +218,7 @@ public class FoodItemService {
     }
 
     private void computeStatus(FoodItem item) {
-        LocalDate today = LocalDate.now();
-        if (item.getExpiryDate().isBefore(today)) {
-            item.setStatus("EXPIRED");
-        } else if (!item.getExpiryDate().isAfter(today.plusDays(2))) {
-            item.setStatus("NEAR_EXPIRY");
-        } else if (item.getQuantity().compareTo(item.getMinStockThreshold()) <= 0) {
-            item.setStatus("LOW_STOCK");
-        } else {
-            item.setStatus("OK");
-        }
+        if (item == null) return;
+        item.setStatus(com.foodwasteai.util.ExpiryStatusResolver.resolveStatus(item));
     }
 }

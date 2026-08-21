@@ -203,6 +203,90 @@ public class Recommendation implements Serializable {
         return getReasoningDetailsEn();
     }
 
+    // Aliases for reasoning
+    public String getReasoning() {
+        return getReasoningDetails();
+    }
+
+    public void setReasoning(String reasoning) {
+        setReasoningDetails(reasoning);
+    }
+
+    public String getReasoningEn() {
+        return getReasoningDetailsEn();
+    }
+
+    public void setReasoningEn(String reasoningEn) {
+        setReasoningDetailsEn(reasoningEn);
+    }
+
+    public String getReasoningMy() {
+        return getReasoningDetailsMy();
+    }
+
+    public void setReasoningMy(String reasoningMy) {
+        setReasoningDetailsMy(reasoningMy);
+    }
+
+    public String getReasoning(String lang) {
+        return getReasoningDetails(lang);
+    }
+
+    // Aliases for recommendation
+    public String getRecommendation() {
+        return getDescription();
+    }
+
+    public void setRecommendation(String recommendation) {
+        setDescription(recommendation);
+    }
+
+    public String getRecommendationEn() {
+        return getDescriptionEn();
+    }
+
+    public void setRecommendationEn(String recommendationEn) {
+        setDescriptionEn(recommendationEn);
+    }
+
+    public String getRecommendationMy() {
+        return getDescriptionMy();
+    }
+
+    public void setRecommendationMy(String recommendationMy) {
+        setDescriptionMy(recommendationMy);
+    }
+
+    public String getRecommendation(String lang) {
+        return getDescription(lang);
+    }
+
+    // Snake_case aliases for JSON serialization compatibility
+    public String getTitle_en() { return getTitleEn(); }
+    public void setTitle_en(String v) { setTitleEn(v); }
+    public String getTitle_my() { return getTitleMy(); }
+    public void setTitle_my(String v) { setTitleMy(v); }
+
+    public String getDescription_en() { return getDescriptionEn(); }
+    public void setDescription_en(String v) { setDescriptionEn(v); }
+    public String getDescription_my() { return getDescriptionMy(); }
+    public void setDescription_my(String v) { setDescriptionMy(v); }
+
+    public String getReasoning_details_en() { return getReasoningDetailsEn(); }
+    public void setReasoning_details_en(String v) { setReasoningDetailsEn(v); }
+    public String getReasoning_details_my() { return getReasoningDetailsMy(); }
+    public void setReasoning_details_my(String v) { setReasoningDetailsMy(v); }
+
+    public String getReasoning_en() { return getReasoningEn(); }
+    public void setReasoning_en(String v) { setReasoningEn(v); }
+    public String getReasoning_my() { return getReasoningMy(); }
+    public void setReasoning_my(String v) { setReasoningMy(v); }
+
+    public String getRecommendation_en() { return getRecommendationEn(); }
+    public void setRecommendation_en(String v) { setRecommendationEn(v); }
+    public String getRecommendation_my() { return getRecommendationMy(); }
+    public void setRecommendation_my(String v) { setRecommendationMy(v); }
+
     public BigDecimal getEstimatedSavings() {
         return estimatedSavings;
     }

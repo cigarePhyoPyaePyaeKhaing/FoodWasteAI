@@ -152,17 +152,25 @@ const Prediction = {
             : `Why is ${foodName} ${item.riskLevel} Risk (${riskScore}%)?`;
 
           let reasonsList = item.reasons || [];
-          if (isMm && item.reasonsMy && item.reasonsMy.length > 0) {
-            reasonsList = item.reasonsMy;
-          } else if (isMm && (item.reasonMy || item.reason_my)) {
-            reasonsList = [item.reasonMy || item.reason_my];
+          if (isMm) {
+            if (item.reasonsMy && item.reasonsMy.length > 0) {
+              reasonsList = item.reasonsMy;
+            } else if (item.reasonMy || item.reason_my || item.reasoningTextMy || item.reasoning_text_my) {
+              reasonsList = [item.reasonMy || item.reason_my || item.reasoningTextMy || item.reasoning_text_my];
+            } else if (reasonsList.length > 0) {
+              reasonsList = reasonsList.map(r => (typeof I18n !== 'undefined' ? I18n.translateDynamicText(r) : r));
+            } else if (item.reasoningText || item.reason) {
+              const r = item.reasoningText || item.reason;
+              reasonsList = [typeof I18n !== 'undefined' ? I18n.translateDynamicText(r) : r];
+            }
           }
 
           const reasonsHtml = reasonsList.map(r => `<li>${r}</li>`).join('');
 
-          let recText = item.recommendation || item.recommendedAction || item.action || 'Maintain scheduled batches.';
-          if (isMm && (item.recommendationMy || item.recommendation_my)) {
-            recText = item.recommendationMy || item.recommendation_my;
+          let rawRec = item.recommendation || item.recommendedAction || item.action || 'Maintain standard scheduled production batch';
+          let recText = rawRec;
+          if (isMm) {
+            recText = item.recommendationMy || item.recommendation_my || (typeof I18n !== 'undefined' ? I18n.translateDynamicText(rawRec) : rawRec);
           }
 
           const recLabel = isMm ? '💡 အကြံပြုချက်:' : '💡 Recommendation:';

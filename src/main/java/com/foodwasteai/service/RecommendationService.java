@@ -115,11 +115,34 @@ public class RecommendationService {
                 String unit = item.getUnit() != null ? item.getUnit() : "kg";
                 double price = item.getPricePerUnit() != null ? item.getPricePerUnit().doubleValue() : 5000.0;
                 double surplus = Math.max(0, assessment.getStock() - assessment.getExpectedDemand());
+                int expiryDays = assessment.getExpiryDays();
 
                 // =========================================================================
-                // 🔴 HIGH RISK DIRECTIVES (3 Directives)
+                // 🔴 HIGH RISK - EXPIRED ITEM DIRECTIVE (Item passed expiration date)
                 // =========================================================================
-                if ("HIGH".equalsIgnoreCase(assessment.getRiskLevel())) {
+                if (expiryDays < 0 || "DISPOSE_OR_COMPOST".equalsIgnoreCase(assessment.getPriorityUsage())) {
+                    Recommendation rExp = new Recommendation();
+                    rExp.setFoodItemId(item.getId());
+                    rExp.setFoodItemName(item.getName());
+                    rExp.setCategory(Recommendation.Category.URGENT);
+                    rExp.setRiskLevel(Recommendation.RiskLevel.HIGH);
+                    rExp.setTitle("Halt production and dispose of expired " + item.getName());
+                    rExp.setTitleEn(rExp.getTitle());
+                    rExp.setDescription(String.format("Item has passed expiration date (%d day(s) ago). Do not serve to customers. Halt production and dispose of or compost safely.",
+                            Math.max(1, Math.abs(expiryDays))));
+                    rExp.setDescriptionEn(rExp.getDescription());
+                    rExp.setReasoningDetails("Prolog Rule: assess_waste_risk/6 (High Risk: Expired) -> evaluate_priority_use/3 (DISPOSE_OR_COMPOST)");
+                    rExp.setReasoningDetailsEn(rExp.getReasoningDetails());
+                    rExp.setEstimatedSavings(BigDecimal.ZERO);
+                    rExp.setStatus(Recommendation.Status.PENDING);
+                    saveRecommendation(rExp);
+                    generated.add(rExp);
+                }
+
+                // =========================================================================
+                // 🔴 HIGH RISK DIRECTIVES (Near Expiry / Overstock / Critical Waste)
+                // =========================================================================
+                else if ("HIGH".equalsIgnoreCase(assessment.getRiskLevel())) {
                     // 1. Reduce next production batch
                     Recommendation rProd = new Recommendation();
                     rProd.setFoodItemId(item.getId());
@@ -127,29 +150,37 @@ public class RecommendationService {
                     rProd.setCategory(Recommendation.Category.URGENT);
                     rProd.setRiskLevel(Recommendation.RiskLevel.HIGH);
                     rProd.setTitle("Reduce next production batch for " + item.getName());
+                    rProd.setTitleEn(rProd.getTitle());
                     rProd.setDescription(String.format("Stock is %.1f %s against %.1f %s expected demand with %d-day expiry remaining. Reduce next scheduled production batch by 15-25%% to prevent excess spoilage.",
-                            assessment.getStock(), unit, assessment.getExpectedDemand(), unit, assessment.getExpiryDays()));
+                            assessment.getStock(), unit, assessment.getExpectedDemand(), unit, Math.max(0, expiryDays)));
+                    rProd.setDescriptionEn(rProd.getDescription());
                     rProd.setReasoningDetails("Prolog Rule: assess_waste_risk/6 (High Risk) -> recommend_production/6 (Reduce production by 15-25%)");
+                    rProd.setReasoningDetailsEn(rProd.getReasoningDetails());
                     double prodSavings = Math.max(15000.0, surplus * price * 0.70);
                     rProd.setEstimatedSavings(BigDecimal.valueOf(prodSavings).setScale(2, java.math.RoundingMode.HALF_UP));
                     rProd.setStatus(Recommendation.Status.PENDING);
                     saveRecommendation(rProd);
                     generated.add(rProd);
 
-                    // 2. Redistribute excess inventory
-                    Recommendation rRedist = new Recommendation();
-                    rRedist.setFoodItemId(item.getId());
-                    rRedist.setFoodItemName(item.getName());
-                    rRedist.setCategory(Recommendation.Category.REDISTRIBUTION);
-                    rRedist.setRiskLevel(Recommendation.RiskLevel.HIGH);
-                    rRedist.setTitle("Redistribute excess inventory for " + item.getName());
-                    rRedist.setDescription(String.format("Surplus stock (%.1f %s) detected near expiry. Dispatch to registered food bank or charity partner before expiry cutoff.",
-                            surplus > 0 ? surplus : assessment.getStock() * 0.5, unit));
-                    rRedist.setReasoningDetails("Prolog Rule: evaluate_redistribution/6 -> Verified surplus eligible for emergency charity donation");
-                    rRedist.setEstimatedSavings(BigDecimal.ZERO);
-                    rRedist.setStatus(Recommendation.Status.PENDING);
-                    saveRecommendation(rRedist);
-                    generated.add(rRedist);
+                    // 2. Redistribute excess inventory (if surplus is actionable and safe for donation)
+                    if (assessment.isRecommendRedistribution() || (surplus >= 5.0 && expiryDays >= 1)) {
+                        Recommendation rRedist = new Recommendation();
+                        rRedist.setFoodItemId(item.getId());
+                        rRedist.setFoodItemName(item.getName());
+                        rRedist.setCategory(Recommendation.Category.REDISTRIBUTION);
+                        rRedist.setRiskLevel(Recommendation.RiskLevel.HIGH);
+                        rRedist.setTitle("Redistribute excess inventory for " + item.getName());
+                        rRedist.setTitleEn(rRedist.getTitle());
+                        rRedist.setDescription(String.format("Surplus stock (%.1f %s) detected near expiry. Dispatch to registered food bank or charity partner before expiry cutoff.",
+                                surplus > 0 ? surplus : assessment.getStock() * 0.5, unit));
+                        rRedist.setDescriptionEn(rRedist.getDescription());
+                        rRedist.setReasoningDetails("Prolog Rule: evaluate_redistribution/6 -> Verified surplus eligible for emergency charity donation");
+                        rRedist.setReasoningDetailsEn(rRedist.getReasoningDetails());
+                        rRedist.setEstimatedSavings(BigDecimal.ZERO);
+                        rRedist.setStatus(Recommendation.Status.PENDING);
+                        saveRecommendation(rRedist);
+                        generated.add(rRedist);
+                    }
 
                     // 3. Prioritize usage today
                     Recommendation rUsage = new Recommendation();
@@ -158,9 +189,12 @@ public class RecommendationService {
                     rUsage.setCategory(Recommendation.Category.IMPORTANT);
                     rUsage.setRiskLevel(Recommendation.RiskLevel.HIGH);
                     rUsage.setTitle("Prioritize usage today for " + item.getName());
+                    rUsage.setTitleEn(rUsage.getTitle());
                     rUsage.setDescription(String.format("Item expires in %d day(s). Prioritize in today's menu specials, meal prep, and kitchen consumption immediately.",
-                            assessment.getExpiryDays()));
-                    rUsage.setReasoningDetails("Prolog Rule: evaluate_priority_use/3 -> IMMEDIATE_USE required due to 1-day shelf life");
+                            Math.max(0, expiryDays)));
+                    rUsage.setDescriptionEn(rUsage.getDescription());
+                    rUsage.setReasoningDetails("Prolog Rule: evaluate_priority_use/3 -> IMMEDIATE_USE required due to short shelf life");
+                    rUsage.setReasoningDetailsEn(rUsage.getReasoningDetails());
                     rUsage.setEstimatedSavings(new BigDecimal("10000.00"));
                     rUsage.setStatus(Recommendation.Status.PENDING);
                     saveRecommendation(rUsage);
@@ -178,9 +212,12 @@ public class RecommendationService {
                     rMon.setCategory(Recommendation.Category.IMPORTANT);
                     rMon.setRiskLevel(Recommendation.RiskLevel.MEDIUM);
                     rMon.setTitle("Monitor stock for " + item.getName());
+                    rMon.setTitleEn(rMon.getTitle());
                     rMon.setDescription(String.format("Item expires in %d days. Monitor stock velocity and turnover closely to avoid sudden overstock accumulation.",
-                            assessment.getExpiryDays()));
+                            Math.max(1, expiryDays)));
+                    rMon.setDescriptionEn(rMon.getDescription());
                     rMon.setReasoningDetails("Prolog Rule: assess_waste_risk/6 (Medium Risk) -> evaluate_priority_use/3 (HIGH_PRIORITY)");
+                    rMon.setReasoningDetailsEn(rMon.getReasoningDetails());
                     rMon.setEstimatedSavings(new BigDecimal("5000.00"));
                     rMon.setStatus(Recommendation.Status.PENDING);
                     saveRecommendation(rMon);
@@ -193,9 +230,12 @@ public class RecommendationService {
                     rAdj.setCategory(Recommendation.Category.OPTIMIZATION);
                     rAdj.setRiskLevel(Recommendation.RiskLevel.MEDIUM);
                     rAdj.setTitle("Adjust preparation quantity for " + item.getName());
+                    rAdj.setTitleEn(rAdj.getTitle());
                     rAdj.setDescription(String.format("Moderate waste risk detected. Adjust kitchen batch preparation down by 10-15%% according to expected demand (%.1f %s).",
                             assessment.getExpectedDemand(), unit));
+                    rAdj.setDescriptionEn(rAdj.getDescription());
                     rAdj.setReasoningDetails("Prolog Rule: recommend_production/6 (Slightly reduce production by 10-15%)");
+                    rAdj.setReasoningDetailsEn(rAdj.getReasoningDetails());
                     double adjSavings = Math.max(5000.0, surplus * price * 0.40);
                     rAdj.setEstimatedSavings(BigDecimal.valueOf(adjSavings).setScale(2, java.math.RoundingMode.HALF_UP));
                     rAdj.setStatus(Recommendation.Status.PENDING);
@@ -209,9 +249,12 @@ public class RecommendationService {
                     rProm.setCategory(Recommendation.Category.OPTIMIZATION);
                     rProm.setRiskLevel(Recommendation.RiskLevel.MEDIUM);
                     rProm.setTitle("Promote usage for " + item.getName());
+                    rProm.setTitleEn(rProm.getTitle());
                     rProm.setDescription(String.format("Feature in chef's daily side dish, combo promotions, or lunch specials to accelerate inventory drawdown within %d days.",
-                            assessment.getExpiryDays()));
+                            Math.max(1, expiryDays)));
+                    rProm.setDescriptionEn(rProm.getDescription());
                     rProm.setReasoningDetails("Prolog Rule: evaluate_priority_use/3 -> HIGH_PRIORITY usage to clear inventory within 3 days");
+                    rProm.setReasoningDetailsEn(rProm.getReasoningDetails());
                     rProm.setEstimatedSavings(new BigDecimal("7500.00"));
                     rProm.setStatus(Recommendation.Status.PENDING);
                     saveRecommendation(rProm);
@@ -229,9 +272,12 @@ public class RecommendationService {
                     rNorm.setCategory(Recommendation.Category.OPTIMIZATION);
                     rNorm.setRiskLevel(Recommendation.RiskLevel.LOW);
                     rNorm.setTitle("Maintain normal operation for " + item.getName());
+                    rNorm.setTitleEn(rNorm.getTitle());
                     rNorm.setDescription(String.format("Safe shelf-life remaining (%d days) and balanced stock levels. Maintain standard scheduled production batch and regular replenishment cycle.",
-                            assessment.getExpiryDays()));
+                            Math.max(1, expiryDays)));
+                    rNorm.setDescriptionEn(rNorm.getDescription());
                     rNorm.setReasoningDetails("Prolog Rule: assess_waste_risk/6 (Low Risk) -> recommend_production/6 (Maintain standard scheduled batch)");
+                    rNorm.setReasoningDetailsEn(rNorm.getReasoningDetails());
                     rNorm.setEstimatedSavings(BigDecimal.ZERO);
                     rNorm.setStatus(Recommendation.Status.PENDING);
                     saveRecommendation(rNorm);

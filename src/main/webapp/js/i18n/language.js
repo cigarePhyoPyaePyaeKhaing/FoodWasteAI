@@ -121,10 +121,208 @@ const I18n = {
    */
   getDynamic(obj, field) {
     if (!obj) return '';
+    const enVal = obj[field + '_en'] || obj[field + 'En'] || obj[field] || '';
     if (this.isMyanmar()) {
-      return obj[field + '_my'] || obj[field + 'My'] || obj[field + '_en'] || obj[field + 'En'] || obj[field] || '';
+      const myVal = obj[field + '_my'] || obj[field + 'My'];
+      if (myVal && myVal.trim() && /[\u1000-\u109F]/.test(myVal)) {
+        return myVal.trim();
+      }
+      // If Myanmar field is missing or contains untranslated English, run client-side synthesis fallback
+      if (enVal) {
+        const translated = this.translateDynamicText(enVal);
+        if (translated && translated !== enVal && /[\u1000-\u109F]/.test(translated)) {
+          return translated;
+        }
+      }
+      // Fallback to English text
+      return enVal;
     }
-    return obj[field + '_en'] || obj[field + 'En'] || obj[field] || '';
+    return enVal;
+  },
+
+  /**
+   * Client-side offline fallback synthesizer for dynamic AI strings
+   */
+  translateDynamicText(text) {
+    if (!text || typeof text !== 'string') return '';
+    const trimmed = text.trim();
+    const lower = trimmed.toLowerCase();
+
+    // 1. Prolog Rules - preserve predicates verbatim
+    if (trimmed.includes('assess_waste_risk') && trimmed.includes('Expired')) {
+      return 'Prolog စည်းမျဉ်း: assess_waste_risk/6 (အန္တရာယ်မြင့်: သက်တမ်းကုန်) -> evaluate_priority_use/3 (စွန့်ပစ် သို့မဟုတ် မြေဆွေးပြုလုပ်ရန်)';
+    }
+    if (trimmed.includes('assess_waste_risk') && trimmed.includes('High Risk') && trimmed.includes('recommend_production')) {
+      return 'Prolog စည်းမျဉ်း: assess_waste_risk/6 (အန္တရာယ်မြင့်) -> recommend_production/6 (ထုတ်လုပ်မှု ၁၅-၂၅% လျှော့ချပါ)';
+    }
+    if (trimmed.includes('assess_waste_risk') && (trimmed.includes('Medium Risk') || trimmed.includes('medium')) && trimmed.includes('evaluate_priority_use')) {
+      return 'Prolog စည်းမျဉ်း: assess_waste_risk/6 (အလယ်အလတ်အန္တရာယ်) -> evaluate_priority_use/3 (ဦးစားပေးအဆင့်မြင့်)';
+    }
+    if (trimmed.includes('assess_waste_risk') && (trimmed.includes('Low Risk') || trimmed.includes('low')) && trimmed.includes('recommend_production')) {
+      return 'Prolog စည်းမျဉ်း: assess_waste_risk/6 (အန္တရာယ်နည်း) -> recommend_production/6 (ပုံမှန် သတ်မှတ်ထားသော ထုတ်လုပ်မှုအတိုင်း ဆက်လက်ဆောင်ရွက်ပါ)';
+    }
+    if (trimmed.includes('evaluate_priority_use') && trimmed.includes('recommend_production')) {
+      return 'Prolog စည်းမျဉ်း: evaluate_priority_use/3 -> recommend_production/6 (ချက်ချင်း ဦးစားပေး သုံးစွဲပြီး ထုတ်လုပ်မှု ၂၀% လျှော့ချပါ)';
+    }
+    if (trimmed.includes('evaluate_redistribution') && trimmed.includes('assess_waste_risk')) {
+      return 'Prolog စည်းမျဉ်း: assess_waste_risk/6 -> evaluate_redistribution/6 (ပရဟိတ လှူဒါန်းရန် ပိုလျှံပစ္စည်းအဖြစ် အတည်ပြုသည်)';
+    }
+    if (trimmed.includes('evaluate_redistribution')) {
+      return 'Prolog စည်းမျဉ်း: evaluate_redistribution/6 -> ပရဟိတ လှူဒါန်းရန် သင့်တော်သော ပိုလျှံပစ္စည်းအဖြစ် အတည်ပြုသည်';
+    }
+    if (trimmed.includes('evaluate_priority_use') && (trimmed.includes('clear inventory within 3 days') || trimmed.includes('3 days'))) {
+      return 'Prolog စည်းမျဉ်း: evaluate_priority_use/3 -> ၃ ရက်အတွင်း ကုန်စင်စေရန် ဦးစားပေးအဆင့်မြင့် သုံးစွဲပါ';
+    }
+    if (trimmed.includes('evaluate_priority_use')) {
+      return 'Prolog စည်းမျဉ်း: evaluate_priority_use/3 -> သက်တမ်းကုန်ဆုံးရက် နီးကပ်နေသဖြင့် ချက်ချင်း ဦးစားပေး သုံးစွဲရန် လိုအပ်သည်';
+    }
+    if (trimmed.includes('recommend_production') && trimmed.includes('10-15%')) {
+      return 'Prolog စည်းမျဉ်း: recommend_production/6 (ထုတ်လုပ်မှု ၁၀-၁၅% အနည်းငယ် လျှော့ချပါ)';
+    }
+
+    // 2. Recommendation Titles
+    if (lower.includes('halt production and dispose of expired') || lower.includes('halt production and dispose')) {
+      const match = trimmed.match(/(?:dispose of expired|dispose of)\s+([A-Za-z0-9\s_-]+)$/i);
+      const item = match ? match[1].trim() : 'ကုန်ပစ္စည်း';
+      return `${item} သက်တမ်းကုန်ဆုံးသွားသဖြင့် ထုတ်လုပ်မှုရပ်ဆိုင်းပြီး ဘေးကင်းစွာ စွန့်ပစ်ပါ`;
+    }
+    if (lower.startsWith('reduce next production batch for') || (lower.includes('reduce') && lower.includes('production batch for'))) {
+      const match = trimmed.match(/for\s+([A-Za-z0-9\s_-]+?)(?:\s+by\s+(\d+%?)|$)/i);
+      const item = match ? match[1].trim() : 'ကုန်ပစ္စည်း';
+      const pct = (match && match[2]) ? match[2] : '';
+      return pct ? `${item} အတွက် နောက်တစ်ကြိမ် ထုတ်လုပ်မှုပမာဏကို ${pct} လျှော့ချပါ` : `${item} အတွက် နောက်တစ်ကြိမ် ထုတ်လုပ်မှုပမာဏကို လျှော့ချပါ`;
+    }
+    if (lower.includes('surplus') && lower.includes('for ') && lower.includes('near expiry')) {
+      const mItem = trimmed.match(/for\s+([A-Za-z0-9\s_-]+?)(?:\s+near|\s+with|\s+to|$)/i);
+      const mQty = trimmed.match(/\(([\d.]+)\s*([A-Za-z]+)?\)/);
+      if (mItem && mQty) {
+        const item = mItem[1].trim();
+        const qty = mQty[1];
+        const unit = mQty[2] || 'kg';
+        return `${item} အတွက် သက်တမ်းကုန်ခါနီး ပိုလျှံလက်ကျန် (${qty} ${unit}) တွေ့ရှိရသဖြင့် အလေအလွင့် ကာကွယ်ရန် လိုအပ်ပါသည်`;
+      }
+    }
+    if (lower.includes('redistribute excess inventory for') || (lower.includes('redistribute') && lower.includes('for '))) {
+      const match = trimmed.match(/for\s+([A-Za-z0-9\s_-]+)$/i);
+      const item = match ? match[1].trim() : 'ကုန်ပစ္စည်း';
+      return `${item} ၏ ပိုလျှံလက်ကျန်ကို ပရဟိတသို့ လှူဒါန်းပါ`;
+    }
+    if (lower.includes('prioritize usage today for') || lower.includes('prioritize usage for')) {
+      const match = trimmed.match(/for\s+([A-Za-z0-9\s_-]+)$/i);
+      const item = match ? match[1].trim() : 'ကုန်ပစ္စည်း';
+      return `${item} ကို ယနေ့ မီးဖိုချောင်တွင် ဦးစားပေး သုံးစွဲပါ`;
+    }
+    if (lower.startsWith('monitor stock for') || lower.startsWith('monitor stock levels for')) {
+      const match = trimmed.match(/for\s+([A-Za-z0-9\s_-]+)$/i);
+      const item = match ? match[1].trim() : 'ကုန်ပစ္စည်း';
+      return `${item} ၏ ကုန်ပစ္စည်းလက်ကျန် အခြေအနေကို စောင့်ကြည့်ပါ`;
+    }
+    if (lower.startsWith('adjust preparation quantity for') || lower.startsWith('adjust kitchen batch for')) {
+      const match = trimmed.match(/for\s+([A-Za-z0-9\s_-]+)$/i);
+      const item = match ? match[1].trim() : 'ကုန်ပစ္စည်း';
+      return `${item} အတွက် ပြင်ဆင်ချက်ပြုတ်မှု ပမာဏကို ညှိနှိုင်းပါ`;
+    }
+    if (lower.startsWith('promote usage for')) {
+      const match = trimmed.match(/for\s+([A-Za-z0-9\s_-]+)$/i);
+      const item = match ? match[1].trim() : 'ကုန်ပစ္စည်း';
+      return `${item} ကို နေ့စဉ် အထူးဟင်းလျာများတွင် ထည့်သွင်း ရောင်းချပါ`;
+    }
+    if (lower.startsWith('maintain normal operation for')) {
+      const match = trimmed.match(/for\s+([A-Za-z0-9\s_-]+)$/i);
+      const item = match ? match[1].trim() : 'ကုန်ပစ္စည်း';
+      return `${item} အတွက် ပုံမှန် ထုတ်လုပ်မှု အစီအစဉ်အတိုင်း ဆက်လက်ဆောင်ရွက်ပါ`;
+    }
+
+    // 3. Recommendation Descriptions
+    if (lower.contains ? lower.contains('passed expiration date') : lower.includes('passed expiration date')) {
+      const mDays = trimmed.match(/(\d+)\s*day/i);
+      const days = mDays ? mDays[1] : '၁';
+      return `ကုန်ပစ္စည်းသည် သက်တမ်းကုန်ဆုံးသွားပါပြီ (လွန်ခဲ့သော ${days} ရက်က)။ ဧည့်သည်များထံ မကျွေးမွေးပါနှင့်။ ထုတ်လုပ်မှု ရပ်ဆိုင်းပြီး ဘေးကင်းစွာ စွန့်ပစ်ပါ သို့မဟုတ် မြေဆွေးပြုလုပ်ပါ။`;
+    }
+    if (lower.includes('stock is') && lower.includes('expected demand') && (lower.includes('reduce') || lower.includes('production'))) {
+      const m = trimmed.match(/stock\s+is\s+([\d.]+)\s*([a-zA-Z]+)?\s+against\s+([\d.]+)\s*([a-zA-Z]+)?\s+expected\s+demand\s+with\s+(\d+)-day\s+expiry/i);
+      if (m) {
+        const stock = m[1];
+        const unit1 = m[2] || 'kg';
+        const demand = m[3];
+        const unit2 = m[4] || unit1;
+        const days = m[5];
+        return `လက်ကျန် ${stock} ${unit1} ရှိပြီး ခန့်မှန်းဝယ်လိုအား ${demand} ${unit2} သာရှိကာ သက်တမ်းကုန်ဆုံးရန် ${days} ရက်သာ ကျန်ရှိပါသည်။ အလေအလွင့် ဆုံးရှုံးမှု ကာကွယ်ရန် နောက်တစ်ကြိမ် ထုတ်လုပ်မှုပမာဏကို ၁၅-၂၅% လျှော့ချပါ။`;
+      }
+      return 'လက်ကျန်ပမာဏသည် ခန့်မှန်းဝယ်လိုအားထက် ပိုလျှံနေပြီး သက်တမ်းကုန်ဆုံးရက် နီးကပ်နေသဖြင့် နောက်တစ်ကြိမ် ထုတ်လုပ်မှုပမာဏကို လျှော့ချပါ။';
+    }
+    if ((lower.includes('surplus stock') || lower.includes('surplus')) && (lower.includes('food bank') || lower.includes('charity partner') || lower.includes('dispatch'))) {
+      const m = trimmed.match(/surplus\s+stock\s*\(?([\d.]+)\s*([a-zA-Z]+)?\)?/i);
+      if (m) {
+        const qty = m[1];
+        const unit = m[2] || 'kg';
+        return `သက်တမ်းကုန်ခါနီး ပိုလျှံလက်ကျန် (${qty} ${unit}) တွေ့ရှိရပါသည်။ သက်တမ်းမကုန်မီ မှတ်ပုံတင်ထားသော အစားအစာဘဏ် သို့မဟုတ် ပရဟိတ မိတ်ဖက်အဖွဲ့အစည်းသို့ ပို့ဆောင်လှူဒါန်းပါ။`;
+      }
+      return 'သက်တမ်းမကုန်မီ ပိုလျှံနေသော အစားအစာများကို မှတ်ပုံတင်ထားသော ပရဟိတ အဖွဲ့အစည်း သို့မဟုတ် အစားအစာဘဏ်သို့ ပို့ဆောင်လှူဒါန်းပါ။';
+    }
+    if (lower.includes('prioritize in today\'s menu specials') || (lower.includes('prioritize') && lower.includes('today') && lower.includes('consumption'))) {
+      const m = trimmed.match(/expires\s+(?:in\s+)?(\d+)\s*day/i);
+      const days = m ? m[1] : '၀';
+      return `ကုန်ပစ္စည်းသည် ${days} ရက်အတွင်း သက်တမ်းကုန်ဆုံးပါမည်။ ယနေ့ မီနူးအထူးဟင်းလျာများ၊ ချက်ပြုတ်ပြင်ဆင်မှုနှင့် မီးဖိုချောင်တွင် ချက်ချင်း ဦးစားပေး သုံးစွဲပါ။`;
+    }
+    if (lower.includes('monitor stock velocity and turnover') || (lower.includes('monitor stock') && lower.includes('accumulation'))) {
+      const m = trimmed.match(/expires\s+in\s+(\d+)\s*days?/i);
+      const days = m ? m[1] : '၂';
+      return `ကုန်ပစ္စည်းသည် ${days} ရက်အတွင်း သက်တမ်းကုန်ဆုံးပါမည်။ ပိုလျှံမှု မဖြစ်ပေါ်စေရန် ကုန်ပစ္စည်းလက်ကျန်နှင့် သုံးစွဲမှုနှုန်းကို အနီးကပ် စောင့်ကြည့်ပါ။`;
+    }
+    if (lower.includes('adjust kitchen batch preparation down') || (lower.includes('moderate waste risk detected') && lower.includes('adjust'))) {
+      const m = trimmed.match(/expected\s+demand\s*\(?([\d.]+)\s*([a-zA-Z]+)?\)?/i);
+      if (m) {
+        const demand = m[1];
+        const unit = m[2] || 'kg';
+        return `အလယ်အလတ် အလေအလွင့် ဖြစ်နိုင်ခြေ ရှိနေပါသည်။ ခန့်မှန်းဝယ်လိုအား (${demand} ${unit}) အရ မီးဖိုချောင် ပြင်ဆင်ချက်ပြုတ်မှု ပမာဏကို ၁၀-၁၅% လျှော့ချ ညှိနှိုင်းပါ။`;
+      }
+      return 'အလေအလွင့် ဖြစ်နိုင်ခြေ လျှော့ချရန် မီးဖိုချောင် ပြင်ဆင်ချက်ပြုတ်မှု ပမာဏကို ၁၀-၁၅% လျှော့ချ ညှိနှိုင်းပါ။';
+    }
+    if (lower.includes('feature in chef\'s daily side dish') || (lower.includes('lunch specials') && lower.includes('drawdown'))) {
+      const m = trimmed.match(/within\s+(\d+)\s*days?/i);
+      const days = m ? m[1] : '၂';
+      return `ကုန်ပစ္စည်း ${days} ရက်အတွင်း လျင်မြန်စွာ ကုန်စင်စေရန် စားဖိုမှူး၏ နေ့စဉ် အထူးဟင်းလျာ၊ တွဲဖက်ရောင်းချမှု သို့မဟုတ် နေ့လယ်စာ ပရိုမိုးရှင်းများတွင် ထည့်သွင်း ရောင်းချပါ။`;
+    }
+    if (lower.includes('safe shelf-life remaining') || lower.includes('maintain standard scheduled production batch')) {
+      const m = trimmed.match(/remaining\s*\(?(\d+)\s*days?\)?/i);
+      const days = m ? m[1] : '၅';
+      return `လုံလောက်သော သက်တမ်းကျန်ရှိပြီး (${days} ရက်) လက်ကျန်ပမာဏ မျှတနေပါသဖြင့် ပုံမှန် သတ်မှတ်ထားသော ထုတ်လုပ်မှုနှင့် ပစ္စည်းဖြည့်တင်းမှု အစီအစဉ်အတိုင်း ဆက်လက် ဆောင်ရွက်ပါ။`;
+    }
+
+    // 4. Prolog Reasons
+    if (lower.includes('reached or passed expiration date') || lower.includes('passed expiration date') || lower.includes('do not serve')) {
+      return 'ကုန်ပစ္စည်းသည် သက်တမ်းကုန်ဆုံးသွားပါပြီ။ ဧည့်သည်များထံ မကျွေးမွေးပါနှင့်။';
+    }
+    if (lower.includes('expires today') || lower.includes('product expires today')) {
+      return 'ကုန်ပစ္စည်းသည် ယနေ့ သက်တမ်းကုန်ဆုံးပါမည်။ ချက်ချင်း စားသုံးရန် သို့မဟုတ် အရေးယူဆောင်ရွက်ရန် လိုအပ်ပါသည်။';
+    }
+    if (lower.includes('expires within 24 hours') || lower.includes('within 24 hours')) {
+      return 'ကုန်ပစ္စည်းသည် ၂၄ နာရီအတွင်း သက်တမ်းကုန်ဆုံးပါမည်။ ချက်ချင်း အရေးယူဆောင်ရွက်ရန် လိုအပ်ပါသည်။';
+    }
+    if (lower.includes('expires within 2-3 days') || lower.includes('within 2-3 days')) {
+      return 'ကုန်ပစ္စည်းသည် ၂-၃ ရက်အတွင်း သက်တမ်းကုန်ဆုံးပါမည်။ သုံးစွဲမှုနှုန်းကို အနီးကပ် စောင့်ကြည့်ပါ။';
+    }
+    if (lower.includes('significantly exceeds expected demand') || lower.includes('significantly exceeds')) {
+      return 'ကုန်ပစ္စည်းလက်ကျန်သည် ခန့်မှန်းဝယ်လိုအားထက် သိသာစွာ ပိုလျှံနေပါသည်';
+    }
+    if (lower.includes('moderately exceeds')) {
+      return 'လက်ရှိကုန်ပစ္စည်းလက်ကျန်သည် ခန့်မှန်းဝယ်လိုအားထက် အသင့်အတင့် ပိုလျှံနေပါသည်';
+    }
+    if (lower.includes('short remaining shelf life')) {
+      return 'ကျန်ရှိသော သက်တမ်း နည်းပါးနေပါသည် (၃ ရက် သို့မဟုတ် ၃ ရက်အောက်)';
+    }
+    if (lower.includes('high historical waste rate')) {
+      return 'အတိတ်ကာလ အလေအလွင့်ဖြစ်ပွားမှုနှုန်း မြင့်မားခဲ့ပါသည်';
+    }
+    if (lower.includes('critical (>=') || lower.includes('historical waste rate is critical')) {
+      return 'အတိတ်ကာလ အလေအလွင့်ဖြစ်ပွားမှုနှုန်း အလွန်မြင့်မားပါသည် (၃၀% နှင့်အထက်)။ လက်ကျန်ပမာဏသည် ဝယ်လိုအားထက် ပိုလျှံနေပါသည်။';
+    }
+    if (lower.includes('safe shelf life remaining') || (lower.includes('safe shelf life') && lower.includes('balanced'))) {
+      return 'လုံလောက်သော သက်တမ်းကျန်ရှိပြီး (> ၃ ရက်) လက်ကျန်ပမာဏနှင့် ဝယ်လိုအား မျှတနေပါသည်';
+    }
+
+    return trimmed;
   },
 
   translateRisk(risk) {
