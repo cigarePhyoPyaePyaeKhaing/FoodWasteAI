@@ -63,10 +63,10 @@ const Dashboard = {
               name: item.foodName || item.foodItemName || 'Item',
               riskPct: Math.round(item.riskScore !== undefined ? item.riskScore : (item.riskPercentage !== undefined ? item.riskPercentage : 18)),
               riskLevel: item.riskLevel,
-              category: 'Kitchen Item',
-              stock: `${Number(item.stock).toFixed(1)} ${item.unit || 'units'}`,
-              demand: `${Number(item.expectedDemand).toFixed(1)} ${item.unit || 'units'}`,
-              expiry: `${item.expiryDays} Day(s)`
+              category: item.category || 'Kitchen Item',
+              stockQty: item.stock !== undefined ? Number(item.stock).toFixed(1) : '0.0',
+              unit: item.unit || 'liter',
+              expiryDays: item.expiryDays !== undefined ? item.expiryDays : 0
             }));
           } else {
             this.data.highRiskFoods = [];
@@ -343,7 +343,7 @@ const Dashboard = {
           <td>
             <div style="font-weight:700; color:var(--text-main); font-size:0.92rem;">${item.name}</div>
             <div style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">
-              ${isMm ? 'လက်ကျန်:' : 'Stock:'} <strong>${item.stock}</strong> &bull; ${isMm ? 'သက်တမ်းကုန်ရက်:' : 'Expiry:'} <strong>${item.expiry}</strong>
+              ${isMm ? 'လက်ကျန်:' : 'Stock:'} <strong>${item.stockQty} ${item.unit}</strong> &bull; ${isMm ? 'သက်တမ်းကုန်ရက်:' : 'Expiry:'} <strong>${isMm ? (item.expiryDays + ' ရက်') : (item.expiryDays + ' Day(s)')}</strong>
             </div>
           </td>
           <td style="width:35%;">

@@ -146,6 +146,8 @@ window.I18N_EN = {
   "dash.rec.actionRequired": "Action Required",
   "dash.chart.yellowMode": "Yellow AI Mode",
   "dash.savingsBanner": "Total projected cost savings by applying recommendations:",
+  "dash.rec.openActionCenter": "Open Action Center →",
+  "dash.rec.reviewRules": "Review All Rules",
 
   // Inventory Page (inventory.html)
   "inv.headline": "Inventory Management",
@@ -240,6 +242,7 @@ window.I18N_EN = {
   "pred.kpi.predictedVolume": "Predicted Waste Quantity",
   "pred.kpi.withoutMitigation": "Without proactive mitigation",
   "pred.kpi.compositeRisk": "Composite Risk Level",
+  "pred.kpi.riskSub": "Based on live inventory evaluation",
   "pred.kpi.risk": "Risk %",
   "PRED.KPI.RISK": "Risk %",
   "pred.kpi.potentialSavings": "Estimated Savings",

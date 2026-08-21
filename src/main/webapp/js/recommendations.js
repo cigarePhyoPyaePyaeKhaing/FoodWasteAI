@@ -36,15 +36,16 @@ const Recommendations = {
   },
 
   async generateFreshDirectives() {
-    API.showToast('Evaluating inventory through SWI-Prolog reasoning...', 'info');
+    const isMm = typeof I18n !== 'undefined' && I18n.isMyanmar();
+    API.showToast(isMm ? 'SWI-Prolog ယုတ္တိဗေဒဖြင့် စာရင်းများကို ပြန်လည်စစ်ဆေးနေသည်...' : 'Evaluating inventory through SWI-Prolog reasoning...', 'info');
     try {
       await API.post('/api/recommendations/generate', {});
       const res = await API.get('/api/recommendations');
       this.recommendations = (res && res.data) ? res.data : [];
-      API.showToast('AI Directives generated from Prolog prediction!', 'success');
+      API.showToast(isMm ? 'Prolog ခန့်မှန်းချက်မှ AI အကြံပြုချက်များ ထုတ်ယူပြီးပါပြီ!' : 'AI Directives generated from Prolog prediction!', 'success');
     } catch (err) {
       console.error('Error generating directives:', err);
-      API.showToast('Updated directives', 'success');
+      API.showToast(isMm ? 'အကြံပြုချက်များ အသစ်ပြင်ဆင်ပြီး' : 'Updated directives', 'success');
     } finally {
       this.render();
       this.updateCounts();
@@ -54,10 +55,11 @@ const Recommendations = {
   renderLoading() {
     const container = document.getElementById('rec-grid-container');
     if (!container) return;
+    const isMm = typeof I18n !== 'undefined' && I18n.isMyanmar();
     container.innerHTML = `
       <div style="grid-column: 1 / -1; text-align:center; padding:3rem; color:var(--text-muted);">
         <div style="font-size:1.5rem; animation: spin 1s linear infinite; display:inline-block;">🍃</div>
-        <div style="margin-top:0.5rem; font-weight:600;">Evaluating Prolog expert rules & prediction items...</div>
+        <div style="margin-top:0.5rem; font-weight:600;">${isMm ? 'Prolog စည်းမျဉ်းများနှင့် ခန့်မှန်းချက်များကို စစ်ဆေးနေပါသည်...' : 'Evaluating Prolog expert rules & prediction items...'}</div>
       </div>
     `;
   },
@@ -212,29 +214,31 @@ const Recommendations = {
   },
 
   async accept(id) {
+    const isMm = typeof I18n !== 'undefined' && I18n.isMyanmar();
     try {
       await API.put(`/api/recommendations/${id}`, { status: 'ACCEPTED' });
       const rec = this.recommendations.find(r => r.id === id);
       if (rec) rec.status = 'ACCEPTED';
-      API.showToast('Directive Accepted! Applied to kitchen prep schedule.', 'success');
+      API.showToast(isMm ? 'အကြံပြုချက်ကို လက်ခံပြီးပါပြီ! မီးဖိုချောင် ထုတ်လုပ်မှု အချိန်ဇယားတွင် ထည့်သွင်းထားပါသည်။' : 'Directive Accepted! Applied to kitchen prep schedule.', 'success');
       this.render();
     } catch (err) {
       console.error('Error accepting recommendation:', err);
-      API.showToast('Applied directive!', 'success');
+      API.showToast(isMm ? 'အကြံပြုချက် လက်ခံဆောင်ရွက်ပြီး' : 'Applied directive!', 'success');
     }
   },
 
   async dismiss(id) {
+    const isMm = typeof I18n !== 'undefined' && I18n.isMyanmar();
     try {
       await API.put(`/api/recommendations/${id}`, { status: 'DISMISSED' });
       const rec = this.recommendations.find(r => r.id === id);
       if (rec) rec.status = 'DISMISSED';
-      API.showToast('Directive dismissed', 'info');
+      API.showToast(isMm ? 'အကြံပြုချက် ပယ်ဖျက်ပြီး' : 'Directive dismissed', 'info');
       this.render();
       this.updateCounts();
     } catch (err) {
       console.error('Error dismissing recommendation:', err);
-      API.showToast('Dismissed', 'info');
+      API.showToast(isMm ? 'ပယ်ဖျက်ပြီး' : 'Dismissed', 'info');
     }
   }
 };

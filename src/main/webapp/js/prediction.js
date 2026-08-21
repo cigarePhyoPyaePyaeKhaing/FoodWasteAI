@@ -21,22 +21,24 @@ const Prediction = {
       this.render();
     } catch (err) {
       console.warn('Error fetching prediction report:', err);
-      API.showToast('Using local prediction parameters', 'info');
+      const isMm = typeof I18n !== 'undefined' && I18n.isMyanmar();
+      API.showToast(isMm ? 'ဒေသတွင်း ခန့်မှန်းချက် သတ်မှတ်ချက်များကို အသုံးပြုနေသည်' : 'Using local prediction parameters', 'info');
     } finally {
       this.loading = false;
     }
   },
 
   async runPrologInference() {
-    API.showToast('Executing SWI-Prolog expert reasoning system...', 'info');
+    const isMm = typeof I18n !== 'undefined' && I18n.isMyanmar();
+    API.showToast(isMm ? 'SWI-Prolog ပညာရှင် ယုတ္တိဗေဒစနစ်ဖြင့် ဆန်းစစ်တွက်ချက်နေသည်...' : 'Executing SWI-Prolog expert reasoning system...', 'info');
     try {
       const res = await API.post('/api/prediction/evaluate', {});
       this.report = (res && res.data) ? res.data : null;
       this.render();
-      API.showToast('Prolog Expert System evaluated inventory!', 'success');
+      API.showToast(isMm ? 'SWI-Prolog စနစ်မှ ကုန်ပစ္စည်းများကို အောင်မြင်စွာ ဆန်းစစ်ပြီးပါပြီ!' : 'Prolog Expert System evaluated inventory!', 'success');
     } catch (err) {
       console.error('Error running inference:', err);
-      API.showToast('Inference completed with fallback rules', 'success');
+      API.showToast(isMm ? 'အရန် စည်းမျဉ်းများဖြင့် တွက်ချက်မှု ပြီးမြောက်ပါသည်' : 'Inference completed with fallback rules', 'success');
     }
   },
 

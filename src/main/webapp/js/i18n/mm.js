@@ -147,6 +147,8 @@ window.I18N_MM = {
   "dash.rec.actionRequired": "အရေးယူဆောင်ရွက်ရန် လိုအပ်သည်",
   "dash.chart.yellowMode": "AI အဝါရောင်မုဒ်",
   "dash.savingsBanner": "အကြံပြုချက်များကို အကောင်အထည်ဖော်ခြင်းဖြင့် စုစုပေါင်း သက်သာမည့် ခန့်မှန်းငွေကြေး:",
+  "dash.rec.openActionCenter": "လုပ်ဆောင်ချက်စင်တာ ဖွင့်မည် →",
+  "dash.rec.reviewRules": "စည်းမျဉ်းအားလုံး ပြန်လည်စစ်ဆေးမည်",
 
   // Inventory Page (inventory.html)
   "inv.headline": "ကုန်ပစ္စည်းလက်ကျန် စီမံခန့်ခွဲမှု",
@@ -241,6 +243,7 @@ window.I18N_MM = {
   "pred.kpi.predictedVolume": "ခန့်မှန်း အလေအလွင့်ပမာဏ",
   "pred.kpi.withoutMitigation": "ကြိုတင်ကာကွယ်မှု မပြုလုပ်ပါက",
   "pred.kpi.compositeRisk": "ခြုံငုံ အန္တရာယ် အဆင့်အတန်း",
+  "pred.kpi.riskSub": "ကုန်ပစ္စည်းလက်ကျန် ဆန်းစစ်မှုအပေါ် အခြေခံသည်",
   "pred.kpi.risk": "အန္တရာယ် %",
   "PRED.KPI.RISK": "အန္တရာယ် %",
   "pred.kpi.potentialSavings": "ခန့်မှန်းငွေကြေး သက်သာမှု",

@@ -162,7 +162,7 @@
               <h2 class="card-title-glass" data-i18n="dash.chart.title">📈 7-Day Waste Volume Trend (Actual vs AI Predicted)</h2>
               <div class="card-subtitle-glass" data-i18n="dash.chart.subtitle">Yellow-highlighted bar indicates tomorrow's AI predicted threshold</div>
             </div>
-            <span class="badge-bubble badge-optimization">Yellow AI Mode</span>
+            <span class="badge-bubble badge-optimization" data-i18n="dash.chart.yellowMode">Yellow AI Mode</span>
           </div>
           <div class="card-body-glass">
             <div id="waste-chart-container">
@@ -216,7 +216,7 @@
             <h2 class="card-title-glass" data-i18n="dash.rec.title">💡 AI Prevention & Redistribution Recommendations</h2>
             <div class="card-subtitle-glass" data-i18n="dash.rec.subtitle">Reasoned decisions by SWI-Prolog domain expert rules</div>
           </div>
-          <a href="/recommendations.html" class="btn-bubble btn-yellow btn-sm-bubble" data-i18n="dock.actions">Open Action Center →</a>
+          <a href="/recommendations.html" class="btn-bubble btn-yellow btn-sm-bubble" data-i18n="dash.rec.openActionCenter">Open Action Center →</a>
         </div>
         <div class="card-body-glass">
           <div class="recommendations-grid" id="dashboard-rec-container">
@@ -225,9 +225,9 @@
         </div>
         <div class="card-footer-glass">
           <span style="font-size:0.875rem; color:var(--text-body); font-weight:600;">
-            ✨ Total projected cost savings by applying recommendations: <strong id="dashboard-savings-val" style="color:var(--accent-yellow-dark);">0 MMK</strong>
+            ✨ <span data-i18n="dash.savingsBanner">Total projected cost savings by applying recommendations:</span> <strong id="dashboard-savings-val" style="color:var(--accent-yellow-dark);">0 MMK</strong>
           </span>
-          <a href="/recommendations.html" class="btn-bubble btn-glass btn-sm-bubble" data-i18n="pred.reasoning.title">Review All Rules</a>
+          <a href="/recommendations.html" class="btn-bubble btn-glass btn-sm-bubble" data-i18n="dash.rec.reviewRules">Review All Rules</a>
         </div>
       </div>
     </main>
@@ -235,7 +235,7 @@
 </div>
 
 <!-- Floating Action Button (Mobile FAB) -->
-<button class="fab-btn" onclick="window.location.href='/prediction.html'" title="Run AI Prediction">
+<button class="fab-btn" onclick="window.location.href='/prediction.html'" title="Run AI Prediction" data-i18n-title="pred.btn.evaluate">
   ⚡
 </button>
 
