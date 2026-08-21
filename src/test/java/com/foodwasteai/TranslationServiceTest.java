@@ -80,6 +80,18 @@ public class TranslationServiceTest {
         String saladMy = translationService.translateToMyanmar(saladEn);
         assertTrue(saladMy.contains("Organic Garden Salad Mix"), "Complex salad name must remain unchanged");
         assertTrue(saladMy.contains("15.5 kg"), "Quantity with decimal and unit must remain unchanged");
+
+        // Fresh Milk liter test
+        String milkEn = "Stock is 8.0 liter against 0.6 liter expected demand with 0-day expiry remaining. Reduce next scheduled production batch by 15-25% to prevent excess spoilage.";
+        String milkMy = translationService.translateToMyanmar(milkEn);
+        assertTrue(milkMy.contains("8.0") || milkMy.contains("8"), "Number 8.0 must be preserved");
+        assertTrue(milkMy.contains("0.6"), "Number 0.6 must be preserved");
+        assertTrue(milkMy.contains("liter"), "Unit liter must be preserved");
+
+        // Expired directive with food name
+        String expEn = "Halt production and dispose of expired Premium Fresh Milk";
+        String expMy = translationService.translateToMyanmar(expEn);
+        assertTrue(expMy.contains("Premium Fresh Milk"), "Food name must remain unchanged in expired directive");
     }
 
     @Test
