@@ -185,16 +185,16 @@ public class App {
 
             List<String> staticFiles = Arrays.asList(
                 "index.html",
-                "dashboard.html",
-                "inventory.html",
-                "prediction.html",
-                "recommendations.html",
-                "redistribution.html",
-                "reports.html",
-                "sales.html",
-                "settings.html",
-                "users.html",
-                "waste.html",
+                "WEB-INF/protected/dashboard.html",
+                "WEB-INF/protected/inventory.html",
+                "WEB-INF/protected/prediction.html",
+                "WEB-INF/protected/recommendations.html",
+                "WEB-INF/protected/redistribution.html",
+                "WEB-INF/protected/reports.html",
+                "WEB-INF/protected/sales.html",
+                "WEB-INF/protected/settings.html",
+                "WEB-INF/protected/users.html",
+                "WEB-INF/protected/waste.html",
                 "css/variables.css",
                 "css/components.css",
                 "css/styles.css",
@@ -237,6 +237,29 @@ public class App {
     }
 
     private static void registerServlets(Context ctx) {
+        // Protected HTML Pages Servlet (Strict Server-Side Protection backed by /WEB-INF/protected/)
+        ProtectedPageServlet protectedPageServlet = new ProtectedPageServlet();
+        Tomcat.addServlet(ctx, "ProtectedPageServlet", protectedPageServlet);
+        String[] protectedRoutes = {
+            "/dashboard.html", "/dashboard",
+            "/inventory.html", "/inventory",
+            "/sales.html", "/sales",
+            "/waste.html", "/waste",
+            "/prediction.html", "/prediction",
+            "/recommendations.html", "/recommendations",
+            "/redistribution.html", "/redistribution",
+            "/reports.html", "/reports",
+            "/settings.html", "/settings",
+            "/users.html", "/users"
+        };
+        for (String route : protectedRoutes) {
+            ctx.addServletMappingDecoded(route, "ProtectedPageServlet");
+        }
+
+        // Version & Build Diagnostic Servlet
+        Tomcat.addServlet(ctx, "VersionServlet", new VersionServlet());
+        ctx.addServletMappingDecoded("/api/version", "VersionServlet");
+
         // Health Check Servlet
         Tomcat.addServlet(ctx, "HealthCheckServlet", new HealthCheckServlet());
         ctx.addServletMappingDecoded("/api/health", "HealthCheckServlet");
@@ -286,7 +309,7 @@ public class App {
         ctx.addServletMappingDecoded("/api/users", "UsersServlet");
         ctx.addServletMappingDecoded("/api/users/*", "UsersServlet");
 
-        logger.info("Servlets registered: /api/health, /api/auth/*, /api/users/*, /api/inventory/*, /api/sales/*, /api/waste/*, /api/prediction/*, /api/recommendations/*, /api/redistribution/*, /api/chat/*");
+        logger.info("Servlets registered: /api/version, /api/health, /api/auth/*, /api/users/*, /api/inventory/*, /api/sales/*, /api/waste/*, /api/prediction/*, /api/recommendations/*, /api/redistribution/*, /api/chat/*, and 10 protected HTML routes");
     }
 
     private static void printBanner(int port) {

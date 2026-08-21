@@ -217,7 +217,7 @@ public class SecurityAndAuthTest {
     }
 
     @Test
-    @DisplayName("Security: Task 8 - Production Embedded Tomcat Integration Test: GET /dashboard.html without auth asserts 302 and Location /index.html")
+    @DisplayName("Security: Task 8 & 10 - Production Embedded Tomcat Integration Test: GET /dashboard.html without auth asserts 302, Location /index.html, and empty/non-dashboard body")
     public void testProductionEmbeddedTomcatUnauthenticatedDashboardRedirect() throws Exception {
         HttpResponse<String> response = sendGet("/dashboard.html", null);
         assertEquals(302, response.statusCode(), "GET /dashboard.html on embedded Tomcat must return HTTP 302");
@@ -225,6 +225,19 @@ public class SecurityAndAuthTest {
         assertEquals("/index.html", location, "Location header must be exactly /index.html");
         String cacheControl = response.headers().firstValue("Cache-Control").orElse("");
         assertTrue(cacheControl.contains("no-cache") && cacheControl.contains("no-store"), "Must have no-store/no-cache headers");
+        assertFalse(response.body().contains("Today's Food Waste"), "Unauthenticated 302 response must never leak dashboard content");
+        assertFalse(response.body().contains("Predicted Tomorrow"), "Unauthenticated 302 response must never leak prediction metrics");
+    }
+
+    @Test
+    @DisplayName("Security: Task 4 - GET /api/version endpoint returns build diagnostics and environment")
+    public void testVersionEndpointReturnsBuildInfo() throws Exception {
+        HttpResponse<String> response = sendGet("/api/version", null);
+        assertEquals(200, response.statusCode(), "GET /api/version must return HTTP 200");
+        assertTrue(response.body().contains("commit"), "Version response must contain commit field");
+        assertTrue(response.body().contains("environment"), "Version response must contain environment field");
+        assertTrue(response.body().contains("ProtectedPageServlet") || response.body().contains("protected"),
+                "Version response must confirm protected page architecture");
     }
 
     @ParameterizedTest

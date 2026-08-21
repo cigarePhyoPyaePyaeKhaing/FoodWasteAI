@@ -134,7 +134,7 @@ public class AuthenticationFilter implements Filter {
         }
 
         // Public APIs
-        if ("/api/health".equals(path) || "/api/auth/login".equals(path)) {
+        if ("/api/health".equals(path) || "/api/auth/login".equals(path) || "/api/version".equals(path)) {
             return true;
         }
 
