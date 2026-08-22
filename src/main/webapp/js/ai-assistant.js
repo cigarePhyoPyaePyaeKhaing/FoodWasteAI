@@ -239,9 +239,9 @@ const AIAssistant = {
         box-shadow: 0 8px 24px var(--accent-primary-glow);
       }
       [data-theme="dark"] .gemini-fab {
-        background: rgba(15, 35, 65, 0.85);
-        color: #F5F5F7;
-        border-color: rgba(60, 100, 150, 0.45);
+        background: rgba(10, 24, 46, 0.85);
+        color: #F8FAFC;
+        border-color: rgba(125, 211, 252, 0.20);
       }
       @media (max-width: 767px) {
         .gemini-fab {
@@ -373,6 +373,12 @@ const AIAssistant = {
         font-weight: 600;
         box-shadow: var(--shadow-accent-btn);
         word-break: break-word;
+      }
+      [data-theme="dark"] .gemini-msg-user .gemini-msg-bubble {
+        background: linear-gradient(135deg, #7DD3FC 0%, #60A5FA 100%);
+        color: #061426;
+        font-weight: 700;
+        box-shadow: 0 4px 16px -2px rgba(125, 211, 252, 0.30);
       }
       .gemini-msg-ai {
         align-self: flex-start;

@@ -40,7 +40,7 @@
 
 .theme-btn.active {
   background: var(--accent-primary) !important;
-  color: #FFFFFF !important;
+  color: var(--accent-primary-text) !important;
   font-weight: 700;
   box-shadow: 0 2px 8px var(--accent-primary-glow);
 }

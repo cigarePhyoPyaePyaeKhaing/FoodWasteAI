@@ -39,11 +39,11 @@ body {
 }
 
 [data-theme="dark"] body {
-  background-color: #061426;
+  background-color: #060F1E;
   background-image: 
-    radial-gradient(circle at 20% 15%, rgba(10, 132, 255, 0.12) 0%, transparent 50%),
-    radial-gradient(circle at 85% 85%, rgba(56, 189, 248, 0.08) 0%, transparent 50%),
-    linear-gradient(180deg, #07172B 0%, #030B17 100%);
+    radial-gradient(circle at 20% 12%, rgba(125, 211, 252, 0.08) 0%, transparent 50%),
+    radial-gradient(circle at 85% 85%, rgba(96, 165, 250, 0.06) 0%, transparent 50%),
+    linear-gradient(180deg, #060F1E 0%, #030A14 100%);
 }
 
 /* --- Base Layout Wrapper --- */
@@ -188,9 +188,9 @@ body {
 }
 
 [data-theme="dark"] .nav-bubble-link.active {
-  background: rgba(56, 189, 248, 0.18);
-  color: #38bdf8;
-  box-shadow: 0 0 16px rgba(56, 189, 248, 0.3);
+  background: rgba(125, 211, 252, 0.14);
+  color: var(--accent-pale-blue, #7DD3FC);
+  box-shadow: 0 0 16px rgba(125, 211, 252, 0.18);
 }
 
 .nav-bubble-icon {
@@ -476,9 +476,9 @@ body {
 }
 
 [data-theme="dark"] .dock-item.active {
-  color: #38bdf8;
-  background: rgba(56, 189, 248, 0.18);
-  box-shadow: 0 0 12px rgba(56, 189, 248, 0.25);
+  color: var(--accent-pale-blue, #7DD3FC);
+  background: rgba(125, 211, 252, 0.14);
+  box-shadow: 0 0 12px rgba(125, 211, 252, 0.18);
 }
 
 .dock-item .dock-icon {

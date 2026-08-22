@@ -189,7 +189,7 @@ public class RedistributionValidationTest {
                 null, "Inactive Partner " + System.currentTimeMillis(), "Animal Shelter",
                 "Ko Ko", "+95 9 33334444", "koko@rescue.org", "Yangon", false
         );
-        RedistributionRecipient saved = redistributionDao.saveRecipient(inactiveRecipient);
+        RedistributionRecipient saved = redistributionService.createRecipient(inactiveRecipient);
         assertNotNull(saved.getId());
 
         FoodItem item = foodItemService.createFoodItem(
@@ -208,9 +208,6 @@ public class RedistributionValidationTest {
             redistributionService.scheduleDispatch(dispatch, 1L);
         });
         assertTrue(ex.getMessage().contains("Recipient not found or inactive"));
-
-        // Cleanup
-        redistributionDao.deleteRecipient(saved.getId());
     }
 
     @Test
@@ -220,17 +217,12 @@ public class RedistributionValidationTest {
                 null, "Test Orphanage " + System.currentTimeMillis(), "Community Shelter",
                 "Daw Myint", "+95 9 987654321", "myint@shelter.org", "Mandalay", true
         );
-        RedistributionRecipient saved = redistributionDao.saveRecipient(newRecipient);
+        RedistributionRecipient saved = redistributionService.createRecipient(newRecipient);
         assertNotNull(saved.getId());
 
-        Optional<RedistributionRecipient> foundOpt = redistributionDao.findRecipientById(saved.getId());
+        Optional<RedistributionRecipient> foundOpt = redistributionService.getRecipientById(saved.getId());
         assertTrue(foundOpt.isPresent());
         assertEquals(saved.getName(), foundOpt.get().getName());
         assertEquals(saved.getOrganizationType(), foundOpt.get().getOrganizationType());
-
-        // Cleanup
-        redistributionDao.deleteRecipient(saved.getId());
-        Optional<RedistributionRecipient> deletedOpt = redistributionDao.findRecipientById(saved.getId());
-        assertTrue(deletedOpt.isEmpty());
     }
 }

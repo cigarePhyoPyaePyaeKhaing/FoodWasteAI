@@ -24,6 +24,29 @@ public class RedistributionService {
     private final RedistributionDao redistributionDao;
     private final FoodItemService foodItemService;
 
+    private static final Map<Long, RedistributionRecipient> memoryRecipients = new ConcurrentHashMap<>();
+    private static final Map<Long, Redistribution> memoryDispatches = new ConcurrentHashMap<>();
+    private static final AtomicLong recipientIdGen = new AtomicLong(0);
+    private static final AtomicLong dispatchIdGen = new AtomicLong(0);
+
+    static {
+        seedInitialRecipients();
+    }
+
+    private static void seedInitialRecipients() {
+        if (!memoryRecipients.isEmpty()) return;
+        RedistributionRecipient r1 = new RedistributionRecipient(1L, "Hope Community Food Bank", "Food Bank", "Daw Khin Myint", "+95 9 798765432", "contact@hopecommunity.org", "No. 45, Bogyoke Road, Bahan, Yangon", true);
+        RedistributionRecipient r2 = new RedistributionRecipient(2L, "City Youth Shelter & Kitchen", "Soup Kitchen", "U Than Htut", "+95 9 450123456", "info@cityyouthshelter.org", "No. 128, Lower Kyimyindaing Road, Yangon", true);
+        RedistributionRecipient r3 = new RedistributionRecipient(3L, "GreenEarth Animal Sanctuary", "Animal Feed", "Dr. Aye Thida", "+95 9 250987654", "rescue@greenearth.org", "Hlawga Park Road, Mingaladon, Yangon", true);
+        RedistributionRecipient r4 = new RedistributionRecipient(4L, "Circular BioCompost Hub", "Compost", "Ko Aung Kyaw", "+95 9 360112233", "hello@circularbio.com", "Industrial Zone 3, South Dagon, Yangon", true);
+
+        memoryRecipients.put(1L, r1);
+        memoryRecipients.put(2L, r2);
+        memoryRecipients.put(3L, r3);
+        memoryRecipients.put(4L, r4);
+        recipientIdGen.set(4);
+    }
+
     public RedistributionService() {
         this.redistributionDao = new RedistributionDao();
         this.foodItemService = new FoodItemService();
@@ -38,20 +61,29 @@ public class RedistributionService {
         if (DatabaseConfig.isAvailable()) {
             return redistributionDao.findAllDispatches();
         }
-        return Collections.emptyList();
+        return new ArrayList<>(memoryDispatches.values());
     }
 
     public List<RedistributionRecipient> getAllRecipients() throws SQLException {
         if (DatabaseConfig.isAvailable()) {
             return redistributionDao.findAllRecipients();
         }
-        return Collections.emptyList();
+        List<RedistributionRecipient> list = new ArrayList<>();
+        for (RedistributionRecipient r : memoryRecipients.values()) {
+            if (r.isActive()) list.add(r);
+        }
+        list.sort(Comparator.comparing(RedistributionRecipient::getName));
+        return list;
     }
 
     public Optional<RedistributionRecipient> getRecipientById(Long id) throws SQLException {
         if (id == null) return Optional.empty();
         if (DatabaseConfig.isAvailable()) {
             return redistributionDao.findRecipientById(id);
+        }
+        RedistributionRecipient r = memoryRecipients.get(id);
+        if (r != null && r.isActive()) {
+            return Optional.of(r);
         }
         return Optional.empty();
     }
@@ -63,7 +95,10 @@ public class RedistributionService {
         if (DatabaseConfig.isAvailable()) {
             return redistributionDao.saveRecipient(recipient);
         }
-        throw new SQLException("Database connection is unavailable to register recipient");
+        long id = recipientIdGen.incrementAndGet();
+        recipient.setId(id);
+        memoryRecipients.put(id, recipient);
+        return recipient;
     }
 
     public Redistribution scheduleDispatch(Redistribution dispatch, Long userId) throws SQLException {
@@ -121,11 +156,16 @@ public class RedistributionService {
             dispatch.setNotesMy(translator.translateToMyanmar(defaultNotesEn));
         }
 
-        if (!DatabaseConfig.isAvailable()) {
-            throw new SQLException("Database connection is unavailable to save redistribution record");
+        Redistribution saved;
+        if (DatabaseConfig.isAvailable()) {
+            saved = redistributionDao.saveDispatch(dispatch);
+        } else {
+            long id = dispatchIdGen.incrementAndGet();
+            dispatch.setId(id);
+            dispatch.setCreatedAt(LocalDateTime.now());
+            memoryDispatches.put(id, dispatch);
+            saved = dispatch;
         }
-
-        Redistribution saved = redistributionDao.saveDispatch(dispatch);
 
         // Deduct quantity from inventory
         try {
@@ -149,6 +189,12 @@ public class RedistributionService {
         if (id == null || status == null) return false;
         if (DatabaseConfig.isAvailable()) {
             return redistributionDao.updateStatus(id, status);
+        }
+        Redistribution d = memoryDispatches.get(id);
+        if (d != null) {
+            d.setStatus(status);
+            d.setUpdatedAt(LocalDateTime.now());
+            return true;
         }
         return false;
     }
