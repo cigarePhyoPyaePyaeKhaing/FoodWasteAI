@@ -577,17 +577,17 @@ const AIAssistant = {
         query = isMm ? "Fresh Chicken Breast အလေအလွင့် အန္တရာယ် ဘယ်လိုရှိလဲ?" : "What is the waste risk for Fresh Chicken Breast?";
         break;
       case 3:
-        query = isMm ? "ဘယ်အစားအစာတွေက အန္တရာယ်အမြင့်ဆုံး ဖြစ်နေပါသလဲ?" : "Which food items are high risk?";
+        query = isMm ? "ဘယ်အစားအစာတွေက အန္တရာယ်မြင့်နေပါသလဲ?" : "Which food items are high risk and why?";
         break;
       case 4:
         query = isMm ? "ယနေ့ ဘယ်ကုန်ကြမ်းတွေကို ဦးစားပေး ချက်ပြုတ်သင့်ပါသလဲ?" : "What ingredients should our chef cook or prioritize today?";
         break;
       case 5:
-        query = isMm ? "ဘယ်ပိုလျှံအစားအစာတွေကို လှူဒါန်းသင့်ပါသလဲ?" : "Which items should be redistributed?";
+        query = isMm ? "ဘယ်ပိုလျှံအစားအစာတွေကို ပြန်လည်လှူဒါန်းသင့်ပါသလဲ?" : "Which surplus items should be redistributed?";
         break;
       case 6:
       default:
-        query = isMm ? "ယနေ့ အစားအသောက် အလေအလွင့် အနှစ်ချုပ်ကို ရှင်းပြပေးပါ။" : "Give me today's food waste summary.";
+        query = isMm ? "ယနေ့ အစားအသောက် အလေအလွင့် အခြေအနေကို ရှင်းပြပါ။" : "Give me today's food waste summary.";
         break;
     }
     this.sendMessage(query);

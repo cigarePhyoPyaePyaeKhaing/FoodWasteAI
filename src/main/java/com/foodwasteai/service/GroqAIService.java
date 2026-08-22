@@ -145,8 +145,7 @@ public class GroqAIService {
     public ChatResponse processUserQuery(String userQuery, String language) {
         if (userQuery == null || userQuery.trim().isEmpty()) {
             userQuery = (language != null && language.equalsIgnoreCase("mm")) ?
-                    "ယနေ့ အလေအလွင့် အခြေအနေနှင့် အကြံပြုချက်များ ဘာတွေရှိပါသလဲ?" :
-                    "What is the food waste status and recommendations today?";
+                    "မင်္ဂလာပါ" : "hello";
         }
 
         boolean isMyanmar = (language != null && language.equalsIgnoreCase("mm")) || containsMyanmarScript(userQuery);
@@ -155,10 +154,80 @@ public class GroqAIService {
         ChatResponse response = new ChatResponse();
         response.setUserQuery(userQuery);
 
+        // --- 0. FAST INTENT DETECTION (GREETING & CASUAL CONVERSATION) ---
+        String cleanQuery = userQuery.trim().toLowerCase();
+
+        if (isGreeting(cleanQuery)) {
+            String greeting = isMyanmar ?
+                    "မင်္ဂလာပါ 👋\n\n" +
+                    "ကျွန်ုပ်သည် FoodWaste AI Assistant ဖြစ်ပါသည်။\n\n" +
+                    "အောက်ပါအကြောင်းအရာများကို ကူညီပေးနိုင်ပါတယ်။\n" +
+                    "• အစားအစာ အန္တရာယ်ဆန်းစစ်မှု\n" +
+                    "• သက်တမ်းအခြေအနေ\n" +
+                    "• လက်ကျန်ပစ္စည်း စီမံခန့်ခွဲမှု\n" +
+                    "• အလေအလွင့် လျှော့ချမှု\n" +
+                    "• ပြန်လည်လှူဒါန်းမှု\n\n" +
+                    "ဘာကို သိချင်ပါသလဲ?" :
+                    "Hello 👋\n" +
+                    "I am FoodWaste AI Assistant.\n\n" +
+                    "I can help you with:\n" +
+                    "• food waste risk\n" +
+                    "• expiry analysis\n" +
+                    "• inventory problems\n" +
+                    "• production planning\n" +
+                    "• redistribution suggestions\n\n" +
+                    "How can I help you today?";
+
+            response.setAnswer(greeting);
+            response.setSourceEngine("FoodWaste AI Assistant\nPowered by Groq AI + SWI-Prolog");
+            response.addSmartAction(new SmartAction(isMyanmar ? "📦 ကုန်ပစ္စည်းလက်ကျန် ကြည့်ရှုမည်" : "📦 View Kitchen Inventory", "VIEW_INVENTORY", "INFO", "/inventory.html"));
+            return response;
+        }
+
+        if (isThanks(cleanQuery)) {
+            String thanks = isMyanmar ?
+                    "ရပါတယ်ခင်ဗျာ! အစားအသောက် အလေအလွင့် ဆန်းစစ်ရန် လိုအပ်ပါက မည်သည့်အချိန်မဆို မေးမြန်းနိုင်ပါသည်။" :
+                    "You're welcome! Let me know if you need help analyzing food waste.";
+            response.setAnswer(thanks);
+            response.setSourceEngine("FoodWaste AI Assistant\nPowered by Groq AI + SWI-Prolog");
+            return response;
+        }
+
+        if (isIdentity(cleanQuery)) {
+            String idText = isMyanmar ?
+                    "ကျွန်ုပ်သည် FoodWaste AI Assistant ဖြစ်ပါသည်။ စားသောက်ဆိုင်များတွင် အစားအစာ အလေအလွင့် လျှော့ချရေးကို ကူညီပေးပါသည်။" :
+                    "I am FoodWaste AI Assistant. I help restaurants reduce food waste using intelligent analysis.";
+            response.setAnswer(idText);
+            response.setSourceEngine("FoodWaste AI Assistant\nPowered by Groq AI + SWI-Prolog");
+            return response;
+        }
+
+        if (isCapabilities(cleanQuery)) {
+            String capText = isMyanmar ?
+                    "ကျွန်ုပ်သည် ကုန်ပစ္စည်းလက်ကျန် စာရင်းစစ်ဆေးခြင်း၊ သက်တမ်းကုန်ရက် စောင့်ကြည့်ခြင်း၊ အလေအလွင့် အန္တရာယ် တွက်ချက်ခြင်း၊ မီးဖိုချောင် ချက်ပြုတ်မှု ဦးစားပေး သတ်မှတ်ခြင်းနှင့် ပိုလျှံပစ္စည်းများ လှူဒါန်းခြင်းတို့ကို ကူညီပေးနိုင်ပါသည်။" :
+                    "I can help you track inventory levels, monitor food expiry dates, analyze waste risks with SWI-Prolog reasoning, optimize prep batches, and schedule surplus food donations.";
+            response.setAnswer(capText);
+            response.setSourceEngine("FoodWaste AI Assistant\nPowered by Groq AI + SWI-Prolog");
+            return response;
+        }
+
         try {
             // 1. Fetch live MySQL Inventory & Partners
             List<FoodItem> inventory = foodItemService.getAllFoodItems();
             List<RedistributionRecipient> recipients = redistributionService.getAllRecipients();
+
+            // 1.1 Check for unrelated / unknown topic
+            if (isUnknownTopic(cleanQuery, inventory)) {
+                String unknownText = isMyanmar ?
+                        "ကျွန်ုပ်သည် စားသောက်ဆိုင် အစားအသောက် အလေအလွင့် စီမံခန့်ခွဲရေးကို အဓိက ကူညီပေးပါသည်။\n" +
+                        "ကုန်ပစ္စည်းလက်ကျန်၊ သက်တမ်းကုန်ရက်၊ အလေအလွင့် လျှော့ချရေးနှင့် လှူဒါန်းမှုဆိုင်ရာများကို မေးမြန်းနိုင်ပါသည်။" :
+                        "I specialize in FoodWaste management.\n" +
+                        "I can help with inventory, expiry, waste reduction, and redistribution.";
+                response.setAnswer(unknownText);
+                response.setSourceEngine("FoodWaste AI Assistant\nPowered by Groq AI + SWI-Prolog");
+                response.addSmartAction(new SmartAction(isMyanmar ? "📦 ကုန်ပစ္စည်းလက်ကျန် ကြည့်ရှုမည်" : "📦 View Kitchen Inventory", "VIEW_INVENTORY", "INFO", "/inventory.html"));
+                return response;
+            }
 
             // 2. Execute SWI-Prolog Expert Reasoning
             Map<String, Object> prologReport = predictionService.assessAllInventory();
@@ -334,6 +403,110 @@ public class GroqAIService {
             if (c >= '\u1000' && c <= '\u109F') {
                 return true;
             }
+        }
+        return false;
+    }
+
+    private boolean isGreeting(String q) {
+        if (q == null) return false;
+        String clean = q.replaceAll("[^a-zA-Z0-9\u1000-\u109F\\s]", "").trim();
+        if (clean.equals("hi") || clean.equals("hello") || clean.equals("hey") || clean.equals("hiya") ||
+            clean.equals("good morning") || clean.equals("good afternoon") || clean.equals("good evening") ||
+            clean.equals("greetings") || clean.equals("howdy") || clean.equals("yo")) {
+            return true;
+        }
+        if (clean.equals("မင်္ဂလာပါ") || clean.equals("ဟယ်လို") || clean.equals("နေကောင်းလား") ||
+            clean.equals("မင်္ဂလာနံနက်ခင်းပါ") || clean.equals("မင်္ဂလာညနေခင်းပါ") || clean.equals("မင်္ဂလာပါရှင်") ||
+            clean.equals("မင်္ဂလာပါခင်ဗျာ")) {
+            return true;
+        }
+        return false;
+    }
+
+    private boolean isThanks(String q) {
+        if (q == null) return false;
+        String clean = q.replaceAll("[^a-zA-Z0-9\u1000-\u109F\\s]", "").trim();
+        if (clean.equals("thank you") || clean.equals("thanks") || clean.equals("thx") ||
+            clean.equals("thank you very much") || clean.equals("many thanks") || clean.equals("thanks a lot")) {
+            return true;
+        }
+        if (clean.equals("ကျေးဇူးတင်ပါတယ်") || clean.equals("ကျေးဇူးပါ") || clean.equals("ကျေးဇူးတင်ပါတယ်ရှင်") ||
+            clean.equals("ကျေးဇူးတင်ပါတယ်ခင်ဗျာ")) {
+            return true;
+        }
+        return false;
+    }
+
+    private boolean isIdentity(String q) {
+        if (q == null) return false;
+        String clean = q.replaceAll("[^a-zA-Z0-9\u1000-\u109F\\s]", "").trim();
+        if (clean.equals("who are you") || clean.equals("who are u") || clean.equals("what is your name") ||
+            clean.equals("whats your name") || clean.equals("tell me about yourself")) {
+            return true;
+        }
+        if (clean.contains("မင်းဘယ်သူလဲ") || clean.contains("သင်ဘယ်သူလဲ") || clean.contains("နာမည်ဘယ်သူလဲ") ||
+            clean.equals("ဘယ်သူလဲ")) {
+            return true;
+        }
+        return false;
+    }
+
+    private boolean isCapabilities(String q) {
+        if (q == null) return false;
+        String clean = q.replaceAll("[^a-zA-Z0-9\u1000-\u109F\\s]", "").trim();
+        if (clean.equals("what can you do") || clean.equals("what do you do") || clean.equals("help") ||
+            clean.equals("how can you help") || clean.equals("what are your features")) {
+            return true;
+        }
+        if (clean.contains("ဘာတွေလုပ်ပေးနိုင်လဲ") || clean.contains("ဘယ်လိုကူညီပေးနိုင်လဲ") || clean.equals("အကူအညီ")) {
+            return true;
+        }
+        return false;
+    }
+
+    private boolean isFoodWasteQuery(String q, List<FoodItem> inventory) {
+        if (q == null) return false;
+        String[] keywords = {
+            "waste", "food", "risk", "expiry", "expire", "expired", "shelf", "life", "inventory",
+            "stock", "item", "cook", "menu", "chef", "donat", "redistribut", "charit", "surplus",
+            "loss", "price", "metric", "predict", "recommend", "summary", "report", "kitchen",
+            "demand", "prep", "batch", "prevent", "spoil",
+            // Myanmar keywords
+            "အလေအလွင့်", "အန္တရာယ်", "သက်တမ်း", "ကုန်", "ပစ္စည်း", "လက်ကျန်", "မီးဖိုချောင်", "ချက်",
+            "မီနူး", "လှူဒါန်း", "ပရဟိတ", "ပိုလျှံ", "ဆုံးရှုံး", "ခန့်မှန်း", "အကြံပြု", "အနှစ်ချုပ်",
+            "ဝယ်လိုအား", "စွန့်ပစ်", "ဟင်း"
+        };
+        for (String kw : keywords) {
+            if (q.contains(kw)) return true;
+        }
+
+        if (inventory != null) {
+            for (FoodItem item : inventory) {
+                if (item.getName() != null && !item.getName().trim().isEmpty()) {
+                    String name = item.getName().toLowerCase().trim();
+                    if (q.contains(name)) return true;
+                    for (String tok : name.split("\\s+")) {
+                        if (tok.length() >= 3 && !tok.equals("fresh") && !tok.equals("organic") && q.contains(tok)) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    private boolean isUnknownTopic(String q, List<FoodItem> inventory) {
+        if (isFoodWasteQuery(q, inventory)) {
+            return false;
+        }
+        if (q.contains("weather") || q.contains("temperature") || q.contains("forecast") ||
+            q.contains("football") || q.contains("world cup") || q.contains("president") ||
+            q.contains("movie") || q.contains("song") || q.contains("sing") ||
+            q.contains("game") || q.contains("joke") || q.contains("story") ||
+            q.contains("ရာသီဥတု") || q.contains("သီချင်း") || q.contains("ရုပ်ရှင်") ||
+            q.contains("ဘောလုံး") || q.contains("ဟာသ") || q.contains("ကဗျာ")) {
+            return true;
         }
         return false;
     }
@@ -523,47 +696,41 @@ public class GroqAIService {
 
             if (isMm) {
                 return String.format(
-                        "### 🍲 Food Item: %s\n\n" +
-                        "**Status:** `%s` (သက်တမ်းကုန်ရန် %d ရက်ကျန်ရှိ)\n" +
-                        "**Risk:** **%d%% (%s)**\n" +
-                        "**Stock:** %.1f %s\n" +
-                        "**Expected Demand:** %.1f %s\n" +
-                        "**Financial Loss at Risk:** %,.0f MMK\n\n" +
-                        "**Reason (SWI-Prolog `assess_waste_risk/6`):**\n" +
-                        "%s\n\n" +
-                        "**💡 AI လမ်းညွှန်ချက်:**\n" +
-                        "%s",
+                        "### 🍲 Food Item:\n%s\n\n" +
+                        "**Status:**\n`%s` (သက်တမ်းကုန်ရန် %d ရက်ကျန်ရှိ)\n\n" +
+                        "**Risk:**\n**%d%% (%s)**\n\n" +
+                        "**Stock:**\n%.1f %s\n\n" +
+                        "**Reason:**\n%s\n\n" +
+                        "**Recommendation:**\n%s\n\n" +
+                        "**Data Sources:**\n" +
+                        "- Inventory data\n" +
+                        "- SWI-Prolog reasoning (`assess_waste_risk/6`)",
                         foodName,
                         expiryStatusDisplay,
                         expiryDays,
                         Math.round(riskPct),
                         riskLevelDisplay,
                         stock, unit,
-                        demand, unit,
-                        potentialLoss,
                         reasonsBullet,
                         recommendation
                 );
             } else {
                 return String.format(
-                        "### 🍲 Food Item: %s\n\n" +
-                        "**Status:** `%s` (%d day(s) remaining)\n" +
-                        "**Risk:** **%d%% (%s)**\n" +
-                        "**Stock:** %.1f %s\n" +
-                        "**Expected Demand:** %.1f %s\n" +
-                        "**Financial Loss at Risk:** %,.0f MMK\n\n" +
-                        "**Reason (SWI-Prolog `assess_waste_risk/6`):**\n" +
-                        "%s\n\n" +
-                        "**💡 AI Action Directive:**\n" +
-                        "%s",
+                        "### 🍲 Food Item:\n%s\n\n" +
+                        "**Status:**\n`%s` (%d day(s) remaining)\n\n" +
+                        "**Risk:**\n**%d%% (%s)**\n\n" +
+                        "**Stock:**\n%.1f %s\n\n" +
+                        "**Reason:**\n%s\n\n" +
+                        "**Recommendation:**\n%s\n\n" +
+                        "**Data Sources:**\n" +
+                        "- Inventory data\n" +
+                        "- SWI-Prolog reasoning (`assess_waste_risk/6`)",
                         foodName,
                         expiryStatusDisplay,
                         expiryDays,
                         Math.round(riskPct),
                         riskLevelDisplay,
                         stock, unit,
-                        demand, unit,
-                        potentialLoss,
                         reasonsBullet,
                         recommendation
                 );

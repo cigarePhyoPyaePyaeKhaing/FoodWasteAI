@@ -194,4 +194,72 @@ public class GroqChatPipelineTest {
         assertNotNull(response.getAnswer());
         assertTrue(response.getAnswer().toLowerCase().contains("summary") || response.getAnswer().toLowerCase().contains("inventory") || response.getAnswer().toLowerCase().contains("risk"));
     }
+
+    @Test
+    @DisplayName("Conversational AI: English and Myanmar Greetings return natural welcome without database/prolog overhead")
+    public void testGreetingResponses() {
+        // English Greeting
+        GroqAIService.ChatResponse enRes = groqService.processUserQuery("hello", "en");
+        assertNotNull(enRes);
+        assertNotNull(enRes.getAnswer());
+        assertTrue(enRes.getAnswer().contains("Hello 👋"));
+        assertTrue(enRes.getAnswer().contains("FoodWaste AI Assistant"));
+        assertTrue(enRes.getAnswer().contains("food waste risk"));
+
+        // Myanmar Greeting
+        GroqAIService.ChatResponse mmRes = groqService.processUserQuery("မင်္ဂလာပါ", "mm");
+        assertNotNull(mmRes);
+        assertNotNull(mmRes.getAnswer());
+        assertTrue(mmRes.getAnswer().contains("မင်္ဂလာပါ 👋"));
+        assertTrue(mmRes.getAnswer().contains("FoodWaste AI Assistant"));
+    }
+
+    @Test
+    @DisplayName("Conversational AI: Casual conversation (thanks, who are you, what can you do)")
+    public void testCasualConversation() {
+        // Thanks
+        GroqAIService.ChatResponse thanksRes = groqService.processUserQuery("thank you", "en");
+        assertNotNull(thanksRes);
+        assertTrue(thanksRes.getAnswer().toLowerCase().contains("welcome"));
+
+        // Identity
+        GroqAIService.ChatResponse idRes = groqService.processUserQuery("who are you?", "en");
+        assertNotNull(idRes);
+        assertTrue(idRes.getAnswer().contains("FoodWaste AI Assistant"));
+
+        // Capabilities
+        GroqAIService.ChatResponse capRes = groqService.processUserQuery("what can you do?", "en");
+        assertNotNull(capRes);
+        assertTrue(capRes.getAnswer().toLowerCase().contains("inventory") || capRes.getAnswer().toLowerCase().contains("waste"));
+    }
+
+    @Test
+    @DisplayName("Conversational AI: Unknown / Off-Topic questions are handled politely without hallucination")
+    public void testUnknownTopicQuery() {
+        GroqAIService.ChatResponse res = groqService.processUserQuery("What is the weather outside?", "en");
+        assertNotNull(res);
+        assertTrue(res.getAnswer().contains("FoodWaste management") || res.getAnswer().contains("inventory"));
+    }
+
+    @Test
+    @DisplayName("Dynamic Food Item Support: Any new food item added into MySQL is dynamically evaluated without hardcoding")
+    public void testDynamicFoodItemSupport() throws java.sql.SQLException {
+        String dynamicName = "Organic Australian Beef " + System.currentTimeMillis();
+        foodItemService.createFoodItem(
+                new com.foodwasteai.model.FoodItem(null, dynamicName, "Meat",
+                        new java.math.BigDecimal("20.00"), "kg", new java.math.BigDecimal("18000.00"),
+                        java.time.LocalDate.now().plusDays(1), new java.math.BigDecimal("5.00")), 1L
+        );
+
+        String query = "What is the waste risk for " + dynamicName + "?";
+        GroqAIService.ChatResponse response = groqService.processUserQuery(query, "en");
+
+        assertNotNull(response);
+        assertNotNull(response.getAnswer());
+        assertTrue(response.getAnswer().contains(dynamicName), "Must dynamically contain newly created item name");
+        assertTrue(response.getAnswer().contains("kg"), "Must preserve dynamic item unit");
+        assertNotNull(response.getRelatedFoodItems());
+        assertFalse(response.getRelatedFoodItems().isEmpty());
+        assertEquals(dynamicName, response.getRelatedFoodItems().get(0).get("name"));
+    }
 }
