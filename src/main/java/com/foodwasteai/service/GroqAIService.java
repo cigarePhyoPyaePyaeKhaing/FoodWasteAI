@@ -932,7 +932,8 @@ public class GroqAIService {
                     String name = item.getName().toLowerCase().trim();
                     if (q.contains(name)) return true;
                     for (String tok : name.split("\\s+")) {
-                        if (tok.length() >= 3 && !tok.equals("fresh") && !tok.equals("organic") && q.contains(tok)) {
+                        if (tok.length() >= 3 && !CANDIDATE_STOPWORDS.contains(tok.toLowerCase()) && !tok.equalsIgnoreCase("fresh") &&
+                                !tok.equalsIgnoreCase("organic") && !tok.equalsIgnoreCase("test") && q.contains(tok.toLowerCase())) {
                             return true;
                         }
                     }
@@ -1071,7 +1072,8 @@ public class GroqAIService {
                 String[] tokens = fiNameLower.split("\\s+");
                 for (String token : tokens) {
                     String t = token.replaceAll("[^a-zA-Z0-9\u1000-\u109F]", "").toLowerCase();
-                    if (t.length() >= 3 && !t.equals("fresh") && !t.equals("organic") && !t.equals("item") && !t.equals("cooked") && !t.equals("food")) {
+                    if (t.length() >= 3 && !CANDIDATE_STOPWORDS.contains(t) && !t.equals("fresh") && !t.equals("organic") &&
+                            !t.equals("item") && !t.equals("cooked") && !t.equals("food") && !t.equals("test") && !t.equals("waste")) {
                         boolean tokenMatch = false;
                         if (containsMyanmarScript(t)) {
                             tokenMatch = lowerQuery.contains(t);
