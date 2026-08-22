@@ -351,79 +351,25 @@ public class GroqAIService {
             riskInfoMap.put("potentialSavingsMMK", potentialSavings);
             response.setRiskInfo(riskInfoMap);
 
-            // 4. Identify Related Food Items mentioned in user query (Dynamic & Synonyms)
-            FoodItem matchedFoodItem = null;
+            // 4. Identify Related Food Items (Priority: NEW FOOD ENTITY > FOLLOW-UP CONTEXT > GENERAL CONTEXT)
+            FoodItem matchedFoodItem = extractFoodEntity(userQuery, inventory);
             PrologAssessment matchedAssessment = null;
-            String lowerQuery = userQuery.toLowerCase();
-            int bestMatchScore = 0;
-
-            for (FoodItem fi : inventory) {
-                if (fi.getName() != null && !fi.getName().trim().isEmpty()) {
-                    String fiNameLower = fi.getName().toLowerCase().trim();
-                    String fiCatLower = fi.getCategory() != null ? fi.getCategory().toLowerCase().trim() : "";
-                    int score = 0;
-
-                    // Exact phrase match
-                    if (lowerQuery.contains(fiNameLower)) {
-                        score = 200 + fiNameLower.length();
-                    } else if (fiNameLower.contains(lowerQuery)) {
-                        score = 150 + lowerQuery.length();
-                    } else {
-                        // Meaningful token match
-                        String[] tokens = fiNameLower.split("\\s+");
-                        for (String token : tokens) {
-                            String t = token.replaceAll("[^a-zA-Z0-9\u1000-\u109F]", "").toLowerCase();
-                            if (t.length() >= 3 && !t.equals("fresh") && !t.equals("organic") && !t.equals("item") && !t.equals("cooked")) {
-                                if (lowerQuery.contains(t)) {
-                                    score += 80 + t.length();
-                                }
-                            }
-                        }
-
-                        // Synonym & multilingual mapping
-                        for (Map.Entry<String, String> synEntry : FOOD_SYNONYMS.entrySet()) {
-                            String synKey = synEntry.getKey();
-                            boolean matched = false;
-                            if (containsMyanmarScript(synKey)) {
-                                matched = lowerQuery.contains(synKey);
-                            } else {
-                                matched = lowerQuery.matches(".*\\b" + java.util.regex.Pattern.quote(synKey) + "\\b.*");
-                            }
-                            if (matched) {
-                                String synVal = synEntry.getValue();
-                                if (fiNameLower.contains(synVal) || fiCatLower.contains(synVal)) {
-                                    score += 90 + synVal.length();
-                                }
-                            }
-                        }
-
-                        // Category match
-                        if (!fiCatLower.isEmpty() && lowerQuery.matches(".*\\b" + java.util.regex.Pattern.quote(fiCatLower) + "\\b.*")) {
-                            score += 40 + fiCatLower.length();
-                        }
-                    }
-
-                    if (score > bestMatchScore) {
-                        bestMatchScore = score;
-                        matchedFoodItem = fi;
-                    }
-                }
-            }
-
-            // Context Memory Fallback: If no food matched in current query, check if query is a follow-up referring to previous food item
-            if (matchedFoodItem == null && ctx.getLastFoodItemName() != null) {
-                if (isFollowUpQuery(lowerQuery)) {
-                    final String lastFoodName = ctx.getLastFoodItemName();
-                    matchedFoodItem = inventory.stream()
-                            .filter(fi -> fi.getName() != null && fi.getName().equalsIgnoreCase(lastFoodName))
-                            .findFirst().orElse(null);
-                }
-            }
 
             if (matchedFoodItem != null) {
+                // Priority 1: New food entity detected in user message -> overrides previous context immediately
                 ctx.setLastFoodItemName(matchedFoodItem.getName());
                 ctx.setLastFoodItemId(matchedFoodItem.getId());
                 ctx.setLastIntent("FOOD_QUERY");
+            } else if (ctx.getLastFoodItemName() != null && isFollowUpQuery(cleanQuery)) {
+                // Priority 2: Follow-up pronoun/context reference ("it", "this", "that", "what should I do with it")
+                final String lastFoodName = ctx.getLastFoodItemName();
+                matchedFoodItem = inventory.stream()
+                        .filter(fi -> fi.getName() != null && fi.getName().equalsIgnoreCase(lastFoodName))
+                        .findFirst().orElse(null);
+                if (matchedFoodItem != null) {
+                    System.out.println("Follow-up context reference resolved to:\n" + matchedFoodItem.getName());
+                    logger.info("Follow-up context reference resolved to: {}", matchedFoodItem.getName());
+                }
             }
 
             if (matchedFoodItem != null) {
@@ -644,6 +590,98 @@ public class GroqAIService {
             return true;
         }
         return false;
+    }
+
+    /**
+     * Extracts and matches any food entity mentioned in user query against live inventory.
+     * Highest priority: Exact Phrase > Multilingual Synonyms > Meaningful Tokens > Category.
+     */
+    private FoodItem extractFoodEntity(String query, List<FoodItem> inventory) {
+        if (query == null || query.trim().isEmpty() || inventory == null || inventory.isEmpty()) {
+            return null;
+        }
+
+        String lowerQuery = query.toLowerCase().trim();
+        FoodItem bestMatch = null;
+        int bestScore = 0;
+        String detectedWord = null;
+
+        for (FoodItem fi : inventory) {
+            if (fi.getName() == null || fi.getName().trim().isEmpty()) continue;
+            String fiNameLower = fi.getName().toLowerCase().trim();
+            String fiCatLower = fi.getCategory() != null ? fi.getCategory().toLowerCase().trim() : "";
+            int score = 0;
+            String matchedTerm = null;
+
+            // 1. Exact food name match in query
+            if (lowerQuery.contains(fiNameLower)) {
+                score = 300 + fiNameLower.length();
+                matchedTerm = fiNameLower;
+            } else if (fiNameLower.contains(lowerQuery) && lowerQuery.length() >= 3) {
+                score = 250 + lowerQuery.length();
+                matchedTerm = lowerQuery;
+            } else {
+                // 2. Multilingual & Synonym match (Highest priority for user shorthand)
+                for (Map.Entry<String, String> entry : FOOD_SYNONYMS.entrySet()) {
+                    String synKey = entry.getKey().toLowerCase().trim();
+                    String synVal = entry.getValue().toLowerCase().trim();
+                    boolean containsSyn = false;
+                    if (containsMyanmarScript(synKey)) {
+                        containsSyn = lowerQuery.contains(synKey);
+                    } else {
+                        containsSyn = lowerQuery.matches(".*\\b" + java.util.regex.Pattern.quote(synKey) + "\\b.*");
+                    }
+
+                    if (containsSyn) {
+                        if (fiNameLower.contains(synVal) || fiCatLower.contains(synVal) || fiNameLower.contains(synKey)) {
+                            int synScore = 200 + synVal.length();
+                            if (synScore > score) {
+                                score = synScore;
+                                matchedTerm = synKey;
+                            }
+                        }
+                    }
+                }
+
+                // 3. Significant word token match (e.g. "chicken", "milk", "beef", "rice", "salmon")
+                String[] tokens = fiNameLower.split("\\s+");
+                for (String token : tokens) {
+                    String t = token.replaceAll("[^a-zA-Z0-9\u1000-\u109F]", "").toLowerCase();
+                    if (t.length() >= 3 && !t.equals("fresh") && !t.equals("organic") && !t.equals("item") && !t.equals("cooked") && !t.equals("food")) {
+                        boolean tokenMatch = false;
+                        if (containsMyanmarScript(t)) {
+                            tokenMatch = lowerQuery.contains(t);
+                        } else {
+                            tokenMatch = lowerQuery.matches(".*\\b" + java.util.regex.Pattern.quote(t) + "\\b.*");
+                        }
+
+                        if (tokenMatch) {
+                            int tokScore = 150 + t.length();
+                            if (tokScore > score) {
+                                score = tokScore;
+                                matchedTerm = t;
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (score > bestScore) {
+                bestScore = score;
+                bestMatch = fi;
+                detectedWord = matchedTerm;
+            }
+        }
+
+        if (bestMatch != null && bestScore > 0) {
+            System.out.println("Detected food:\n" + (detectedWord != null ? detectedWord : bestMatch.getName()) +
+                               "\n\nMatched inventory:\n" + bestMatch.getName() +
+                               "\n\nContext updated:\n" + bestMatch.getName());
+            logger.info("Detected food: {} | Matched inventory: {} | Context updated: {}",
+                    detectedWord != null ? detectedWord : bestMatch.getName(), bestMatch.getName(), bestMatch.getName());
+        }
+
+        return bestMatch;
     }
 
     private boolean isFollowUpQuery(String q) {

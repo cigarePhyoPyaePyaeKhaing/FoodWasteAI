@@ -271,17 +271,23 @@ public class GroqChatPipelineTest {
         // Turn 1: Ask about fresh milk
         GroqAIService.ChatResponse res1 = groqService.processUserQuery("Why is fresh milk risky?", "en", sessionId);
         assertNotNull(res1);
-        assertTrue(res1.getAnswer().contains("fresh milk") || res1.getAnswer().contains("Fresh Milk"));
+        assertTrue(res1.getAnswer().toLowerCase().contains("fresh milk") || res1.getAnswer().contains("Fresh Milk"));
+        assertNotNull(res1.getRelatedFoodItems());
+        assertTrue("Fresh Milk".equalsIgnoreCase(res1.getRelatedFoodItems().get(0).get("name").toString()));
 
-        // Turn 2: Ask about chicken
+        // Turn 2: Ask about chicken (must switch context to chicken)
         GroqAIService.ChatResponse res2 = groqService.processUserQuery("what about chicken?", "en", sessionId);
         assertNotNull(res2);
-        assertTrue(res2.getAnswer().toLowerCase().contains("chicken"));
+        assertTrue(res2.getAnswer().contains("Fresh Chicken Breast") || res2.getAnswer().toLowerCase().contains("chicken"));
+        assertNotNull(res2.getRelatedFoodItems());
+        assertEquals("Fresh Chicken Breast", res2.getRelatedFoodItems().get(0).get("name"));
 
-        // Turn 3: Follow-up question referring to "it"
+        // Turn 3: Follow-up question referring to "it" (must resolve "it" to Fresh Chicken Breast)
         GroqAIService.ChatResponse res3 = groqService.processUserQuery("what should I do with it?", "en", sessionId);
         assertNotNull(res3);
-        assertTrue(res3.getAnswer().toLowerCase().contains("chicken") || (res3.getRelatedFoodItems() != null && !res3.getRelatedFoodItems().isEmpty()));
+        assertTrue(res3.getAnswer().contains("Fresh Chicken Breast") || res3.getAnswer().toLowerCase().contains("chicken"));
+        assertNotNull(res3.getRelatedFoodItems());
+        assertEquals("Fresh Chicken Breast", res3.getRelatedFoodItems().get(0).get("name"));
     }
 
     @Test
