@@ -6,7 +6,7 @@
 const AIAssistant = {
   isOpen: false,
   isSending: false,
-  STORAGE_KEY: 'foodwaste_chat_history_v2',
+  STORAGE_KEY: 'foodwaste_chat_history_v3',
 
   init() {
     this.injectStylesAndMarkup();
@@ -78,15 +78,15 @@ const AIAssistant = {
       <div class="gemini-msg gemini-msg-ai">
         <div class="gemini-msg-bubble" id="gemini-welcome-bubble">
           <div style="font-weight:800; font-size:0.95rem; margin-bottom:0.35rem; color:#713f12;">
-            ${isMm ? '👋 မင်္ဂလာပါ! FoodWaste AI လက်ထောက်ဖြစ်ပါသည်။' : '👋 Hello! I am your FoodWaste AI Assistant.'}
+            ${isMm ? 'မင်္ဂလာပါ။ ကျွန်ုပ်သည် FoodWaste AI Assistant ဖြစ်ပါသည်။' : 'Hello! I am FoodWaste AI Assistant.'}
           </div>
           <div style="font-size:0.84rem; line-height:1.5; color:var(--text-main);">
             ${isMm ?
-              'မီးဖိုချောင် အလေအလွင့် လျှော့ချရေး၊ သက်တမ်းကုန်ဆုံးမှု စောင့်ကြည့်ရေးနှင့် ပိုလျှံအစားအစာ လှူဒါန်းရေးတို့အတွက် ကူညီပေးနိုင်ပါသည်။' :
-              'I am here to help manage your kitchen inventory, prevent food waste, monitor expiry dates, and coordinate surplus donations.'}
+              'အစားအစာ အန္တရာယ်၊ သက်တမ်း၊ အလေအလွင့် လျှော့ချမှုနှင့် ပြန်လည်လှူဒါန်းမှုများကို မေးမြန်းနိုင်ပါသည်။' :
+              'Ask me about food risk, expiry, waste reduction, or redistribution.'}
           </div>
           <div style="margin-top:0.45rem; font-size:0.78rem; color:var(--text-muted);">
-            ${isMm ? '💡 မေးခွန်းတစ်ခုခု မေးမြန်းပါ သို့မဟုတ် အောက်ပါ အကြံပြုချက်များကို နှိပ်ပါ!' : '💡 Ask about any ingredient, expiry status, waste risks, or charity donations!'}
+            ${isMm ? '💡 သိလိုသည်များကို မေးမြန်းပါ သို့မဟုတ် အောက်ပါ အကြံပြုချက်များကို နှိပ်ပါ။' : '💡 Ask a question or select a quick suggestion below.'}
           </div>
         </div>
       </div>
@@ -99,15 +99,15 @@ const AIAssistant = {
       const isMm = typeof I18n !== 'undefined' && I18n.isMyanmar();
       bubble.innerHTML = `
         <div style="font-weight:800; font-size:0.95rem; margin-bottom:0.35rem; color:#713f12;">
-          ${isMm ? '👋 မင်္ဂလာပါ! FoodWaste AI လက်ထောက်ဖြစ်ပါသည်။' : '👋 Hello! I am your FoodWaste AI Assistant.'}
+          ${isMm ? 'မင်္ဂလာပါ။ ကျွန်ုပ်သည် FoodWaste AI Assistant ဖြစ်ပါသည်။' : 'Hello! I am FoodWaste AI Assistant.'}
         </div>
         <div style="font-size:0.84rem; line-height:1.5; color:var(--text-main);">
           ${isMm ?
-            'မီးဖိုချောင် အလေအလွင့် လျှော့ချရေး၊ သက်တမ်းကုန်ဆုံးမှု စောင့်ကြည့်ရေးနှင့် ပိုလျှံအစားအစာ လှူဒါန်းရေးတို့အတွက် ကူညီပေးနိုင်ပါသည်။' :
-            'I am here to help manage your kitchen inventory, prevent food waste, monitor expiry dates, and coordinate surplus donations.'}
+            'အစားအစာ အန္တရာယ်၊ သက်တမ်း၊ အလေအလွင့် လျှော့ချမှုနှင့် ပြန်လည်လှူဒါန်းမှုများကို မေးမြန်းနိုင်ပါသည်။' :
+            'Ask me about food risk, expiry, waste reduction, or redistribution.'}
         </div>
         <div style="margin-top:0.45rem; font-size:0.78rem; color:var(--text-muted);">
-          ${isMm ? '💡 မေးခွန်းတစ်ခုခု မေးမြန်းပါ သို့မဟုတ် အောက်ပါ အကြံပြုချက်များကို နှိပ်ပါ!' : '💡 Ask about any ingredient, expiry status, waste risks, or charity donations!'}
+          ${isMm ? '💡 သိလိုသည်များကို မေးမြန်းပါ သို့မဟုတ် အောက်ပါ အကြံပြုချက်များကို နှိပ်ပါ။' : '💡 Ask a question or select a quick suggestion below.'}
         </div>
       `;
     }
@@ -118,12 +118,12 @@ const AIAssistant = {
     if (!container) return;
     const isMm = typeof I18n !== 'undefined' && I18n.isMyanmar();
     container.innerHTML = `
-      <button class="gemini-chip" onclick="AIAssistant.sendQuickChip(1)">${isMm ? '🥛 နို့စိမ်း အန္တရာယ်' : '🥛 Fresh Milk Risk'}</button>
+      <button class="gemini-chip" onclick="AIAssistant.sendQuickChip(1)">${isMm ? '🥛 နို့စိမ်း အန္တရာယ်' : '🥛 Fresh Milk'}</button>
       <button class="gemini-chip" onclick="AIAssistant.sendQuickChip(2)">${isMm ? '🍗 ကြက်သား အန္တရာယ်' : '🍗 Chicken Risk'}</button>
-      <button class="gemini-chip" onclick="AIAssistant.sendQuickChip(3)">${isMm ? '⚠️ အန္တရာယ်မြင့် ပစ္စည်းများ' : '⚠️ High Risk Items'}</button>
+      <button class="gemini-chip" onclick="AIAssistant.sendQuickChip(3)">${isMm ? '⚠️ အန္တရာယ်မြင့် ပစ္စည်းများ' : '⚠️ High Risk'}</button>
       <button class="gemini-chip" onclick="AIAssistant.sendQuickChip(4)">${isMm ? '👨‍🍳 ဦးစားပေး ချက်ပြုတ်ရန်' : '👨‍🍳 Cook Priority'}</button>
-      <button class="gemini-chip" onclick="AIAssistant.sendQuickChip(5)">${isMm ? '🤝 ပိုလျှံလှူဒါန်းမှု' : '🤝 Food Rescue'}</button>
-      <button class="gemini-chip" onclick="AIAssistant.sendQuickChip(6)">${isMm ? '📊 အနှစ်ချုပ်' : '📊 Daily Summary'}</button>
+      <button class="gemini-chip" onclick="AIAssistant.sendQuickChip(5)">${isMm ? '🤝 ပြန်လည်လှူဒါန်းမှု' : '🤝 Redistribution'}</button>
+      <button class="gemini-chip" onclick="AIAssistant.sendQuickChip(6)">${isMm ? '📊 နေ့စဉ် အနှစ်ချုပ်' : '📊 Daily Summary'}</button>
     `;
   },
 
@@ -577,17 +577,17 @@ const AIAssistant = {
         query = isMm ? "Fresh Chicken Breast အလေအလွင့် အန္တရာယ် ဘယ်လိုရှိလဲ?" : "What is the waste risk for Fresh Chicken Breast?";
         break;
       case 3:
-        query = isMm ? "ဘယ်အစားအစာတွေက အန္တရာယ်အမြင့်ဆုံး ဖြစ်နေပါသလဲ?" : "Which food items are high risk and why?";
+        query = isMm ? "ဘယ်အစားအစာတွေက အန္တရာယ်အမြင့်ဆုံး ဖြစ်နေပါသလဲ?" : "Which food items are high risk?";
         break;
       case 4:
         query = isMm ? "ယနေ့ ဘယ်ကုန်ကြမ်းတွေကို ဦးစားပေး ချက်ပြုတ်သင့်ပါသလဲ?" : "What ingredients should our chef cook or prioritize today?";
         break;
       case 5:
-        query = isMm ? "ဘယ်ပိုလျှံအစားအစာတွေကို ပရဟိတသို့ လှူဒါန်းသင့်ပါသလဲ?" : "Which surplus items should be redistributed?";
+        query = isMm ? "ဘယ်ပိုလျှံအစားအစာတွေကို လှူဒါန်းသင့်ပါသလဲ?" : "Which items should be redistributed?";
         break;
       case 6:
       default:
-        query = isMm ? "ယနေ့ အစားအသောက် အလေအလွင့် အခြေအနေ အနှစ်ချုပ်ကို ရှင်းပြပေးပါ။" : "What is our overall food waste summary today?";
+        query = isMm ? "ယနေ့ အစားအသောက် အလေအလွင့် အနှစ်ချုပ်ကို ရှင်းပြပေးပါ။" : "Give me today's food waste summary.";
         break;
     }
     this.sendMessage(query);

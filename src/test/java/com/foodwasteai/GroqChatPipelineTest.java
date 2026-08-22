@@ -154,7 +154,7 @@ public class GroqChatPipelineTest {
     @Test
     @DisplayName("Hosted Groq AI: High risk items query returns list of high risk items")
     public void testHighRiskQuery() {
-        String query = "Which food items are high risk and why?";
+        String query = "Which food items are high risk?";
         GroqAIService.ChatResponse response = groqService.processUserQuery(query, "en");
 
         assertNotNull(response);
@@ -165,7 +165,7 @@ public class GroqChatPipelineTest {
     @Test
     @DisplayName("Hosted Groq AI: Redistribution query returns surplus items or partners")
     public void testSpecificSurplusRedistributionQuery() {
-        String query = "Which surplus items should be redistributed?";
+        String query = "Which items should be redistributed?";
         GroqAIService.ChatResponse response = groqService.processUserQuery(query, "en");
 
         assertNotNull(response);
@@ -182,5 +182,16 @@ public class GroqChatPipelineTest {
         assertNotNull(response);
         assertNotNull(response.getAnswer());
         assertTrue(response.getAnswer().toLowerCase().contains("cook") || response.getAnswer().toLowerCase().contains("priorit") || response.getAnswer().toLowerCase().contains("ingredient"));
+    }
+
+    @Test
+    @DisplayName("Hosted Groq AI: Daily summary query returns operational overview")
+    public void testDailySummaryQuery() {
+        String query = "Give me today's food waste summary.";
+        GroqAIService.ChatResponse response = groqService.processUserQuery(query, "en");
+
+        assertNotNull(response);
+        assertNotNull(response.getAnswer());
+        assertTrue(response.getAnswer().toLowerCase().contains("summary") || response.getAnswer().toLowerCase().contains("inventory") || response.getAnswer().toLowerCase().contains("risk"));
     }
 }

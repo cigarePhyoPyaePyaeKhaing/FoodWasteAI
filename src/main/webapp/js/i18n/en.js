@@ -392,14 +392,14 @@ window.I18N_EN = {
 
   // AI Assistant Chat Widget
   "chat.status": "AI Engine: Active",
-  "chat.welcomeTitle": "👋 Hello! I am your FoodWaste AI Assistant.",
-  "chat.welcomeDesc": "I connect Google Gemini with SWI-Prolog first-order logic and live MySQL inventory metrics to explain waste risks and provide smart mitigation recommendations.",
-  "chat.welcomeTip": "Try asking a question or tap a chip above!",
+  "chat.welcomeTitle": "Hello! I am FoodWaste AI Assistant.",
+  "chat.welcomeDesc": "Ask me about food risk, expiry, waste reduction, or redistribution.",
+  "chat.welcomeTip": "Ask a question or select a quick suggestion below.",
   "chat.placeholder": "Ask about food waste, expiry, or donation...",
-  "chat.typing": "⚡ Reasoning with SWI-Prolog & Gemini...",
-  "chat.chip.chicken": "🍗 Chicken Risk",
-  "chat.chip.donate": "🤝 Food Rescue",
-  "chat.chip.salad": "🥗 Near Expiry",
-  "chat.chip.summary": "📊 Summary",
+  "chat.typing": "Thinking...",
+  "chat.chip.milk": "🥛 Fresh Milk Risk",
+  "chat.chip.highRisk": "⚠️ High Risk",
+  "chat.chip.donate": "🤝 Redistribution",
+  "chat.chip.summary": "📊 Daily Summary",
   "chat.smartDirectives": "💡 Smart Directives:"
 };
