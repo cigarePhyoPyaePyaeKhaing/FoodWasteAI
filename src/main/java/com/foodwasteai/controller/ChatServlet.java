@@ -2,7 +2,7 @@ package com.foodwasteai.controller;
 
 import com.foodwasteai.config.AppConfig;
 import com.foodwasteai.prolog.PrologService;
-import com.foodwasteai.service.GeminiExplanationService;
+import com.foodwasteai.service.OllamaAIService;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -13,9 +13,9 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * REST API Controller for the Gemini Chat & Explainable AI Pipeline.
+ * REST API Controller for the Free Local Ollama Chat & Explainable AI Pipeline.
  * Architecture:
- *   User -> Gemini Chat -> Java Backend -> MySQL Data -> SWI-Prolog Reasoning -> Gemini Explanation -> Smart Recommendation
+ *   User -> ChatServlet -> MySQL Live Data -> SWI-Prolog Reasoning -> Ollama (qwen2.5:3b) -> Smart Directives
  * Endpoints:
  *   POST /api/chat
  *   GET  /api/chat/status
@@ -23,7 +23,7 @@ import java.util.Map;
 @WebServlet(name = "ChatServlet", urlPatterns = {"/api/chat", "/api/chat/*"})
 public class ChatServlet extends BaseServlet {
     private static final long serialVersionUID = 1L;
-    private final GeminiExplanationService geminiService = new GeminiExplanationService();
+    private final OllamaAIService ollamaService = new OllamaAIService();
 
     public static class ChatRequest implements Serializable {
         private static final long serialVersionUID = 1L;
@@ -75,10 +75,10 @@ public class ChatServlet extends BaseServlet {
         try {
             Map<String, Object> status = new LinkedHashMap<>();
             status.put("prologEngineAvailable", PrologService.isPrologAvailable());
-            status.put("geminiModel", AppConfig.getGeminiModel());
-            status.put("geminiApiKeyConfigured", !AppConfig.getGeminiApiKey().isEmpty());
+            status.put("ollamaModel", AppConfig.getOllamaModel());
+            status.put("ollamaHost", AppConfig.getOllamaHost());
             status.put("supportedLanguages", new String[]{"en", "mm"});
-            status.put("pipeline", "User -> Gemini Chat -> Java Backend -> MySQL Data -> SWI-Prolog Reasoning -> Gemini Explanation -> Smart Recommendation");
+            status.put("pipeline", "User -> ChatServlet -> MySQL Live Data -> SWI-Prolog Reasoning -> Ollama (qwen2.5:3b) -> Smart Directives");
             sendSuccess(resp, status);
         } catch (Exception e) {
             sendServerError(resp, "Failed to check chat status: " + e.getMessage());
@@ -101,7 +101,7 @@ public class ChatServlet extends BaseServlet {
                 }
             }
 
-            GeminiExplanationService.ChatResponse chatResponse = geminiService.processUserQuery(message, language);
+            OllamaAIService.ChatResponse chatResponse = ollamaService.processUserQuery(message, language);
             sendSuccess(resp, chatResponse);
         } catch (Exception e) {
             logger.error("Error in ChatServlet POST: {}", e.getMessage(), e);

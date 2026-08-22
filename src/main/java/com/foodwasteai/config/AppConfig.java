@@ -237,6 +237,14 @@ public class AppConfig {
         return get("SWIPL_PATH", "swipl");
     }
 
+    public static String getOllamaHost() {
+        return get("OLLAMA_HOST", "http://localhost:11434");
+    }
+
+    public static String getOllamaModel() {
+        return get("OLLAMA_MODEL", "qwen2.5:3b");
+    }
+
     public static String getGeminiApiKey() {
         return get("GEMINI_API_KEY", get("GOOGLE_API_KEY", ""));
     }
