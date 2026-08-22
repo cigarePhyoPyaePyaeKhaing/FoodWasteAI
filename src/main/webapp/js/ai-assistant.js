@@ -464,30 +464,53 @@ const AIAssistant = {
         gap: 0.1rem;
       }
       .gemini-smart-actions {
-        margin-top: 0.85rem;
+        margin-top: 0.75rem;
         margin-bottom: 0.4rem;
         display: flex;
         flex-direction: column;
-        gap: 0.4rem;
+        gap: 0.45rem;
       }
       .gemini-action-btn {
-        background: rgba(254, 240, 138, 0.85);
-        border: 1px solid #facc15;
+        background: #fefce8;
+        border: 1px solid rgba(250, 204, 21, 0.6);
         color: #713f12;
-        padding: 0.5rem 0.85rem;
-        border-radius: 10px;
-        font-size: 0.78rem;
-        font-weight: 700;
+        padding: 0.55rem 0.85rem;
+        border-radius: 12px;
         cursor: pointer;
         text-align: left;
         display: flex;
-        justify-content: space-between;
-        align-items: center;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.25rem;
+        width: 100%;
         transition: all 0.15s ease;
       }
       .gemini-action-btn:hover {
-        background: #facc15;
+        background: #fef08a;
         transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      }
+      .gemini-action-btn-title {
+        font-weight: 700;
+        font-size: 0.82rem;
+        color: #713f12;
+      }
+      .gemini-action-btn-meta {
+        font-size: 0.7rem;
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+      }
+      .gemini-action-meta-label {
+        color: #a16207;
+        font-weight: 600;
+      }
+      .gemini-action-meta-val {
+        font-weight: 800;
+        background: rgba(250, 204, 21, 0.45);
+        color: #713f12;
+        padding: 0.1rem 0.4rem;
+        border-radius: 4px;
       }
       .gemini-input-bar {
         padding: 0.75rem 1rem;
@@ -764,15 +787,22 @@ const AIAssistant = {
     if (data.smartRecommendations && data.smartRecommendations.length > 0) {
       actionsHtml = `
         <div class="gemini-smart-actions">
-          <div style="font-weight:800; font-size:0.76rem; color:#713f12; margin-bottom:0.25rem;">
-            ${isMm ? '💡 AI အကြံပြုချက် လမ်းညွှန်ချက်များ:' : '💡 Smart Directives:'}
+          <div style="font-weight:800; font-size:0.78rem; color:#713f12; margin-bottom:0.25rem;">
+            ${isMm ? '💡 အကြံပြုချက် လမ်းညွှန်ချက်များ (Smart Directives):' : '💡 Smart Directives:'}
           </div>
-          ${data.smartRecommendations.map(act => `
-            <button class="gemini-action-btn" onclick="AIAssistant.handleSmartAction('${act.actionType}', '${act.payload}')">
-              <span>${act.title}</span>
-              <span style="font-size:0.65rem; background:rgba(255,255,255,0.7); padding:0.1rem 0.35rem; border-radius:4px;">${act.badge}</span>
-            </button>
-          `).join('')}
+          ${data.smartRecommendations.map(act => {
+            const isPriority = act.badge === 'URGENT' || act.badge === 'အရေးပေါ်' || act.badge === 'HIGH';
+            const metaLabel = isPriority ? (isMm ? 'ဦးစားပေး အဆင့်:' : 'Priority:') : (isMm ? 'လုပ်ဆောင်ချက်:' : 'Action:');
+            return `
+              <button class="gemini-action-btn" onclick="AIAssistant.handleSmartAction('${act.actionType}', '${act.payload}')">
+                <div class="gemini-action-btn-title">${this.escapeHtml(act.title)}</div>
+                <div class="gemini-action-btn-meta">
+                  <span class="gemini-action-meta-label">${metaLabel}</span>
+                  <span class="gemini-action-meta-val">${this.escapeHtml(act.badge)}</span>
+                </div>
+              </button>
+            `;
+          }).join('')}
         </div>
       `;
     }
@@ -783,14 +813,6 @@ const AIAssistant = {
         ${foodCardsHtml}
         ${actionsHtml}
         ${sourcesHtml}
-        <div class="gemini-engine-badge">
-          <div style="font-weight:800; font-size:0.75rem; color:#1e293b; display:flex; align-items:center; gap:0.35rem;">
-            <span>🤖</span> FoodWaste AI Assistant
-          </div>
-          <div style="font-size:0.7rem; color:var(--text-muted); margin-top:2px;">
-            Powered by Groq AI + SWI-Prolog
-          </div>
-        </div>
       </div>
     `;
 

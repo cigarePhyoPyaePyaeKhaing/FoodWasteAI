@@ -244,35 +244,27 @@ public class GroqAIService {
         ChatResponse response = new ChatResponse();
         response.setUserQuery(userQuery);
 
-        // --- 0. FAST INTENT DETECTION (GREETING & CASUAL CONVERSATION) ---
-        // Optimization: Greetings and casual chat execute immediately without MySQL or SWI-Prolog overhead
+        // --- 0. FAST INTENT DETECTION (CASUAL_CHAT > GREETING > THANKS > IDENTITY > CAPABILITIES) ---
+        // Optimization: Greetings and casual chat execute immediately without MySQL, Prolog, or Groq API calls.
         String cleanQuery = userQuery.trim().toLowerCase();
+
+        if (isCasualChat(cleanQuery)) {
+            ctx.setLastIntent("CASUAL_CHAT");
+            String casual = isMyanmar ?
+                    "ကျွန်ုပ် နေကောင်းပါတယ်ခင်ဗျာ၊ မေးမြန်းပေးလို့ ကျေးဇူးတင်ပါတယ်။ စားသောက်ဆိုင် အစားအစာ အလေအလွင့် စီမံခန့်ခွဲမှုနဲ့ ပတ်သက်ပြီး ဘာများ ကူညီပေးရမလဲခင်ဗျာ။" :
+                    "I am doing well, thank you for asking! I'm here to help you manage food inventory and minimize kitchen waste. How can I help you today?";
+            response.setAnswer(casual);
+            response.setSourceEngine("FoodWaste AI Assistant");
+            return response;
+        }
 
         if (isGreeting(cleanQuery)) {
             ctx.setLastIntent("GREETING");
             String greeting = isMyanmar ?
-                    "မင်္ဂလာပါ 👋\n\n" +
-                    "ကျွန်ုပ်သည် FoodWaste AI Assistant ဖြစ်ပါသည်။\n\n" +
-                    "အောက်ပါအကြောင်းအရာများကို ကူညီပေးနိုင်ပါတယ်။\n" +
-                    "• အစားအစာ အန္တရာယ်ဆန်းစစ်မှု\n" +
-                    "• သက်တမ်းအခြေအနေ\n" +
-                    "• လက်ကျန်ပစ္စည်း စီမံခန့်ခွဲမှု\n" +
-                    "• အလေအလွင့် လျှော့ချမှု\n" +
-                    "• ပြန်လည်လှူဒါန်းမှု\n\n" +
-                    "ဘာကို သိချင်ပါသလဲ?" :
-                    "Hello 👋\n" +
-                    "I am FoodWaste AI Assistant.\n\n" +
-                    "I can help you with:\n" +
-                    "• food waste risk\n" +
-                    "• expiry analysis\n" +
-                    "• inventory problems\n" +
-                    "• production planning\n" +
-                    "• redistribution suggestions\n\n" +
-                    "How can I help you today?";
-
+                    "မင်္ဂလာပါ။ ကျွန်ုပ်သည် FoodWaste AI Assistant ဖြစ်ပါသည်။\n\nအစားအစာ အန္တရာယ်၊ သက်တမ်း၊ အလေအလွင့် လျှော့ချမှုနှင့် ပြန်လည်လှူဒါန်းမှုများကို မေးမြန်းနိုင်ပါသည်။" :
+                    "Hello! I am FoodWaste AI Assistant.\n\nAsk me about food risk, expiry, waste reduction, or redistribution.";
             response.setAnswer(greeting);
-            response.setSourceEngine("FoodWaste AI Assistant\nPowered by Groq AI + SWI-Prolog");
-            response.addSmartAction(new SmartAction(isMyanmar ? "📦 ကုန်ပစ္စည်းလက်ကျန် ကြည့်ရှုမည်" : "📦 View Kitchen Inventory", "VIEW_INVENTORY", "INFO", "/inventory.html"));
+            response.setSourceEngine("FoodWaste AI Assistant");
             return response;
         }
 
@@ -282,7 +274,7 @@ public class GroqAIService {
                     "ရပါတယ်ခင်ဗျာ! အစားအသောက် အလေအလွင့် ဆန်းစစ်ရန် လိုအပ်ပါက မည်သည့်အချိန်မဆို မေးမြန်းနိုင်ပါသည်။" :
                     "You're welcome! Let me know if you need help analyzing food waste.";
             response.setAnswer(thanks);
-            response.setSourceEngine("FoodWaste AI Assistant\nPowered by Groq AI + SWI-Prolog");
+            response.setSourceEngine("FoodWaste AI Assistant");
             return response;
         }
 
@@ -292,7 +284,7 @@ public class GroqAIService {
                     "ကျွန်ုပ်သည် FoodWaste AI Assistant ဖြစ်ပါသည်။ စားသောက်ဆိုင်များတွင် အစားအစာ အလေအလွင့် လျှော့ချရေးကို ကူညီပေးပါသည်။" :
                     "I am FoodWaste AI Assistant. I help restaurants reduce food waste using intelligent analysis.";
             response.setAnswer(idText);
-            response.setSourceEngine("FoodWaste AI Assistant\nPowered by Groq AI + SWI-Prolog");
+            response.setSourceEngine("FoodWaste AI Assistant");
             return response;
         }
 
@@ -300,9 +292,9 @@ public class GroqAIService {
             ctx.setLastIntent("CAPABILITIES");
             String capText = isMyanmar ?
                     "ကျွန်ုပ်သည် ကုန်ပစ္စည်းလက်ကျန် စာရင်းစစ်ဆေးခြင်း၊ သက်တမ်းကုန်ရက် စောင့်ကြည့်ခြင်း၊ အလေအလွင့် အန္တရာယ် တွက်ချက်ခြင်း၊ မီးဖိုချောင် ချက်ပြုတ်မှု ဦးစားပေး သတ်မှတ်ခြင်းနှင့် ပိုလျှံပစ္စည်းများ လှူဒါန်းခြင်းတို့ကို ကူညီပေးနိုင်ပါသည်။" :
-                    "I can help you track inventory levels, monitor food expiry dates, analyze waste risks with SWI-Prolog reasoning, optimize prep batches, and schedule surplus food donations.";
+                    "I can help you track inventory levels, monitor food expiry dates, analyze waste risks, optimize prep batches, and schedule surplus food donations.";
             response.setAnswer(capText);
-            response.setSourceEngine("FoodWaste AI Assistant\nPowered by Groq AI + SWI-Prolog");
+            response.setSourceEngine("FoodWaste AI Assistant");
             return response;
         }
 
@@ -498,15 +490,43 @@ public class GroqAIService {
         return false;
     }
 
-    private boolean isGreeting(String q) {
+    private boolean isCasualChat(String q) {
         if (q == null) return false;
-        String clean = q.replaceAll("[^a-zA-Z0-9\u1000-\u109F\\s]", "").trim();
-        if (clean.equals("hi") || clean.equals("hello") || clean.equals("hey") || clean.equals("hiya") ||
-            clean.equals("good morning") || clean.equals("good afternoon") || clean.equals("good evening") ||
-            clean.equals("greetings") || clean.equals("howdy") || clean.equals("yo")) {
+        String clean = q.replaceAll("[^a-zA-Z0-9\u1000-\u109F\\s]", "").toLowerCase().trim();
+
+        // English casual chat
+        if (clean.equals("how do you do") || clean.equals("how are you") || clean.equals("how are u") ||
+            clean.equals("how are you doing") || clean.equals("how is it going") || clean.equals("hows it going") ||
+            clean.equals("whats up") || clean.equals("what is up") || clean.equals("sup") ||
+            clean.equals("how are things") || clean.equals("nice to meet you") || clean.equals("good to see you") ||
+            clean.equals("how is your day") || clean.equals("hows your day") || clean.equals("are you there") ||
+            clean.equals("ok") || clean.equals("okay") || clean.equals("sure") || clean.equals("alright") ||
+            clean.equals("cool") || clean.equals("bye") || clean.equals("goodbye") || clean.equals("see you") ||
+            clean.equals("take care")) {
             return true;
         }
-        if (clean.equals("မင်္ဂလာပါ") || clean.equals("ဟယ်လို") || clean.equals("နေကောင်းလား") ||
+
+        // Myanmar casual chat
+        if (clean.contains("နေကောင်းလား") || clean.contains("နေကောင်းပါသလား") || clean.contains("ဘယ်လိုလဲ") ||
+            clean.contains("အဆင်ပြေလား") || clean.contains("ဘာထူးလဲ") || clean.equals("ဟုတ်ကဲ့") ||
+            clean.equals("ကောင်းပါပြီ") || clean.equals("တာ့တာ") || clean.equals("ဟုတ်") ||
+            clean.equals("အိုကေ")) {
+            return true;
+        }
+
+        return false;
+    }
+
+    private boolean isGreeting(String q) {
+        if (q == null) return false;
+        String clean = q.replaceAll("[^a-zA-Z0-9\u1000-\u109F\\s]", "").toLowerCase().trim();
+        if (clean.equals("hi") || clean.equals("hello") || clean.equals("hey") || clean.equals("hiya") ||
+            clean.equals("good morning") || clean.equals("good afternoon") || clean.equals("good evening") ||
+            clean.equals("greetings") || clean.equals("howdy") || clean.equals("yo") ||
+            clean.equals("hi there") || clean.equals("hello there")) {
+            return true;
+        }
+        if (clean.equals("မင်္ဂလာပါ") || clean.equals("ဟယ်လို") ||
             clean.equals("မင်္ဂလာနံနက်ခင်းပါ") || clean.equals("မင်္ဂလာညနေခင်းပါ") || clean.equals("မင်္ဂလာပါရှင်") ||
             clean.equals("မင်္ဂလာပါခင်ဗျာ")) {
             return true;
@@ -516,7 +536,7 @@ public class GroqAIService {
 
     private boolean isThanks(String q) {
         if (q == null) return false;
-        String clean = q.replaceAll("[^a-zA-Z0-9\u1000-\u109F\\s]", "").trim();
+        String clean = q.replaceAll("[^a-zA-Z0-9\u1000-\u109F\\s]", "").toLowerCase().trim();
         if (clean.equals("thank you") || clean.equals("thanks") || clean.equals("thx") ||
             clean.equals("thank you very much") || clean.equals("many thanks") || clean.equals("thanks a lot")) {
             return true;
@@ -530,7 +550,7 @@ public class GroqAIService {
 
     private boolean isIdentity(String q) {
         if (q == null) return false;
-        String clean = q.replaceAll("[^a-zA-Z0-9\u1000-\u109F\\s]", "").trim();
+        String clean = q.replaceAll("[^a-zA-Z0-9\u1000-\u109F\\s]", "").toLowerCase().trim();
         if (clean.equals("who are you") || clean.equals("who are u") || clean.equals("what is your name") ||
             clean.equals("whats your name") || clean.equals("tell me about yourself")) {
             return true;
@@ -544,7 +564,7 @@ public class GroqAIService {
 
     private boolean isCapabilities(String q) {
         if (q == null) return false;
-        String clean = q.replaceAll("[^a-zA-Z0-9\u1000-\u109F\\s]", "").trim();
+        String clean = q.replaceAll("[^a-zA-Z0-9\u1000-\u109F\\s]", "").toLowerCase().trim();
         if (clean.equals("what can you do") || clean.equals("what do you do") || clean.equals("help") ||
             clean.equals("how can you help") || clean.equals("what are your features")) {
             return true;

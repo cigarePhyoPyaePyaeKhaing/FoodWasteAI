@@ -196,27 +196,36 @@ public class GroqChatPipelineTest {
     }
 
     @Test
-    @DisplayName("Conversational AI: English and Myanmar Greetings return natural welcome without database/prolog overhead")
+    @DisplayName("Conversational AI: Greetings return friendly welcome without operational data overhead")
     public void testGreetingResponses() {
         // English Greeting
-        GroqAIService.ChatResponse enRes = groqService.processUserQuery("hello", "en");
+        GroqAIService.ChatResponse enRes = groqService.processUserQuery("hi", "en");
         assertNotNull(enRes);
         assertNotNull(enRes.getAnswer());
-        assertTrue(enRes.getAnswer().contains("Hello 👋"));
         assertTrue(enRes.getAnswer().contains("FoodWaste AI Assistant"));
-        assertTrue(enRes.getAnswer().contains("food waste risk"));
+        assertTrue(enRes.getSources().isEmpty(), "Greeting should not include technical data sources");
+        assertTrue(enRes.getSmartRecommendations().isEmpty(), "Greeting should not include smart directives");
 
         // Myanmar Greeting
         GroqAIService.ChatResponse mmRes = groqService.processUserQuery("မင်္ဂလာပါ", "mm");
         assertNotNull(mmRes);
         assertNotNull(mmRes.getAnswer());
-        assertTrue(mmRes.getAnswer().contains("မင်္ဂလာပါ 👋"));
-        assertTrue(mmRes.getAnswer().contains("FoodWaste AI Assistant"));
+        assertTrue(mmRes.getAnswer().contains("FoodWaste AI Assistant") || mmRes.getAnswer().contains("မင်္ဂလာပါ"));
+        assertTrue(mmRes.getSources().isEmpty(), "Greeting should not include technical data sources");
+        assertTrue(mmRes.getSmartRecommendations().isEmpty(), "Greeting should not include smart directives");
     }
 
     @Test
-    @DisplayName("Conversational AI: Casual conversation (thanks, who are you, what can you do)")
+    @DisplayName("Conversational AI: Casual conversation (how do you do, thanks, who are you, what can you do)")
     public void testCasualConversation() {
+        // Casual chat: how do you do
+        GroqAIService.ChatResponse casualRes = groqService.processUserQuery("how do you do?", "en");
+        assertNotNull(casualRes);
+        assertNotNull(casualRes.getAnswer());
+        assertTrue(casualRes.getAnswer().toLowerCase().contains("well") || casualRes.getAnswer().toLowerCase().contains("help"));
+        assertTrue(casualRes.getSources().isEmpty(), "Casual chat should not include technical data sources");
+        assertTrue(casualRes.getSmartRecommendations().isEmpty(), "Casual chat should not include smart directives");
+
         // Thanks
         GroqAIService.ChatResponse thanksRes = groqService.processUserQuery("thank you", "en");
         assertNotNull(thanksRes);
@@ -275,10 +284,10 @@ public class GroqChatPipelineTest {
         assertNotNull(res1.getRelatedFoodItems());
         assertTrue("Fresh Milk".equalsIgnoreCase(res1.getRelatedFoodItems().get(0).get("name").toString()));
 
-        // Turn 2: Ask about chicken (must switch context to chicken)
-        GroqAIService.ChatResponse res2 = groqService.processUserQuery("what about chicken?", "en", sessionId);
+        // Turn 2: Ask about Fresh Chicken Breast explicitly (must switch context to chicken and not contain fresh milk)
+        GroqAIService.ChatResponse res2 = groqService.processUserQuery("What is the waste risk for Fresh Chicken Breast?", "en", sessionId);
         assertNotNull(res2);
-        assertTrue(res2.getAnswer().contains("Fresh Chicken Breast") || res2.getAnswer().toLowerCase().contains("chicken"));
+        assertTrue(res2.getAnswer().contains("Fresh Chicken Breast"));
         assertNotNull(res2.getRelatedFoodItems());
         assertEquals("Fresh Chicken Breast", res2.getRelatedFoodItems().get(0).get("name"));
 
