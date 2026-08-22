@@ -214,28 +214,40 @@ const AIAssistant = {
     style.innerHTML = `
       .gemini-fab {
         position: fixed;
-        bottom: 5.5rem;
-        right: 1.5rem;
+        bottom: 24px;
+        right: 24px;
         z-index: 1000;
         display: flex;
         align-items: center;
-        gap: 0.45rem;
-        padding: 0.65rem 1.15rem;
+        gap: 0.5rem;
+        padding: 0.6rem 1.1rem;
         border-radius: var(--radius-pill);
-        background: linear-gradient(135deg, #fde047 0%, #facc15 100%);
-        color: var(--text-yellow-btn);
+        background: var(--bg-surface-glass-elevated);
+        color: var(--text-main);
         border: 1px solid var(--glass-border);
-        box-shadow: inset 0 1px 2px rgba(255,255,255,0.8), var(--shadow-yellow-btn);
+        box-shadow: var(--glass-highlight), var(--shadow-glass-float);
         cursor: pointer;
-        backdrop-filter: var(--glass-blur);
-        -webkit-backdrop-filter: var(--glass-blur);
-        transition: transform var(--transition-bounce), box-shadow var(--transition-smooth);
+        backdrop-filter: var(--glass-blur-heavy);
+        -webkit-backdrop-filter: var(--glass-blur-heavy);
+        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
         font-family: inherit;
       }
+      .gemini-fab:hover {
+        transform: translateY(-2px);
+        border-color: var(--accent-primary);
+        color: var(--accent-primary);
+        box-shadow: 0 8px 24px var(--accent-primary-glow);
+      }
       [data-theme="dark"] .gemini-fab {
-        background: linear-gradient(135deg, #38bdf8 0%, #0ea5e9 100%);
-        color: #06111f;
-        box-shadow: inset 0 1px 2px rgba(255,255,255,0.6), 0 8px 24px rgba(56, 189, 248, 0.4);
+        background: rgba(15, 35, 65, 0.85);
+        color: #F5F5F7;
+        border-color: rgba(60, 100, 150, 0.45);
+      }
+      @media (max-width: 767px) {
+        .gemini-fab {
+          bottom: calc(var(--mobile-bottom-nav-height, 68px) + env(safe-area-inset-bottom, 12px) + 16px);
+          right: 16px;
+        }
       }
       .gemini-fab:hover {
         transform: translateY(-2px) scale(1.04);

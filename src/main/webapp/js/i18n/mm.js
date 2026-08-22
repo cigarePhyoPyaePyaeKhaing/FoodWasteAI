@@ -125,12 +125,14 @@ window.I18N_MM = {
 
   // Sign In Page (index.html)
   "login.title": "အကောင့်ဝင်ရန်",
+  "login.subtitle": "AI အခြေခံ အစားအသောက် အလေအလွင့် စီမံခန့်ခွဲမှု စနစ်",
   "login.username": "အသုံးပြုသူအမည် (Username)",
   "login.password": "စကားဝှက် (Password)",
   "login.roleSelect": "စမ်းသပ်အသုံးပြုမည့် တာဝန်အဆင့် ရွေးချယ်ပါ",
   "login.roleAdmin": "စားသောက်ဆိုင် မန်နေဂျာ (Admin Role)",
   "login.roleStaff": "မီးဖိုချောင် ဝန်ထမ်း (Staff Role)",
   "login.submit": "စနစ်အတွင်းသို့ ဝင်မည် →",
+  "login.secure": "လုံခြုံစိတ်ချရသော စနစ်ဝင်ရောက်မှု",
   "login.welcome": "ကြိုဆိုပါသည်",
 
   // Dashboard Page (dashboard.html)

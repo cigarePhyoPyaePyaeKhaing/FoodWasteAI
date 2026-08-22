@@ -124,12 +124,14 @@ window.I18N_EN = {
 
   // Sign In Page (index.html)
   "login.title": "Sign In",
+  "login.subtitle": "AI-powered food waste management",
   "login.username": "Username",
   "login.password": "Password",
   "login.roleSelect": "Select Demonstration Role",
   "login.roleAdmin": "Restaurant Manager (Admin Role)",
   "login.roleStaff": "Kitchen Staff Member (Staff Role)",
   "login.submit": "Sign In to Portal →",
+  "login.secure": "Secure access to your dashboard",
   "login.welcome": "Welcome back",
 
   // Dashboard Page (dashboard.html)

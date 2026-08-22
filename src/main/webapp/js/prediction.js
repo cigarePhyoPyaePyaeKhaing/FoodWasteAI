@@ -175,23 +175,23 @@ const Prediction = {
             recText = item.recommendationMy || item.recommendation_my || (typeof I18n !== 'undefined' ? I18n.translateDynamicText(rawRec) : rawRec);
           }
 
-          const recLabel = isMm ? '💡 အကြံပြုချက်:' : '💡 Recommendation:';
-
           return `
-            <div style="background:${bg}; border:1px solid ${border}; padding:1rem; border-radius:var(--radius-md);">
-              <div style="display:flex; justify-content:space-between; align-items:center;">
-                <span style="font-weight:800; color:${titleColor}; font-size:0.95rem;">
-                  ${cardTitle}
-                </span>
-                <span style="font-size:0.75rem; font-weight:700; background:rgba(255,255,255,0.8); padding:0.15rem 0.5rem; border-radius:9999px;">
+            <div class="card-glass" style="margin-bottom:1rem; border-left: 4px solid ${border};">
+              <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:0.65rem;">
+                <div style="flex:1 1 240px;">
+                  <span style="font-weight:800; color:${titleColor}; font-size:0.98rem; line-height:1.4; display:block;">
+                    ${cardTitle}
+                  </span>
+                </div>
+                <span class="risk-bubble-pill" style="background:var(--bg-surface-glass-subtle); color:var(--text-main); border:1px solid var(--glass-border); font-size:0.72rem; font-weight:700; padding:0.25rem 0.65rem; border-radius:var(--radius-pill); white-space:nowrap; align-self:flex-start;">
                   ${priorityBadge}
                 </span>
               </div>
-              <ul style="font-size:0.85rem; color:var(--text-body); margin-top:0.4rem; padding-left:1.2rem; line-height:1.6;">
+              <ul style="font-size:0.86rem; color:var(--text-body); margin-top:0.65rem; padding-left:1.25rem; line-height:1.65;">
                 ${reasonsHtml}
               </ul>
-              <div style="margin-top:0.6rem; font-size:0.85rem; font-weight:700; color:var(--text-main);">
-                <strong>${recLabel}</strong> ${recText}
+              <div style="margin-top:0.75rem; padding:0.6rem 0.85rem; background:var(--bg-surface-glass-subtle); border-radius:var(--radius-sm, 12px); border:1px solid var(--glass-border-subtle); font-size:0.84rem; font-weight:600; color:var(--text-main); line-height:1.5;">
+                <strong style="color:var(--accent-primary);">${recLabel}</strong> ${recText}
               </div>
             </div>
           `;
