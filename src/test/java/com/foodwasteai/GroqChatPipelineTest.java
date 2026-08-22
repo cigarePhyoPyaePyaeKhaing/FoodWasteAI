@@ -341,4 +341,51 @@ public class GroqChatPipelineTest {
         assertNotNull(response.getRelatedFoodItems());
         assertEquals(dynamicSalmon, response.getRelatedFoodItems().get(0).get("name"));
     }
+
+    @Test
+    @DisplayName("Conversational AI: Expanded casual queries ('what you doing', 'hehe', 'hekoo', 'i am boring') return natural chat without data leaks")
+    public void testCasualChatExpandedPhrases() {
+        String[] casualInputs = {
+            "what you doing", "what are you doing", "hehe", "haha", "hekoo", "i am boring", "i am bored", "how are you doing"
+        };
+
+        for (String input : casualInputs) {
+            GroqAIService.ChatResponse res = groqService.processUserQuery(input, "en");
+            assertNotNull(res, "Response for '" + input + "' must not be null");
+            assertNotNull(res.getAnswer(), "Answer for '" + input + "' must not be null");
+            assertFalse(res.getAnswer().isEmpty(), "Answer for '" + input + "' must not be empty");
+
+            // Verify no data sources or inventory/summary leakage
+            assertTrue(res.getSources().isEmpty(), "Casual input '" + input + "' must not have sources");
+            assertTrue(res.getSmartRecommendations().isEmpty(), "Casual input '" + input + "' must not have smart recommendations");
+            assertTrue(res.getRelatedFoodItems().isEmpty(), "Casual input '" + input + "' must not have food cards");
+            assertFalse(res.getAnswer().contains("Data Sources:"), "Answer for '" + input + "' must not contain Data Sources");
+            assertFalse(res.getAnswer().contains("Daily Intelligence Summary"), "Answer for '" + input + "' must not contain Daily Intelligence Summary");
+        }
+    }
+
+    @Test
+    @DisplayName("Context Isolation & Response Validation: Switching to Fresh Chicken Breast never mentions previous fresh milk")
+    public void testStrictFoodEntityResponseValidation() throws java.sql.SQLException {
+        foodItemService.createFoodItem(
+                new com.foodwasteai.model.FoodItem(null, "Fresh Milk", "Dairy",
+                        new java.math.BigDecimal("8.00"), "liter", new java.math.BigDecimal("2000.00"),
+                        java.time.LocalDate.now().minusDays(1), new java.math.BigDecimal("2.00")), 1L
+        );
+
+        String sessionId = "strict_validation_session_" + System.currentTimeMillis();
+
+        // Step 1: Query fresh milk
+        GroqAIService.ChatResponse milkRes = groqService.processUserQuery("Why is fresh milk risky?", "en", sessionId);
+        assertNotNull(milkRes);
+        assertTrue(milkRes.getAnswer().toLowerCase().contains("milk"));
+
+        // Step 2: Query Fresh Chicken Breast
+        GroqAIService.ChatResponse chickenRes = groqService.processUserQuery("What is the waste risk for Fresh Chicken Breast?", "en", sessionId);
+        assertNotNull(chickenRes);
+        assertTrue(chickenRes.getAnswer().contains("Fresh Chicken Breast"), "Must analyze Fresh Chicken Breast");
+        assertFalse(chickenRes.getAnswer().toLowerCase().contains("fresh milk"), "Fresh Chicken Breast response must NOT contain fresh milk");
+        assertEquals("Fresh Chicken Breast", chickenRes.getRelatedFoodItems().get(0).get("name"));
+    }
 }
+
