@@ -380,8 +380,8 @@ public class TranslationService {
         if (trimmed.contains("recommend_production") && trimmed.contains("10-15%")) {
             return "Prolog စည်းမျဉ်း: recommend_production/6 (ထုတ်လုပ်မှု ၁၀-၁၅% အနည်းငယ် လျှော့ချပါ)";
         }
-        if (lower.contains("reasons with swi-prolog") || lower.contains("reasoning with swi-prolog")) {
-            return "SWI-Prolog နှင့် Gemini ဖြင့် စဉ်းစားတွက်ချက်နေပါသည်...";
+        if (lower.contains("reasons with swi-prolog") || lower.contains("reasoning with swi-prolog") || lower.contains("thinking")) {
+            return "စဉ်းစားနေပါတယ်...";
         }
 
         // 2. Recommendation Title: Halt production and dispose of expired <Item>

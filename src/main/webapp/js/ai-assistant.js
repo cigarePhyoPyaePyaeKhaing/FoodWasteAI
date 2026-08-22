@@ -6,7 +6,7 @@
 const AIAssistant = {
   isOpen: false,
   isSending: false,
-  STORAGE_KEY: 'foodwaste_chat_history_v3',
+  STORAGE_KEY: 'foodwaste_chat_history_v5',
   SESSION_KEY: 'foodwaste_chat_session_id',
 
   getSessionId() {
@@ -28,11 +28,21 @@ const AIAssistant = {
     window.addEventListener('languageChanged', () => {
       this.updateChips();
       this.updateWelcomeText();
+      this.updateHeaderSubtitle();
       if (typeof I18n !== 'undefined') {
         I18n.applyTranslations();
       }
     });
     this.updateChips();
+    this.updateHeaderSubtitle();
+  },
+
+  updateHeaderSubtitle() {
+    const subtitle = document.getElementById('gemini-header-subtitle');
+    if (subtitle) {
+      const isMm = typeof I18n !== 'undefined' && I18n.isMyanmar();
+      subtitle.textContent = isMm ? 'အစားအစာ အလေအလွင့် စမတ်အကူအညီပေးသူ' : 'Smart Food Waste Assistant';
+    }
   },
 
   getHistory() {
@@ -144,6 +154,8 @@ const AIAssistant = {
   injectStylesAndMarkup() {
     if (document.getElementById('gemini-chat-widget')) return;
 
+    const isMm = typeof I18n !== 'undefined' && I18n.isMyanmar();
+
     // Chat Drawer HTML
     const widget = document.createElement('div');
     widget.id = 'gemini-chat-widget';
@@ -166,28 +178,14 @@ const AIAssistant = {
                   FoodWaste AI Assistant
                   <span class="gemini-active-pill">LIVE</span>
                 </div>
-                <div style="font-size:0.75rem; color:var(--text-muted);">Groq AI + SWI-Prolog Engine</div>
+                <div style="font-size:0.75rem; color:var(--text-muted);" id="gemini-header-subtitle">
+                  ${isMm ? 'အစားအစာ အလေအလွင့် စမတ်အကူအညီပေးသူ' : 'Smart Food Waste Assistant'}
+                </div>
               </div>
             </div>
             <div style="display:flex; align-items:center; gap:0.4rem;">
               <button class="btn-bubble btn-glass-subtle btn-sm-bubble" onclick="AIAssistant.clearHistory()" title="Clear Chat History" style="font-size:0.75rem; padding:0.3rem 0.6rem;">🗑️</button>
               <button class="btn-bubble btn-glass-subtle btn-sm-bubble" onclick="AIAssistant.toggle()" style="font-weight:700;">✕</button>
-            </div>
-          </div>
-
-          <!-- Live AI Engine Status Bar -->
-          <div class="gemini-status-bar" id="gemini-engine-status-bar">
-            <div class="gemini-status-pill">
-              <span class="status-indicator-dot online"></span>
-              <span>Groq AI: <strong id="status-val-groq">Connected</strong></span>
-            </div>
-            <div class="gemini-status-pill">
-              <span class="status-indicator-dot online"></span>
-              <span>SWI-Prolog: <strong id="status-val-prolog">Active</strong></span>
-            </div>
-            <div class="gemini-status-pill">
-              <span class="status-indicator-dot online"></span>
-              <span>Database: <strong id="status-val-db">Connected</strong></span>
             </div>
           </div>
 
@@ -664,8 +662,8 @@ const AIAssistant = {
         this.renderAIMessage(res.data, true);
       } else {
         const fallbackData = {
-          answer: lang === 'mm' ? "SWI-Prolog စနစ်မှ မီးဖိုချောင်ရှိ အန္တရာယ်မြင့် ကုန်ပစ္စည်းများကို ဆန်းစစ်တွက်ချက်ထားပါသည်။" : "Received evaluation from SWI-Prolog engine. High risk items are identified in your inventory.",
-          sourceEngine: "SWI-Prolog Expert Engine"
+          answer: lang === 'mm' ? "မီးဖိုချောင်ရှိ ကုန်ပစ္စည်းများ၏ သက်တမ်းနှင့် အလေအလွင့် အန္တရာယ်များကို ဆန်းစစ်ထားပါသည်။" : "I have evaluated your inventory risk and expiry status. Check your inventory for recommended actions.",
+          sourceEngine: "FoodWaste AI Assistant"
         };
         this.renderAIMessage(fallbackData, true);
       }
@@ -674,9 +672,9 @@ const AIAssistant = {
       const isMm = lang === 'mm';
       const fallbackData = {
         answer: isMm ?
-          "ကျွန်ုပ်တို့၏ **SWI-Prolog ယုတ္တိဗေဒစနစ်** မှ မီးဖိုချောင် စာရင်းအင်းများကို ဆန်းစစ်ပေးပါသည်။ တိကျသော ကုန်ပစ္စည်းအမည် (ဥပမာ- Fresh Milk, Chicken) သို့မဟုတ် Inventory စာမျက်နှာတွင် ကုန်ပစ္စည်းများ စစ်ဆေးနိုင်ပါသည်။" :
-          "Our **SWI-Prolog Expert Reasoning System** evaluated live kitchen inventory. Please check Inventory for recorded items and ExpiryStatus.",
-        sourceEngine: "SWI-Prolog Local Reasoner"
+          "ကျွန်ုပ်သည် စားသောက်ဆိုင် စာရင်းအင်းများနှင့် အလေအလွင့် လျှော့ချရေးကို ကူညီပေးပါသည်။ တိကျသော ကုန်ပစ္စည်းအမည် (ဥပမာ- Fresh Milk, Chicken) သို့မဟုတ် Inventory စာမျက်နှာတွင် ကုန်ပစ္စည်းများ စစ်ဆေးနိုင်ပါသည်။" :
+          "I help manage kitchen inventory and minimize food waste. Please check your Inventory section or ask about specific ingredients.",
+        sourceEngine: "FoodWaste AI Assistant"
       };
       this.renderAIMessage(fallbackData, true);
     } finally {
@@ -710,7 +708,7 @@ const AIAssistant = {
     const isMm = typeof I18n !== 'undefined' && I18n.isMyanmar();
     div.innerHTML = `
       <div class="gemini-msg-bubble" style="color:var(--text-muted); font-size:0.82rem; display:flex; align-items:center; gap:0.5rem;">
-        <span>⚡ ${isMm ? 'SWI-Prolog နှင့် Gemini တွက်ချက်နေပါသည်' : 'Reasoning with SWI-Prolog & Gemini'}</span>
+        <span>${isMm ? 'စဉ်းစားနေပါတယ်...' : 'Thinking...'}</span>
         <span class="typing-dots"><span></span><span></span><span></span></span>
       </div>
     `;
@@ -775,7 +773,7 @@ const AIAssistant = {
       sourcesHtml = `
         <div class="gemini-sources-box">
           <div class="gemini-sources-title">
-            <span>📚 ${isMm ? 'အချက်အလက် အရင်းအမြစ်များ:' : 'Ground Truth Sources:'}</span>
+            <span>📚 ${isMm ? 'ဒေတာအရင်းအမြစ်များ:' : 'Data Sources:'}</span>
           </div>
           <div>${data.sources.map(s => `&bull; ${this.escapeHtml(s)}`).join('<br>')}</div>
         </div>
