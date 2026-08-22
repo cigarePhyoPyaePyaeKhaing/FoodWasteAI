@@ -135,9 +135,9 @@ const AIAssistant = {
     widget.id = 'gemini-chat-widget';
     widget.innerHTML = `
       <!-- Trigger Bubble Button -->
-      <button id="gemini-fab-trigger" class="gemini-fab" onclick="AIAssistant.toggle()" title="Ask Gemini & Prolog AI Assistant">
+      <button id="gemini-fab-trigger" class="gemini-fab" onclick="AIAssistant.toggle()" title="Ask FoodWaste AI Assistant">
         <span class="gemini-fab-sparkle">✨</span>
-        <span class="gemini-fab-text">Gemini AI</span>
+        <span class="gemini-fab-text">AI Assistant</span>
       </button>
 
       <!-- Glass Chat Drawer -->
@@ -149,15 +149,31 @@ const AIAssistant = {
               <div class="gemini-avatar-glow">🤖</div>
               <div>
                 <div style="font-weight:800; font-size:1rem; color:var(--text-main); display:flex; align-items:center; gap:0.4rem;">
-                  Gemini & Prolog AI
-                  <span class="gemini-active-pill">XAI LIVE</span>
+                  FoodWaste AI Assistant
+                  <span class="gemini-active-pill">LIVE</span>
                 </div>
-                <div style="font-size:0.75rem; color:var(--text-muted);">Explainable Food Waste Intelligence</div>
+                <div style="font-size:0.75rem; color:var(--text-muted);">Groq AI + SWI-Prolog Engine</div>
               </div>
             </div>
             <div style="display:flex; align-items:center; gap:0.4rem;">
               <button class="btn-bubble btn-glass-subtle btn-sm-bubble" onclick="AIAssistant.clearHistory()" title="Clear Chat History" style="font-size:0.75rem; padding:0.3rem 0.6rem;">🗑️</button>
               <button class="btn-bubble btn-glass-subtle btn-sm-bubble" onclick="AIAssistant.toggle()" style="font-weight:700;">✕</button>
+            </div>
+          </div>
+
+          <!-- Live AI Engine Status Bar -->
+          <div class="gemini-status-bar" id="gemini-engine-status-bar">
+            <div class="gemini-status-pill">
+              <span class="status-indicator-dot online"></span>
+              <span>Groq AI: <strong id="status-val-groq">Connected</strong></span>
+            </div>
+            <div class="gemini-status-pill">
+              <span class="status-indicator-dot online"></span>
+              <span>SWI-Prolog: <strong id="status-val-prolog">Active</strong></span>
+            </div>
+            <div class="gemini-status-pill">
+              <span class="status-indicator-dot online"></span>
+              <span>Database: <strong id="status-val-db">Connected</strong></span>
             </div>
           </div>
 
@@ -280,6 +296,37 @@ const AIAssistant = {
         color: #059669;
         padding: 0.15rem 0.45rem;
         border-radius: 9999px;
+      }
+      .gemini-status-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.35rem;
+        padding: 0.45rem 1rem;
+        background: rgba(255, 255, 255, 0.7);
+        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        font-size: 0.72rem;
+        color: var(--text-muted);
+      }
+      .gemini-status-pill {
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
+        background: rgba(240, 253, 244, 0.85);
+        border: 1px solid rgba(74, 222, 128, 0.4);
+        padding: 0.2rem 0.5rem;
+        border-radius: 9999px;
+        color: #166534;
+        font-weight: 600;
+        font-size: 0.68rem;
+      }
+      .status-indicator-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #22c55e;
+        box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.25);
+        display: inline-block;
       }
       .gemini-chips-scroll {
         display: flex;

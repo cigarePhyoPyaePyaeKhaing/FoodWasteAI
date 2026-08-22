@@ -516,54 +516,48 @@ public class GroqAIService {
 
             if (isMm) {
                 return String.format(
-                        "### 🍲 %s အလေအလွင့် အန္တရာယ်နှင့် အခြေအနေ ဆန်းစစ်ချက်\n\n" +
-                        "**အန္တရာယ် အဆင့်အတန်း:** **%s (%d%% ဖြစ်နိုင်ခြေ)**\n" +
-                        "**သက်တမ်း အခြေအနေ:** `%s` (သက်တမ်းကုန်ရန် %d ရက်ကျန်ရှိ)\n\n" +
-                        "**SWI-Prolog ယုတ္တိဗေဒ အကြောင်းရင်းများ (`assess_waste_risk/6`):**\n" +
+                        "### 🍲 Food Item: %s\n\n" +
+                        "**Status:** `%s` (သက်တမ်းကုန်ရန် %d ရက်ကျန်ရှိ)\n" +
+                        "**Risk:** **%d%% (%s)**\n" +
+                        "**Stock:** %.1f %s\n" +
+                        "**Expected Demand:** %.1f %s\n" +
+                        "**Financial Loss at Risk:** %,.0f MMK\n\n" +
+                        "**Reason (SWI-Prolog `assess_waste_risk/6`):**\n" +
                         "%s\n\n" +
-                        "**လက်ရှိ မီးဖိုချောင် စာရင်းအင်း အချက်အလက်များ:**\n" +
-                        "- **လက်ကျန်ပမာဏ:** %.1f %s\n" +
-                        "- **ခန့်မှန်းဝယ်လိုအား:** %.1f %s\n" +
-                        "- **ပိုလျှံနေသော ပမာဏ:** %.1f %s\n" +
-                        "- **ဆုံးရှုံးနိုင်ခြေ တန်ဖိုး:** %,.0f MMK\n\n" +
-                        "**AI လုပ်ဆောင်ချက် လမ်းညွှန်ချက်:**\n" +
-                        "💡 **%s**",
+                        "**💡 AI လမ်းညွှန်ချက်:**\n" +
+                        "%s",
                         foodName,
-                        riskLevelDisplay,
-                        Math.round(riskPct),
                         expiryStatusDisplay,
                         expiryDays,
-                        reasonsBullet,
+                        Math.round(riskPct),
+                        riskLevelDisplay,
                         stock, unit,
                         demand, unit,
-                        surplus, unit,
                         potentialLoss,
+                        reasonsBullet,
                         recommendation
                 );
             } else {
                 return String.format(
-                        "### 🍲 %s Waste Risk & Expiry Assessment\n\n" +
-                        "**Risk Level:** **%s (%d%% Probability)**\n" +
-                        "**Expiry Status:** `%s` (%d day(s) remaining)\n\n" +
-                        "**SWI-Prolog Logical Reasons (`assess_waste_risk/6`):**\n" +
+                        "### 🍲 Food Item: %s\n\n" +
+                        "**Status:** `%s` (%d day(s) remaining)\n" +
+                        "**Risk:** **%d%% (%s)**\n" +
+                        "**Stock:** %.1f %s\n" +
+                        "**Expected Demand:** %.1f %s\n" +
+                        "**Financial Loss at Risk:** %,.0f MMK\n\n" +
+                        "**Reason (SWI-Prolog `assess_waste_risk/6`):**\n" +
                         "%s\n\n" +
-                        "**Operational Inventory Metrics:**\n" +
-                        "- **Current Stock:** %.1f %s\n" +
-                        "- **Expected Demand:** %.1f %s\n" +
-                        "- **Surplus Quantity:** %.1f %s\n" +
-                        "- **Financial Spoilage at Risk:** %,.0f MMK\n\n" +
-                        "**Smart AI Action Directive:**\n" +
-                        "💡 **%s**",
+                        "**💡 AI Action Directive:**\n" +
+                        "%s",
                         foodName,
-                        riskLevelDisplay,
-                        Math.round(riskPct),
                         expiryStatusDisplay,
                         expiryDays,
-                        reasonsBullet,
+                        Math.round(riskPct),
+                        riskLevelDisplay,
                         stock, unit,
                         demand, unit,
-                        surplus, unit,
                         potentialLoss,
+                        reasonsBullet,
                         recommendation
                 );
             }
