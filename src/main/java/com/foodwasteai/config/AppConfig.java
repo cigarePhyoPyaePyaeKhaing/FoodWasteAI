@@ -237,6 +237,14 @@ public class AppConfig {
         return get("SWIPL_PATH", "swipl");
     }
 
+    public static String getGroqApiKey() {
+        return get("GROQ_API_KEY", "");
+    }
+
+    public static String getGroqModel() {
+        return get("GROQ_MODEL", "llama-3.3-70b-versatile");
+    }
+
     public static String getOllamaHost() {
         return get("OLLAMA_HOST", "http://localhost:11434");
     }

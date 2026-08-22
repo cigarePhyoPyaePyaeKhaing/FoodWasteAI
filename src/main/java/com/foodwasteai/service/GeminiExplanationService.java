@@ -1,9 +1,9 @@
 package com.foodwasteai.service;
 
 /**
- * Backward-compatible adapter delegating to OllamaAIService.
+ * Backward-compatible adapter delegating to GroqAIService.
  */
-public class GeminiExplanationService extends OllamaAIService {
+public class GeminiExplanationService extends GroqAIService {
     public GeminiExplanationService() {
         super();
     }
