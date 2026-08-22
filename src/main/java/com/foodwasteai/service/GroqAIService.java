@@ -268,9 +268,9 @@ public class GroqAIService {
 
             if (groqExplanation == null || groqExplanation.trim().isEmpty()) {
                 groqExplanation = generateRuleGroundedExplanation(userQuery, inventory, items, recipients, matchedFoodItem, matchedAssessment, activeLang);
-                response.setSourceEngine(isMyanmar ? "SWI-Prolog Expert Reasoner (Myanmar XAI)" : "SWI-Prolog Expert Reasoner + Grounded XAI Synthesizer");
+                response.setSourceEngine("FoodWaste AI Assistant\nPowered by Groq AI + SWI-Prolog");
             } else {
-                response.setSourceEngine("Groq Cloud AI (" + AppConfig.getGroqModel() + ") + SWI-Prolog Ground Truth");
+                response.setSourceEngine("FoodWaste AI Assistant\nPowered by Groq AI + SWI-Prolog");
                 response.addSource("Groq Cloud AI (" + AppConfig.getGroqModel() + ")");
             }
 
@@ -316,11 +316,11 @@ public class GroqAIService {
             logger.error("Error in GroqAIService: {}", e.getMessage(), e);
             if (isMyanmar) {
                 response.setAnswer("ကျွန်ုပ်တို့၏ SWI-Prolog ယုတ္တိဗေဒစနစ်မှ မီးဖိုချောင် စာရင်းအင်းများကို ဆန်းစစ်ပေးပါသည်။ လက်ရှိတွင် စာရင်းသွင်းထားသော ကုန်ပစ္စည်း မရှိသေးပါက Inventory သို့ သွားရောက် ထည့်သွင်းပေးပါ။");
-                response.setSourceEngine("FoodWaste AI Reasoner");
+                response.setSourceEngine("FoodWaste AI Assistant\nPowered by Groq AI + SWI-Prolog");
                 response.addSmartAction(new SmartAction("ကုန်ပစ္စည်းလက်ကျန် ကြည့်ရှုမည်", "VIEW_INVENTORY", "အချက်အလက်", "/inventory.html"));
             } else {
                 response.setAnswer("Our SWI-Prolog expert reasoning system evaluates live kitchen inventory. Please ensure food items are recorded in the Inventory section to generate waste predictions and mitigation directives.");
-                response.setSourceEngine("FoodWaste AI Reasoner");
+                response.setSourceEngine("FoodWaste AI Assistant\nPowered by Groq AI + SWI-Prolog");
                 response.addSmartAction(new SmartAction("View Kitchen Inventory", "VIEW_INVENTORY", "INFO", "/inventory.html"));
             }
         }
@@ -512,13 +512,7 @@ public class GroqAIService {
                 else riskLevelDisplay = "အန္တရာယ်နည်း";
             }
 
-            String expiryStatusDisplay = expiryStatus;
-            if (isMm) {
-                if ("EXPIRED".equalsIgnoreCase(expiryStatus)) expiryStatusDisplay = "သက်တမ်းကုန်ပြီး";
-                else if ("SAME_DAY_EXPIRY".equalsIgnoreCase(expiryStatus)) expiryStatusDisplay = "ယနေ့သက်တမ်းကုန်";
-                else if ("NEAR_EXPIRY".equalsIgnoreCase(expiryStatus)) expiryStatusDisplay = "သက်တမ်းကုန်ရန်နီး";
-                else expiryStatusDisplay = "ပုံမှန်ကောင်းမွန်";
-            }
+            String expiryStatusDisplay = expiryStatus != null ? expiryStatus : "SAFE";
 
             if (isMm) {
                 return String.format(

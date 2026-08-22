@@ -363,33 +363,58 @@ const AIAssistant = {
         gap: 0.3rem;
       }
       .gemini-food-card {
-        margin-top: 0.5rem;
-        padding: 0.5rem 0.7rem;
-        background: rgba(254, 240, 138, 0.3);
-        border: 1px solid rgba(250, 204, 21, 0.5);
-        border-radius: 10px;
-        font-size: 0.78rem;
+        margin-top: 0.75rem;
+        margin-bottom: 0.5rem;
+        padding: 0.65rem 0.85rem;
+        background: rgba(254, 240, 138, 0.25);
+        border: 1px solid rgba(250, 204, 21, 0.45);
+        border-radius: 12px;
       }
-      .gemini-engine-badge {
-        font-size: 0.68rem;
-        color: var(--text-muted);
-        margin-top: 0.45rem;
-        display: flex;
-        align-items: center;
-        gap: 0.3rem;
+      .gemini-food-card-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+        gap: 0.55rem 0.75rem;
       }
-      .gemini-smart-actions {
-        margin-top: 0.65rem;
+      .gemini-food-card-col {
         display: flex;
         flex-direction: column;
-        gap: 0.35rem;
+        gap: 0.15rem;
+      }
+      .gemini-food-card-label {
+        font-size: 0.68rem;
+        font-weight: 700;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+      }
+      .gemini-food-card-val {
+        font-size: 0.82rem;
+        font-weight: 700;
+        color: var(--text-main);
+      }
+      .gemini-engine-badge {
+        font-size: 0.7rem;
+        color: var(--text-muted);
+        margin-top: 0.75rem;
+        padding-top: 0.5rem;
+        border-top: 1px solid rgba(0,0,0,0.06);
+        display: flex;
+        flex-direction: column;
+        gap: 0.1rem;
+      }
+      .gemini-smart-actions {
+        margin-top: 0.85rem;
+        margin-bottom: 0.4rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
       }
       .gemini-action-btn {
         background: rgba(254, 240, 138, 0.85);
         border: 1px solid #facc15;
         color: #713f12;
-        padding: 0.45rem 0.8rem;
-        border-radius: 12px;
+        padding: 0.5rem 0.85rem;
+        border-radius: 10px;
         font-size: 0.78rem;
         font-weight: 700;
         cursor: pointer;
@@ -617,25 +642,39 @@ const AIAssistant = {
     const container = document.getElementById('gemini-messages-body');
     if (!container) return;
 
+    const isMm = typeof I18n !== 'undefined' && I18n.isMyanmar();
     const div = document.createElement('div');
     div.className = 'gemini-msg gemini-msg-ai';
 
     const rawText = data.answer || data.explanation || '';
     let formattedText = this.formatMarkdown(rawText);
 
-    // Related Food Items Card
+    // Clean Related Food Items Card
     let foodCardsHtml = '';
     if (data.relatedFoodItems && data.relatedFoodItems.length > 0) {
       foodCardsHtml = data.relatedFoodItems.map(item => {
-        const statusBadge = item.expiryStatus ? `<span class="badge-bubble badge-risk-high" style="font-size:0.65rem; padding:0.1rem 0.35rem;">${item.expiryStatus}</span>` : '';
+        const statusBadgeClass = item.expiryStatus === 'EXPIRED' ? 'badge-risk-high' :
+          (item.expiryStatus === 'SAME_DAY_EXPIRY' || item.expiryStatus === 'NEAR_EXPIRY' ? 'badge-risk-medium' : 'badge-risk-low');
+        const statusText = item.expiryStatus || 'SAFE';
         return `
           <div class="gemini-food-card">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-              <strong>🍲 ${item.name}</strong>
-              ${statusBadge}
-            </div>
-            <div style="font-size:0.74rem; color:var(--text-muted); margin-top:2px;">
-              Stock: <strong>${item.stock} ${item.unit || ''}</strong> &bull; Risk: <strong>${item.riskScore}%</strong>
+            <div class="gemini-food-card-row">
+              <div class="gemini-food-card-col">
+                <span class="gemini-food-card-label">${isMm ? 'အစားအစာ:' : 'Food Item:'}</span>
+                <span class="gemini-food-card-val">🍲 ${this.escapeHtml(item.name)}</span>
+              </div>
+              <div class="gemini-food-card-col">
+                <span class="gemini-food-card-label">${isMm ? 'အခြေအနေ:' : 'Status:'}</span>
+                <span class="badge-bubble ${statusBadgeClass}" style="font-size:0.68rem; padding:0.12rem 0.4rem; width:fit-content;">${statusText}</span>
+              </div>
+              <div class="gemini-food-card-col">
+                <span class="gemini-food-card-label">${isMm ? 'လက်ကျန်:' : 'Stock:'}</span>
+                <span class="gemini-food-card-val">${item.stock} ${item.unit || ''}</span>
+              </div>
+              <div class="gemini-food-card-col">
+                <span class="gemini-food-card-label">${isMm ? 'အန္တရာယ်:' : 'Risk:'}</span>
+                <span class="gemini-food-card-val" style="color:#dc2626; font-weight:800;">${item.riskScore}%</span>
+              </div>
             </div>
           </div>
         `;
@@ -648,7 +687,7 @@ const AIAssistant = {
       sourcesHtml = `
         <div class="gemini-sources-box">
           <div class="gemini-sources-title">
-            <span>📚 Ground Truth Sources:</span>
+            <span>📚 ${isMm ? 'အချက်အလက် အရင်းအမြစ်များ:' : 'Ground Truth Sources:'}</span>
           </div>
           <div>${data.sources.map(s => `&bull; ${this.escapeHtml(s)}`).join('<br>')}</div>
         </div>
@@ -660,7 +699,9 @@ const AIAssistant = {
     if (data.smartRecommendations && data.smartRecommendations.length > 0) {
       actionsHtml = `
         <div class="gemini-smart-actions">
-          <div style="font-weight:800; font-size:0.75rem; color:#713f12; margin-top:0.3rem;">💡 Smart Directives:</div>
+          <div style="font-weight:800; font-size:0.76rem; color:#713f12; margin-bottom:0.25rem;">
+            ${isMm ? '💡 AI အကြံပြုချက် လမ်းညွှန်ချက်များ:' : '💡 Smart Directives:'}
+          </div>
           ${data.smartRecommendations.map(act => `
             <button class="gemini-action-btn" onclick="AIAssistant.handleSmartAction('${act.actionType}', '${act.payload}')">
               <span>${act.title}</span>
@@ -678,7 +719,12 @@ const AIAssistant = {
         ${actionsHtml}
         ${sourcesHtml}
         <div class="gemini-engine-badge">
-          <span>🧠</span> ${data.sourceEngine || 'SWI-Prolog XAI'}
+          <div style="font-weight:800; font-size:0.75rem; color:#1e293b; display:flex; align-items:center; gap:0.35rem;">
+            <span>🤖</span> FoodWaste AI Assistant
+          </div>
+          <div style="font-size:0.7rem; color:var(--text-muted); margin-top:2px;">
+            Powered by Groq AI + SWI-Prolog
+          </div>
         </div>
       </div>
     `;
