@@ -1,12 +1,10 @@
 /**
- * FoodWaste AI - Gemini Chat & Explainable AI Conversational Assistant
- * Architecture:
- * User -> Gemini Chat -> Java Backend -> MySQL Data -> SWI-Prolog Reasoning -> Gemini Explanation -> Smart Directives
+ * FoodWaste AI - Smart Conversational Assistant
  */
 const AIAssistant = {
   isOpen: false,
   isSending: false,
-  STORAGE_KEY: 'foodwaste_chat_history_v5',
+  STORAGE_KEY: 'foodwaste_chat_history_v6',
   SESSION_KEY: 'foodwaste_chat_session_id',
 
   getSessionId() {
@@ -41,7 +39,7 @@ const AIAssistant = {
     const subtitle = document.getElementById('gemini-header-subtitle');
     if (subtitle) {
       const isMm = typeof I18n !== 'undefined' && I18n.isMyanmar();
-      subtitle.textContent = isMm ? 'အစားအစာ အလေအလွင့် စမတ်အကူအညီပေးသူ' : 'Smart Food Waste Assistant';
+      subtitle.textContent = isMm ? 'အစားအစာ စီမံခန့်ခွဲမှု စမတ်အကူအညီပေးသူ' : 'Smart Food Waste Assistant';
     }
   },
 
@@ -102,7 +100,7 @@ const AIAssistant = {
       <div class="gemini-msg gemini-msg-ai">
         <div class="gemini-msg-bubble" id="gemini-welcome-bubble">
           <div style="font-weight:800; font-size:0.95rem; margin-bottom:0.35rem; color:#713f12;">
-            ${isMm ? 'မင်္ဂလာပါ။ ကျွန်ုပ်သည် FoodWaste AI Assistant ဖြစ်ပါသည်။' : 'Hello! I am FoodWaste AI Assistant.'}
+            ${isMm ? 'မင်္ဂလာပါ 👋<br>ကျွန်ုပ်သည် FoodWaste AI Assistant ဖြစ်ပါသည်။' : 'Hello 👋<br>I am FoodWaste AI Assistant.'}
           </div>
           <div style="font-size:0.84rem; line-height:1.5; color:var(--text-main);">
             ${isMm ?
@@ -123,7 +121,7 @@ const AIAssistant = {
       const isMm = typeof I18n !== 'undefined' && I18n.isMyanmar();
       bubble.innerHTML = `
         <div style="font-weight:800; font-size:0.95rem; margin-bottom:0.35rem; color:#713f12;">
-          ${isMm ? 'မင်္ဂလာပါ။ ကျွန်ုပ်သည် FoodWaste AI Assistant ဖြစ်ပါသည်။' : 'Hello! I am FoodWaste AI Assistant.'}
+          ${isMm ? 'မင်္ဂလာပါ 👋<br>ကျွန်ုပ်သည် FoodWaste AI Assistant ဖြစ်ပါသည်။' : 'Hello 👋<br>I am FoodWaste AI Assistant.'}
         </div>
         <div style="font-size:0.84rem; line-height:1.5; color:var(--text-main);">
           ${isMm ?
@@ -179,7 +177,7 @@ const AIAssistant = {
                   <span class="gemini-active-pill">LIVE</span>
                 </div>
                 <div style="font-size:0.75rem; color:var(--text-muted);" id="gemini-header-subtitle">
-                  ${isMm ? 'အစားအစာ အလေအလွင့် စမတ်အကူအညီပေးသူ' : 'Smart Food Waste Assistant'}
+                  ${isMm ? 'အစားအစာ စီမံခန့်ခွဲမှု စမတ်အကူအညီပေးသူ' : 'Smart Food Waste Assistant'}
                 </div>
               </div>
             </div>

@@ -261,10 +261,10 @@ public class GroqAIService {
         if (isGreeting(cleanQuery)) {
             ctx.setLastIntent("GREETING");
             String greeting = isMyanmar ?
-                    "မင်္ဂလာပါ။ ကျွန်ုပ်သည် FoodWaste AI Assistant ဖြစ်ပါသည်။\n\nအစားအစာ အန္တရာယ်၊ သက်တမ်း၊ အလေအလွင့် လျှော့ချမှုနှင့် ပြန်လည်လှူဒါန်းမှုများကို မေးမြန်းနိုင်ပါသည်။" :
-                    "Hello! I am FoodWaste AI Assistant.\n\nAsk me about food risk, expiry, waste reduction, or redistribution.";
+                    "မင်္ဂလာပါ 👋\nကျွန်ုပ်သည် FoodWaste AI Assistant ဖြစ်ပါသည်။\n\nအစားအစာ အန္တရာယ်၊ သက်တမ်း၊ အလေအလွင့် လျှော့ချမှုနှင့် ပြန်လည်လှူဒါန်းမှုများကို မေးမြန်းနိုင်ပါသည်။" :
+                    "Hello 👋\nI am FoodWaste AI Assistant.\n\nAsk me about food risk, expiry, waste reduction, or redistribution.";
             response.setAnswer(greeting);
-            response.setSourceEngine("FoodWaste AI Assistant");
+            response.setSourceEngine(null);
             return response;
         }
 
@@ -312,7 +312,7 @@ public class GroqAIService {
                         "I specialize in FoodWaste management.\n" +
                         "I can help with inventory, expiry, waste reduction, and redistribution.";
                 response.setAnswer(unknownText);
-                response.setSourceEngine(isMyanmar ? "FoodWaste AI Assistant\nသင့်အစားအစာ စီမံခန့်ခွဲမှု အကူ" : "FoodWaste AI Assistant\nYour food waste helper");
+                response.setSourceEngine(isMyanmar ? "FoodWaste AI Assistant\nသင့်အစားအစာ စီမံခန့်ခွဲမှု အကူ" : "FoodWaste AI Assistant\nYour food waste management helper.");
                 response.addSmartAction(new SmartAction(isMyanmar ? "📦 ကုန်ပစ္စည်းလက်ကျန် ကြည့်ရှုမည်" : "📦 View Kitchen Inventory", "VIEW_INVENTORY", "INFO", "/inventory.html"));
                 return response;
             }
@@ -431,9 +431,9 @@ public class GroqAIService {
 
             if (groqExplanation == null || groqExplanation.trim().isEmpty()) {
                 groqExplanation = generateRuleGroundedExplanation(userQuery, inventory, items, recipients, matchedFoodItem, matchedAssessment, activeLang);
-                response.setSourceEngine(isMyanmar ? "FoodWaste AI Assistant\nသင့်အစားအစာ စီမံခန့်ခွဲမှု အကူ" : "FoodWaste AI Assistant\nYour food waste helper");
+                response.setSourceEngine(isMyanmar ? "FoodWaste AI Assistant\nသင့်အစားအစာ စီမံခန့်ခွဲမှု အကူ" : "FoodWaste AI Assistant\nYour food waste management helper.");
             } else {
-                response.setSourceEngine(isMyanmar ? "FoodWaste AI Assistant\nသင့်အစားအစာ စီမံခန့်ခွဲမှု အကူ" : "FoodWaste AI Assistant\nYour food waste helper");
+                response.setSourceEngine(isMyanmar ? "FoodWaste AI Assistant\nသင့်အစားအစာ စီမံခန့်ခွဲမှု အကူ" : "FoodWaste AI Assistant\nYour food waste management helper.");
             }
 
             response.setAnswer(groqExplanation);
@@ -482,7 +482,7 @@ public class GroqAIService {
                 response.addSmartAction(new SmartAction("ကုန်ပစ္စည်းလက်ကျန် ကြည့်ရှုမည်", "VIEW_INVENTORY", "အချက်အလက်", "/inventory.html"));
             } else {
                 response.setAnswer("I help evaluate kitchen inventory and identify waste risks. Please ensure food items are recorded in the Inventory section to generate waste predictions and mitigation directives.");
-                response.setSourceEngine("FoodWaste AI Assistant\nYour food waste helper");
+                response.setSourceEngine("FoodWaste AI Assistant\nYour food waste management helper.");
                 response.addSmartAction(new SmartAction("View Kitchen Inventory", "VIEW_INVENTORY", "INFO", "/inventory.html"));
             }
         }
