@@ -78,15 +78,15 @@ const AIAssistant = {
       <div class="gemini-msg gemini-msg-ai">
         <div class="gemini-msg-bubble" id="gemini-welcome-bubble">
           <div style="font-weight:800; font-size:0.95rem; margin-bottom:0.35rem; color:#713f12;">
-            ${isMm ? '👋 မင်္ဂလာပါ! FoodWaste AI စကားပြော လက်ထောက်ဖြစ်ပါသည်။' : '👋 Hello! I am your FoodWaste AI Assistant.'}
+            ${isMm ? '👋 မင်္ဂလာပါ! FoodWaste AI လက်ထောက်ဖြစ်ပါသည်။' : '👋 Hello! I am your FoodWaste AI Assistant.'}
           </div>
-          <div style="font-size:0.84rem; line-height:1.45; color:var(--text-main);">
+          <div style="font-size:0.84rem; line-height:1.5; color:var(--text-main);">
             ${isMm ?
-              'ကျွန်ုပ်သည် <strong>Google Gemini</strong>၊ <strong>SWI-Prolog ပထမအဆင့် ယုတ္တိဗေဒ</strong> နှင့် <strong>MySQL စာရင်းအင်းများ</strong> ကို ပေါင်းစပ်၍ အလေအလွင့် အန္တရာယ်များကို ဆန်းစစ်တွက်ချက်ပေးပါသည်။' :
-              'I connect <strong>Google Gemini</strong>, <strong>SWI-Prolog first-order logic</strong>, and live <strong>MySQL inventory metrics</strong> to explain waste risks and provide real-time mitigation directives.'}
+              'မီးဖိုချောင် အလေအလွင့် လျှော့ချရေး၊ သက်တမ်းကုန်ဆုံးမှု စောင့်ကြည့်ရေးနှင့် ပိုလျှံအစားအစာ လှူဒါန်းရေးတို့အတွက် ကူညီပေးနိုင်ပါသည်။' :
+              'I am here to help manage your kitchen inventory, prevent food waste, monitor expiry dates, and coordinate surplus donations.'}
           </div>
           <div style="margin-top:0.45rem; font-size:0.78rem; color:var(--text-muted);">
-            ${isMm ? '💡 မေးခွန်းတစ်ခုခု ရိုက်ထည့်ပါ သို့မဟုတ် အပေါ်ရှိ အကြံပြုခလုတ်များကို နှိပ်ပါ!' : '💡 Ask about any ingredient, expiry status, waste risks, or charity donations!'}
+            ${isMm ? '💡 မေးခွန်းတစ်ခုခု မေးမြန်းပါ သို့မဟုတ် အောက်ပါ အကြံပြုချက်များကို နှိပ်ပါ!' : '💡 Ask about any ingredient, expiry status, waste risks, or charity donations!'}
           </div>
         </div>
       </div>
@@ -99,15 +99,15 @@ const AIAssistant = {
       const isMm = typeof I18n !== 'undefined' && I18n.isMyanmar();
       bubble.innerHTML = `
         <div style="font-weight:800; font-size:0.95rem; margin-bottom:0.35rem; color:#713f12;">
-          ${isMm ? '👋 မင်္ဂလာပါ! FoodWaste AI စကားပြော လက်ထောက်ဖြစ်ပါသည်။' : '👋 Hello! I am your FoodWaste AI Assistant.'}
+          ${isMm ? '👋 မင်္ဂလာပါ! FoodWaste AI လက်ထောက်ဖြစ်ပါသည်။' : '👋 Hello! I am your FoodWaste AI Assistant.'}
         </div>
-        <div style="font-size:0.84rem; line-height:1.45; color:var(--text-main);">
+        <div style="font-size:0.84rem; line-height:1.5; color:var(--text-main);">
           ${isMm ?
-            'ကျွန်ုပ်သည် <strong>Google Gemini</strong>၊ <strong>SWI-Prolog ပထမအဆင့် ယုတ္တိဗေဒ</strong> နှင့် <strong>MySQL စာရင်းအင်းများ</strong> ကို ပေါင်းစပ်၍ အလေအလွင့် အန္တရာယ်များကို ဆန်းစစ်တွက်ချက်ပေးပါသည်။' :
-            'I connect <strong>Google Gemini</strong>, <strong>SWI-Prolog first-order logic</strong>, and live <strong>MySQL inventory metrics</strong> to explain waste risks and provide real-time mitigation directives.'}
+            'မီးဖိုချောင် အလေအလွင့် လျှော့ချရေး၊ သက်တမ်းကုန်ဆုံးမှု စောင့်ကြည့်ရေးနှင့် ပိုလျှံအစားအစာ လှူဒါန်းရေးတို့အတွက် ကူညီပေးနိုင်ပါသည်။' :
+            'I am here to help manage your kitchen inventory, prevent food waste, monitor expiry dates, and coordinate surplus donations.'}
         </div>
         <div style="margin-top:0.45rem; font-size:0.78rem; color:var(--text-muted);">
-          ${isMm ? '💡 မေးခွန်းတစ်ခုခု ရိုက်ထည့်ပါ သို့မဟုတ် အပေါ်ရှိ အကြံပြုခလုတ်များကို နှိပ်ပါ!' : '💡 Ask about any ingredient, expiry status, waste risks, or charity donations!'}
+          ${isMm ? '💡 မေးခွန်းတစ်ခုခု မေးမြန်းပါ သို့မဟုတ် အောက်ပါ အကြံပြုချက်များကို နှိပ်ပါ!' : '💡 Ask about any ingredient, expiry status, waste risks, or charity donations!'}
         </div>
       `;
     }
@@ -571,34 +571,37 @@ const AIAssistant = {
     let query = '';
     switch (chipIndex) {
       case 1:
-        query = isMm ? "Fresh Milk (နို့စိမ်း) ဘာကြောင့် အန္တရာယ်ရှိတာလဲ?" : "Why is Fresh Milk risky?";
+        query = isMm ? "fresh milk ဘာကြောင့် အန္တရာယ်ရှိတာလဲ?" : "Why is fresh milk risky?";
         break;
       case 2:
-        query = isMm ? "ကြက်သား အလေအလွင့် ဘာကြောင့်များတာလဲ၊ ဘာလုပ်သင့်လဲ?" : "What is our chicken waste risk and what should we do?";
+        query = isMm ? "Fresh Chicken Breast အလေအလွင့် အန္တရာယ် ဘယ်လိုရှိလဲ?" : "What is the waste risk for Fresh Chicken Breast?";
         break;
       case 3:
-        query = isMm ? "ယနေ့ မီးဖိုချောင်တွင် အန္တရာယ်အမြင့်ဆုံး ပစ္စည်းများ ဘာတွေရှိလဲ?" : "Which food items are currently at high risk?";
+        query = isMm ? "ဘယ်အစားအစာတွေက အန္တရာယ်အမြင့်ဆုံး ဖြစ်နေပါသလဲ?" : "Which food items are high risk and why?";
         break;
       case 4:
-        query = isMm ? "ယနေ့ မီးဖိုချောင်တွင် မည်သည့်ပစ္စည်းများကို ဦးစားပေးချက်ပြုတ်သင့်သလဲ?" : "What priority ingredients should we cook today?";
+        query = isMm ? "ယနေ့ ဘယ်ကုန်ကြမ်းတွေကို ဦးစားပေး ချက်ပြုတ်သင့်ပါသလဲ?" : "What ingredients should our chef cook or prioritize today?";
         break;
       case 5:
-        query = isMm ? "ယနေ့ ပရဟိတသို့ လှူဒါန်းနိုင်မည့် ပိုလျှံပစ္စည်းများနှင့် မိတ်ဖက်အဖွဲ့များ ရှိပါသလား?" : "Which surplus items can we donate to charity food banks?";
+        query = isMm ? "ဘယ်ပိုလျှံအစားအစာတွေကို ပရဟိတသို့ လှူဒါန်းသင့်ပါသလဲ?" : "Which surplus items should be redistributed?";
         break;
       case 6:
       default:
-        query = isMm ? "ယနေ့ မီးဖိုချောင် အလေအလွင့် စောင့်ကြည့်မှု အနှစ်ချုပ်ပေးပါ" : "Give me a full daily waste intelligence summary.";
+        query = isMm ? "ယနေ့ အစားအသောက် အလေအလွင့် အခြေအနေ အနှစ်ချုပ်ကို ရှင်းပြပေးပါ။" : "What is our overall food waste summary today?";
         break;
     }
+    this.sendMessage(query);
+  },
+
+  sendMessage(text) {
+    if (!text || !text.trim()) return;
     const input = document.getElementById('gemini-user-input');
-    if (input) input.value = query;
+    if (input) input.value = text;
     this.handleSubmit(new Event('submit'));
   },
 
   sendQuick(text) {
-    const input = document.getElementById('gemini-user-input');
-    if (input) input.value = text;
-    this.handleSubmit(new Event('submit'));
+    this.sendMessage(text);
   },
 
   async handleSubmit(e) {

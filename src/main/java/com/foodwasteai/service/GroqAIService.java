@@ -366,18 +366,25 @@ public class GroqAIService {
             }
 
             StringBuilder systemPrompt = new StringBuilder();
-            systemPrompt.append("You are the Explainable AI Assistant for FoodWaste AI, an intelligent conversational platform for food waste prediction, prevention, and redistribution.\n");
-            systemPrompt.append("Use the following live operational metrics and SWI-Prolog deductions as your absolute ground truth:\n\n");
+            systemPrompt.append("You are FoodWaste AI Assistant.\n");
+            systemPrompt.append("Answer users naturally like a human food waste expert.\n");
+            systemPrompt.append("Do not explain your internal architecture.\n");
+            systemPrompt.append("Do not mention:\n");
+            systemPrompt.append("- Google Gemini\n");
+            systemPrompt.append("- Groq API\n");
+            systemPrompt.append("- MySQL database\n");
+            systemPrompt.append("- backend systems\n");
+            systemPrompt.append("unless user explicitly asks.\n\n");
+            systemPrompt.append("You must answer based on the provided inventory data, expiry status, waste records, prediction, recommendation, and SWI-Prolog reasoning:\n\n");
             systemPrompt.append(contextBuilder.toString());
-            systemPrompt.append("\nSTRICT INSTRUCTIONS:\n");
+            systemPrompt.append("\nRULES:\n");
             if ("mm".equalsIgnoreCase(lang)) {
-                systemPrompt.append("1. Answer the user in natural, highly articulate Professional Business Myanmar (Burmese) language using Myanmar Unicode script.\n");
+                systemPrompt.append("1. Provide a natural Myanmar (Burmese) answer using standard Myanmar script. Keep food names, units, numbers, and technical predicates unchanged.\n");
             } else {
-                systemPrompt.append("1. Answer the user concisely, clearly, and politely using an articulate, professional English tone.\n");
+                systemPrompt.append("1. Provide a clear, natural English answer.\n");
             }
-            systemPrompt.append("2. Strictly adhere to the SWI-Prolog logical conclusions and MySQL metrics. Do not invent contradictory numbers or hallucinate items.\n");
-            systemPrompt.append("3. Always preserve exact food names, numbers, units (liter, kg, MMK, pieces), percentages, and Prolog predicates (assess_waste_risk/6, evaluate_priority_use/3, recommend_production/6, evaluate_redistribution/6).\n");
-            systemPrompt.append("4. Format with clean markdown: bold headings, bullet points, and clear actionable mitigation directives.\n");
+            systemPrompt.append("2. Strictly preserve: food names, numbers, units (liter, kg, MMK, pieces), percentages, and SWI-Prolog predicates (assess_waste_risk/6, evaluate_priority_use/3, recommend_production/6, evaluate_redistribution/6).\n");
+            systemPrompt.append("3. Format with clean markdown headings and bullet points.\n");
 
             JsonObject requestBody = new JsonObject();
             requestBody.addProperty("model", model);
@@ -687,7 +694,7 @@ public class GroqAIService {
         if (isMm) {
             return String.format(
                     "### 🍃 FoodWaste AI နေ့စဉ် မီးဖိုချောင် အနှစ်ချုပ် အစီရင်ခံစာ\n\n" +
-                    "ကျွန်ုပ်တို့၏ **SWI-Prolog Expert Engine** မှ မီးဖိုချောင်ရှိ ကုန်ပစ္စည်း %d မျိုးကို ဆန်းစစ်တွက်ချက်ပြီး ဖြစ်ပါသည်:\n\n" +
+                    "မီးဖိုချောင်ရှိ ကုန်ပစ္စည်း %d မျိုးကို ဆန်းစစ်တွက်ချက်ထားပါသည်:\n\n" +
                     "**အဓိက တွေ့ရှိချက်များ:**\n" +
                     "- **အန္တရာယ်မြင့် ကုန်ပစ္စည်းများ:** %d မျိုး\n" +
                     "- **ခန့်မှန်း ပိုလျှံအလေအလွင့်:** %.1f liter/kg\n" +
@@ -698,7 +705,7 @@ public class GroqAIService {
         } else {
             return String.format(
                     "### 🍃 FoodWaste AI Daily Intelligence Summary\n\n" +
-                    "Our **SWI-Prolog Expert Engine** analyzed %d food items across your live MySQL inventory.\n\n" +
+                    "I have analyzed %d food items across your kitchen inventory:\n\n" +
                     "**Key Metrics:**\n" +
                     "- **High Waste Risk Items:** %d items\n" +
                     "- **Total Projected Surplus:** %.1f liter/kg\n" +

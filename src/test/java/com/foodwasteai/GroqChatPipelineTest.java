@@ -154,11 +154,33 @@ public class GroqChatPipelineTest {
     @Test
     @DisplayName("Hosted Groq AI: High risk items query returns list of high risk items")
     public void testHighRiskQuery() {
-        String query = "Which items are high risk?";
+        String query = "Which food items are high risk and why?";
         GroqAIService.ChatResponse response = groqService.processUserQuery(query, "en");
 
         assertNotNull(response);
         assertNotNull(response.getAnswer());
-        assertTrue(response.getAnswer().toLowerCase().contains("risk") || response.getAnswer().toLowerCase().contains("swi-prolog"));
+        assertTrue(response.getAnswer().toLowerCase().contains("risk") || response.getAnswer().toLowerCase().contains("item"));
+    }
+
+    @Test
+    @DisplayName("Hosted Groq AI: Redistribution query returns surplus items or partners")
+    public void testSpecificSurplusRedistributionQuery() {
+        String query = "Which surplus items should be redistributed?";
+        GroqAIService.ChatResponse response = groqService.processUserQuery(query, "en");
+
+        assertNotNull(response);
+        assertNotNull(response.getAnswer());
+        assertTrue(response.getAnswer().toLowerCase().contains("redistribut") || response.getAnswer().toLowerCase().contains("charity") || response.getAnswer().toLowerCase().contains("donation"));
+    }
+
+    @Test
+    @DisplayName("Hosted Groq AI: Cook priority query returns chef priority items")
+    public void testCookPriorityQuery() {
+        String query = "What ingredients should our chef cook or prioritize today?";
+        GroqAIService.ChatResponse response = groqService.processUserQuery(query, "en");
+
+        assertNotNull(response);
+        assertNotNull(response.getAnswer());
+        assertTrue(response.getAnswer().toLowerCase().contains("cook") || response.getAnswer().toLowerCase().contains("priorit") || response.getAnswer().toLowerCase().contains("ingredient"));
     }
 }
