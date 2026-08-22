@@ -494,13 +494,13 @@ public class GroqChatPipelineTest {
     }
 
     @Test
-    @DisplayName("C. Identity 'who are you': mentions assistant, no food data, responseType=CASUAL_CHAT")
+    @DisplayName("C. Identity 'who are you': mentions assistant, no food data, responseType=IDENTITY")
     public void testC_Identity() {
         GroqAIService.ChatResponse res = groqService.processUserQuery("who are you");
         assertNotNull(res);
         assertTrue(res.getAnswer().toLowerCase().contains("foodwaste") || res.getAnswer().toLowerCase().contains("assistant"));
         assertTrue(res.getSmartRecommendations().isEmpty());
-        assertEquals("CASUAL_CHAT", res.getResponseType());
+        assertEquals("IDENTITY", res.getResponseType());
     }
 
     @Test
@@ -621,8 +621,8 @@ public class GroqChatPipelineTest {
         assertEquals("GREETING", groqService.processUserQuery("hi").getResponseType());
         assertEquals("CASUAL_CHAT", groqService.processUserQuery("haha").getResponseType());
         assertEquals("CASUAL_CHAT", groqService.processUserQuery("thank you").getResponseType());
-        assertEquals("CASUAL_CHAT", groqService.processUserQuery("who are you").getResponseType());
-        assertEquals("CASUAL_CHAT", groqService.processUserQuery("what can you do").getResponseType());
+        assertEquals("IDENTITY", groqService.processUserQuery("who are you").getResponseType());
+        assertEquals("CAPABILITIES", groqService.processUserQuery("what can you do").getResponseType());
         assertEquals("UNKNOWN_FOOD", groqService.processUserQuery("Is unicornfish risky?", "en").getResponseType());
         GroqAIService.ChatResponse op = groqService.processUserQuery("Give me today's food waste summary.");
         assertNotNull(op.getResponseType());

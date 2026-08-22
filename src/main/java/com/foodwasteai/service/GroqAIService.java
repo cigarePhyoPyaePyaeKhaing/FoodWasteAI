@@ -412,7 +412,7 @@ public class GroqAIService {
                     "ကျွန်ုပ်က FoodWaste AI Assistant ပါ။ စားသောက်ဆိုင်တွေမှာ အစားအစာ အလေအလွင့် လျှော့ချဖို့ အသိဉာဏ်သုံးပြီး ကူညီပေးပါတယ်။" :
                     "I am FoodWaste AI Assistant. I help restaurants minimize food waste and optimize kitchen operations.";
             response.setAnswer(idText);
-            response.setResponseType("CASUAL_CHAT");
+            response.setResponseType("IDENTITY");
             response.setSourceEngine(null);
             response.getSources().clear();
             response.getSmartRecommendations().clear();
@@ -427,7 +427,7 @@ public class GroqAIService {
                     "ကျွန်ုပ်က ကုန်ပစ္စည်းလက်ကျန် စစ်ဆေးခြင်း၊ သက်တမ်းကုန်ရက် စောင့်ကြည့်ခြင်း၊ အလေအလွင့် အန္တရာယ် တွက်ချက်ခြင်း၊ မီးဖိုချောင် ချက်ပြုတ်မှု ဦးစားပေး သတ်မှတ်ခြင်းနှင့် ပိုလျှံပစ္စည်းများ လှူဒါန်းခြင်းတို့ကို ကူညီပေးနိုင်ပါတယ်။" :
                     "I can help you track inventory levels, monitor food expiry dates, analyze waste risks, optimize prep batches, and schedule surplus food donations.";
             response.setAnswer(capText);
-            response.setResponseType("CASUAL_CHAT");
+            response.setResponseType("CAPABILITIES");
             response.setSourceEngine(null);
             response.getSources().clear();
             response.getSmartRecommendations().clear();
@@ -518,7 +518,7 @@ public class GroqAIService {
             // =========================================================================
             // 4. SWI-PROLOG EXPERT REASONING & DATA GROUNDING
             // =========================================================================
-            Map<String, Object> prologReport = predictionService.assessAllInventory();
+            Map<String, Object> prologReport = predictionService.assessInventory(inventory);
             response.setPrologSummary(prologReport);
 
             @SuppressWarnings("unchecked")
@@ -680,12 +680,12 @@ public class GroqAIService {
             } else if (cleanQuery.contains("donat") || cleanQuery.contains("redistribut") || cleanQuery.contains("charit") || cleanQuery.contains("ngo")
                     || cleanQuery.contains("လှူဒါန်း") || cleanQuery.contains("ပရဟိတ")) {
                 response.setResponseType("REDISTRIBUTION");
-            } else if (cleanQuery.contains("summary") || cleanQuery.contains("today") || cleanQuery.contains("overview") || cleanQuery.contains("daily")
-                    || cleanQuery.contains("အနှစ်ချုပ်") || cleanQuery.contains("ယနေ့") || cleanQuery.contains("အနေအထား")) {
-                response.setResponseType("DAILY_SUMMARY");
-            } else if (cleanQuery.contains("risk") || cleanQuery.contains("high risk") || cleanQuery.contains("danger")
-                    || cleanQuery.contains("အန္တရာယ်မြင့်") || cleanQuery.contains("စွန့်ပစ်")) {
+            } else if (cleanQuery.contains("risk") || cleanQuery.contains("high risk") || cleanQuery.contains("danger") || cleanQuery.contains("action")
+                    || cleanQuery.contains("အန္တရာယ်") || cleanQuery.contains("အန္တရာယ်မြင့်") || cleanQuery.contains("စွန့်ပစ်")) {
                 response.setResponseType("HIGH_RISK_LIST");
+            } else if (cleanQuery.contains("summary") || cleanQuery.contains("overview") || cleanQuery.contains("daily")
+                    || cleanQuery.contains("အနှစ်ချုပ်") || cleanQuery.contains("ယနေ့") || cleanQuery.contains("အနေအထား") || cleanQuery.contains("today")) {
+                response.setResponseType("DAILY_SUMMARY");
             } else {
                 response.setResponseType("DAILY_SUMMARY");
             }
@@ -707,7 +707,7 @@ public class GroqAIService {
                                 "⚡ Reduce Next Prep Batch for " + matchedFoodItem.getName();
                         response.addSmartAction(new SmartAction(title, "REDUCE_PRODUCTION", isMyanmar ? "အရေးပေါ်" : "URGENT", "foodItemId=" + matchedFoodItem.getId()));
                     }
-                    if (matchedAssessment.isRecommendRedistribution()) {
+                    if (matchedAssessment.isRecommendRedistribution() && !isExpired && matchedAssessment.getExpiryDays() > 0) {
                         String title = isMyanmar ?
                                 "🤝 " + matchedFoodItem.getName() + " ပိုလျှံမှု ပရဟိတသို့ လှူဒါန်းမည်" :
                                 "🤝 Dispatch Surplus " + matchedFoodItem.getName() + " to Charity";
@@ -722,7 +722,7 @@ public class GroqAIService {
                                 "⚡ " + a.getRecommendation();
                         response.addSmartAction(new SmartAction(title, "REDUCE_PRODUCTION", isMyanmar ? "အရေးပေါ်" : "URGENT", "foodItemId=" + a.getFoodItemId()));
                     }
-                    if (a.isRecommendRedistribution() && response.getSmartRecommendations().size() < 3) {
+                    if (a.isRecommendRedistribution() && a.getExpiryDays() > 0 && response.getSmartRecommendations().size() < 3) {
                         String title = isMyanmar ?
                                 "🤝 " + a.getFoodName() + " ပိုလျှံမှု ပရဟိတသို့ လှူဒါန်းမည်" :
                                 "🤝 Dispatch Surplus " + a.getFoodName() + " to Charity";
@@ -731,9 +731,16 @@ public class GroqAIService {
                 }
             }
 
-            if (response.getSmartRecommendations().isEmpty()) {
+            if (response.getSmartRecommendations().isEmpty() && !"DAILY_SUMMARY".equalsIgnoreCase(response.getResponseType())) {
                 String title = isMyanmar ? "📦 ကုန်ပစ္စည်းလက်ကျန်နှင့် ဝယ်လိုအား ကြည့်ရှုမည်" : "📦 View Kitchen Inventory & Demand";
                 response.addSmartAction(new SmartAction(title, "VIEW_INVENTORY", "INFO", "/inventory.html"));
+            }
+
+            // DAILY_SUMMARY must never include smart directives, donation actions, or recommendation cards
+            if ("DAILY_SUMMARY".equalsIgnoreCase(response.getResponseType())) {
+                response.getSmartDirectives().clear();
+                response.getSmartRecommendations().clear();
+                response.getRelatedFoodItems().clear();
             }
 
         } catch (Exception e) {
@@ -1059,7 +1066,7 @@ public class GroqAIService {
                     }
 
                     if (containsSyn) {
-                        if (fiNameLower.contains(synVal) || fiCatLower.contains(synVal) || fiNameLower.contains(synKey)) {
+                        if (fiNameLower.contains(synVal) || fiNameLower.contains(synKey)) {
                             int synScore = 200 + synVal.length();
                             if (synScore > score) {
                                 score = synScore;
@@ -1072,7 +1079,7 @@ public class GroqAIService {
                 String[] tokens = fiNameLower.split("\\s+");
                 for (String token : tokens) {
                     String t = token.replaceAll("[^a-zA-Z0-9\u1000-\u109F]", "").toLowerCase();
-                    if (t.length() >= 3 && !CANDIDATE_STOPWORDS.contains(t) && !t.equals("fresh") && !t.equals("organic") &&
+                    if (t.length() >= 3 && !t.matches(".*\\d+.*") && !CANDIDATE_STOPWORDS.contains(t) && !t.equals("fresh") && !t.equals("organic") &&
                             !t.equals("item") && !t.equals("cooked") && !t.equals("food") && !t.equals("test") && !t.equals("waste")) {
                         boolean tokenMatch = false;
                         if (containsMyanmarScript(t)) {

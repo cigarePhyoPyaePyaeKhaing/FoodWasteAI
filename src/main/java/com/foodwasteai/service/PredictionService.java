@@ -123,10 +123,62 @@ public class PredictionService {
     }
 
     /**
-     * Evaluates all items in the inventory and returns a comprehensive batch AI prediction report.
+     * Assesses a specific food item instance directly without requiring a DB reload.
      */
-    public Map<String, Object> assessAllInventory() throws SQLException {
-        List<FoodItem> items = foodItemService.getAllFoodItems();
+    public Optional<PrologAssessment> assessFoodItem(FoodItem item) {
+        if (item == null) return Optional.empty();
+        double stock = item.getQuantity() != null ? Math.max(0.0, item.getQuantity().doubleValue()) : 0.0;
+        String unit = item.getUnit() != null && !item.getUnit().trim().isEmpty() ? item.getUnit().trim() : "kg";
+        int expiryDays = com.foodwasteai.util.ExpiryStatusResolver.calculateDaysRemaining(item.getExpiryDate());
+
+        double expectedDemand;
+        if (item.getId() != null) {
+            try {
+                BigDecimal avgSales = salesDao.getHistoricalAverageDailySales(item.getId(), 7);
+                if (avgSales != null && avgSales.compareTo(BigDecimal.ZERO) > 0) {
+                    expectedDemand = avgSales.doubleValue();
+                } else {
+                    expectedDemand = Math.max(1.0, stock * 0.85);
+                }
+            } catch (Exception e) {
+                expectedDemand = Math.max(1.0, stock * 0.85);
+            }
+        } else {
+            expectedDemand = Math.max(1.0, stock * 0.85);
+        }
+
+        double histWasteRate;
+        if (item.getId() != null) {
+            try {
+                BigDecimal rate = wasteDao.calculateHistoricalWasteRate(item.getId(), 14);
+                if (rate != null && rate.compareTo(BigDecimal.ZERO) > 0) {
+                    histWasteRate = rate.doubleValue();
+                } else {
+                    histWasteRate = getCategoryDefaultWasteRate(item.getCategory(), expiryDays);
+                }
+            } catch (Exception e) {
+                histWasteRate = getCategoryDefaultWasteRate(item.getCategory(), expiryDays);
+            }
+        } else {
+            histWasteRate = getCategoryDefaultWasteRate(item.getCategory(), expiryDays);
+        }
+
+        double currentProduction = expectedDemand * 1.1;
+
+        PrologAssessment assessment = prologService.assessFoodItem(
+                item.getName(), unit, stock, expectedDemand, expiryDays, histWasteRate, currentProduction
+        );
+        assessment.setFoodItemId(item.getId());
+        assessment.setUnit(unit);
+
+        return Optional.of(assessment);
+    }
+
+    /**
+     * Evaluates a provided inventory list in memory and returns a batch AI prediction report.
+     */
+    public Map<String, Object> assessInventory(List<FoodItem> items) throws SQLException {
+        if (items == null) items = Collections.emptyList();
         List<PrologAssessment> assessments = new ArrayList<>();
 
         double totalRiskScore = 0.0;
@@ -136,7 +188,7 @@ public class PredictionService {
         int highRiskCount = 0;
 
         for (FoodItem item : items) {
-            Optional<PrologAssessment> opt = assessFoodItemById(item.getId());
+            Optional<PrologAssessment> opt = assessFoodItem(item);
             if (opt.isPresent()) {
                 PrologAssessment a = opt.get();
                 assessments.add(a);
@@ -185,8 +237,35 @@ public class PredictionService {
             }
         }
 
+        Map<String, Object> report = new LinkedHashMap<>();
+        report.put("overallRiskScore", Math.round(avgRisk * 100.0) / 100.0);
+        report.put("expectedTotalWasteKg", Math.round(expectedTotalWasteKg * 100.0) / 100.0);
+        report.put("estimatedMoneyLost", Math.round(estimatedMoneyLost));
+        report.put("potentialSavings", Math.round(potentialSavings));
+        report.put("highRiskCount", highRiskCount);
+        report.put("totalItemsEvaluated", items.size());
+        report.put("items", assessments);
+
+        return report;
+    }
+
+    /**
+     * Evaluates all items in the inventory and returns a comprehensive batch AI prediction report.
+     */
+    public Map<String, Object> assessAllInventory() throws SQLException {
+        List<FoodItem> items = foodItemService.getAllFoodItems();
+        Map<String, Object> report = assessInventory(items);
+
+        @SuppressWarnings("unchecked")
+        List<PrologAssessment> assessments = (List<PrologAssessment>) report.get("items");
+        Double avgRisk = (Double) report.get("overallRiskScore");
+        Double expectedTotalWasteKg = (Double) report.get("expectedTotalWasteKg");
+        Double estimatedMoneyLost = ((Number) report.get("estimatedMoneyLost")).doubleValue();
+        Double potentialSavings = ((Number) report.get("potentialSavings")).doubleValue();
+        Integer highRiskCount = (Integer) report.get("highRiskCount");
+
         // Persist to MySQL predictions and prediction_items tables
-        if (DatabaseConfig.isAvailable() && !items.isEmpty()) {
+        if (DatabaseConfig.isAvailable() && assessments != null && !assessments.isEmpty()) {
             try {
                 Prediction pred = new Prediction();
                 pred.setPredictionDate(com.foodwasteai.util.ExpiryStatusResolver.getToday().plusDays(1));
