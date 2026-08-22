@@ -436,65 +436,74 @@ public class GroqAIService {
         }
 
         try {
-            // =========================================================================
-            // 2. LIVE DATA & FOOD ENTITY EXTRACTION (Priority 2)
-            // =========================================================================
+            // Fetch live inventory and recipients
             List<FoodItem> inventory = foodItemService.getAllFoodItems();
             List<RedistributionRecipient> recipients = redistributionService.getAllRecipients();
 
-            // Extract candidate from current message first
-            FoodExtractionResult foodResult = extractFoodCandidate(userQuery, inventory);
+            // =========================================================================
+            // 2. FAST OPERATIONAL INTENT ROUTING (Priority 2: Before Food Extraction)
+            // =========================================================================
+            boolean isDailySummaryIntent = isDailySummary(cleanQuery);
+            boolean isHighRiskListIntent = !isDailySummaryIntent && isHighRiskListQuery(cleanQuery);
+            boolean isCookPriorityIntent = !isDailySummaryIntent && !isHighRiskListIntent && isCookPriorityQuery(cleanQuery);
+            boolean isRedistributionIntent = !isDailySummaryIntent && !isHighRiskListIntent && !isCookPriorityIntent && isRedistributionQuery(cleanQuery);
+
+            FoodExtractionResult foodResult = null;
             FoodItem matchedFoodItem = null;
             PrologAssessment matchedAssessment = null;
 
-            if (foodResult != null) {
-                if (foodResult.isFound()) {
-                    // Item detected and found in live inventory
-                    matchedFoodItem = foodResult.getMatchedFoodItem();
-                    ctx.setLastFoodItemName(matchedFoodItem.getName());
-                    ctx.setLastFoodItemId(matchedFoodItem.getId());
-                    ctx.setLastIntent("SPECIFIC_FOOD");
-                } else {
-                    // UNKNOWN FOOD: Food entity mentioned in user query but NOT in inventory
-                    String unknownName = foodResult.getCandidateFoodName();
-                    ctx.setLastFoodItemName(unknownName);
-                    ctx.setLastFoodItemId(null);
-                    ctx.setLastIntent("UNKNOWN_FOOD");
+            // Only perform food candidate extraction if query is NOT a general operational intent
+            if (!isDailySummaryIntent && !isHighRiskListIntent && !isCookPriorityIntent && !isRedistributionIntent) {
+                foodResult = extractFoodCandidate(userQuery, inventory);
+                if (foodResult != null) {
+                    if (foodResult.isFound()) {
+                        // Item detected and found in live inventory
+                        matchedFoodItem = foodResult.getMatchedFoodItem();
+                        ctx.setLastFoodItemName(matchedFoodItem.getName());
+                        ctx.setLastFoodItemId(matchedFoodItem.getId());
+                        ctx.setLastIntent("SPECIFIC_FOOD");
+                    } else {
+                        // UNKNOWN FOOD: Food entity mentioned in user query but NOT in inventory
+                        String unknownName = foodResult.getCandidateFoodName();
+                        ctx.setLastFoodItemName(unknownName);
+                        ctx.setLastFoodItemId(null);
+                        ctx.setLastIntent("UNKNOWN_FOOD");
 
-                    String capitalized = capitalize(unknownName);
-                    String unknownAnswer = isMyanmar ?
-                            capitalized + " ကို လက်ရှိ ကုန်ပစ္စည်းစာရင်းထဲမှာ မတွေ့ပါဘူး။ Stock၊ သက်တမ်းနဲ့ အလေအလွင့်အန္တရာယ်ကို ဆန်းစစ်လိုပါက Inventory ထဲကို အရင်ထည့်ပေးပါ။" :
-                            "I can't find **" + capitalized + "** in the current inventory. Add it to Inventory first if you want me to analyze its stock, expiry, and waste risk.";
+                        String capitalized = capitalize(unknownName);
+                        String unknownAnswer = isMyanmar ?
+                                capitalized + " ကို လက်ရှိ ကုန်ပစ္စည်းစာရင်းထဲမှာ မတွေ့ပါဘူး။ Stock၊ သက်တမ်းနဲ့ အလေအလွင့်အန္တရာယ်ကို ဆန်းစစ်လိုပါက Inventory ထဲကို အရင်ထည့်ပေးပါ။" :
+                                "I can't find **" + capitalized + "** in the current inventory. Add it to Inventory first if you want me to analyze its stock, expiry, and waste risk.";
 
-                    response.setAnswer(unknownAnswer);
-                    response.setResponseType("UNKNOWN_FOOD");
-                    response.setSourceEngine(null);
-                    response.getSources().clear();
-                    response.getSmartRecommendations().clear();
-                    response.getRelatedFoodItems().clear();
-                    return response;
-                }
-            } else if (ctx.getLastFoodItemName() != null && isFollowUpQuery(cleanQuery)) {
-                // Multi-Turn Context Follow-Up: "it", "this", "what should I do with it"
-                final String lastFoodName = ctx.getLastFoodItemName();
-                matchedFoodItem = inventory.stream()
-                        .filter(fi -> fi.getName() != null && fi.getName().equalsIgnoreCase(lastFoodName))
-                        .findFirst().orElse(null);
-                if (matchedFoodItem != null) {
-                    ctx.setLastIntent("SPECIFIC_FOOD");
-                } else {
-                    // Previous context item was unknown / not in inventory
-                    String capitalized = capitalize(lastFoodName);
-                    String unknownAnswer = isMyanmar ?
-                            capitalized + " ကို လက်ရှိ ကုန်ပစ္စည်းစာရင်းထဲမှာ မတွေ့ပါဘူး။ Stock၊ သက်တမ်းနဲ့ အလေအလွင့်အန္တရာယ်ကို ဆန်းစစ်လိုပါက Inventory ထဲကို အရင်ထည့်ပေးပါ။" :
-                            "I can't find **" + capitalized + "** in the current inventory. Add it to Inventory first if you want me to analyze its stock, expiry, and waste risk.";
-                    response.setAnswer(unknownAnswer);
-                    response.setResponseType("UNKNOWN_FOOD");
-                    response.setSourceEngine(null);
-                    response.getSources().clear();
-                    response.getSmartRecommendations().clear();
-                    response.getRelatedFoodItems().clear();
-                    return response;
+                        response.setAnswer(unknownAnswer);
+                        response.setResponseType("UNKNOWN_FOOD");
+                        response.setSourceEngine(null);
+                        response.getSources().clear();
+                        response.getSmartRecommendations().clear();
+                        response.getRelatedFoodItems().clear();
+                        return response;
+                    }
+                } else if (ctx.getLastFoodItemName() != null && isFollowUpQuery(cleanQuery)) {
+                    // Multi-Turn Context Follow-Up: "it", "this", "what should I do with it"
+                    final String lastFoodName = ctx.getLastFoodItemName();
+                    matchedFoodItem = inventory.stream()
+                            .filter(fi -> fi.getName() != null && fi.getName().equalsIgnoreCase(lastFoodName))
+                            .findFirst().orElse(null);
+                    if (matchedFoodItem != null) {
+                        ctx.setLastIntent("SPECIFIC_FOOD");
+                    } else {
+                        // Previous context item was unknown / not in inventory
+                        String capitalized = capitalize(lastFoodName);
+                        String unknownAnswer = isMyanmar ?
+                                capitalized + " ကို လက်ရှိ ကုန်ပစ္စည်းစာရင်းထဲမှာ မတွေ့ပါဘူး။ Stock၊ သက်တမ်းနဲ့ အလေအလွင့်အန္တရာယ်ကို ဆန်းစစ်လိုပါက Inventory ထဲကို အရင်ထည့်ပေးပါ။" :
+                                "I can't find **" + capitalized + "** in the current inventory. Add it to Inventory first if you want me to analyze its stock, expiry, and waste risk.";
+                        response.setAnswer(unknownAnswer);
+                        response.setResponseType("UNKNOWN_FOOD");
+                        response.setSourceEngine(null);
+                        response.getSources().clear();
+                        response.getSmartRecommendations().clear();
+                        response.getRelatedFoodItems().clear();
+                        return response;
+                    }
                 }
             }
 
@@ -674,6 +683,16 @@ public class GroqAIService {
             // Set authoritative response type
             if (matchedFoodItem != null) {
                 response.setResponseType("SPECIFIC_FOOD");
+            } else if (isActionRequiredQuery(cleanQuery)) {
+                response.setResponseType("ACTION_REQUIRED");
+            } else if (isDailySummaryIntent) {
+                response.setResponseType("DAILY_SUMMARY");
+            } else if (isHighRiskListIntent) {
+                response.setResponseType("HIGH_RISK_LIST");
+            } else if (isCookPriorityIntent) {
+                response.setResponseType("COOK_PRIORITY");
+            } else if (isRedistributionIntent) {
+                response.setResponseType("REDISTRIBUTION");
             } else if (cleanQuery.contains("cook") || cleanQuery.contains("menu") || cleanQuery.contains("priorit") || cleanQuery.contains("chef")
                     || cleanQuery.contains("ချက်") || cleanQuery.contains("မီနူး") || cleanQuery.contains("ဦးစားပေး")) {
                 response.setResponseType("COOK_PRIORITY");
@@ -683,17 +702,17 @@ public class GroqAIService {
             } else if (cleanQuery.contains("risk") || cleanQuery.contains("high risk") || cleanQuery.contains("danger") || cleanQuery.contains("action")
                     || cleanQuery.contains("အန္တရာယ်") || cleanQuery.contains("အန္တရာယ်မြင့်") || cleanQuery.contains("စွန့်ပစ်")) {
                 response.setResponseType("HIGH_RISK_LIST");
-            } else if (cleanQuery.contains("summary") || cleanQuery.contains("overview") || cleanQuery.contains("daily")
-                    || cleanQuery.contains("အနှစ်ချုပ်") || cleanQuery.contains("ယနေ့") || cleanQuery.contains("အနေအထား") || cleanQuery.contains("today")) {
-                response.setResponseType("DAILY_SUMMARY");
             } else {
                 response.setResponseType("DAILY_SUMMARY");
             }
 
             // =========================================================================
-            // 6. GENERATE ACTIONABLE SMART DIRECTIVES (Only for FoodWaste queries)
+            // 6. GENERATE ACTIONABLE SMART DIRECTIVES (Only for Allowed Actionable Types)
+            // Rules: Show Smart Directives ONLY for: SPECIFIC_FOOD, COOK_PRIORITY, ACTION_REQUIRED
+            // Never show for: GREETING, CASUAL_CHAT, IDENTITY, DAILY_SUMMARY, REDISTRIBUTION_EMPTY, HIGH_RISK_LIST
             // =========================================================================
-            if (matchedFoodItem != null && matchedAssessment != null) {
+            String finalType = response.getResponseType();
+            if ("SPECIFIC_FOOD".equalsIgnoreCase(finalType) && matchedFoodItem != null && matchedAssessment != null) {
                 boolean isExpired = "EXPIRED".equalsIgnoreCase(matchedFoodItem.getExpiryStatus()) || matchedAssessment.getExpiryDays() < 0;
                 if (isExpired) {
                     String title = isMyanmar ?
@@ -714,7 +733,16 @@ public class GroqAIService {
                         response.addSmartAction(new SmartAction(title, "SCHEDULE_DONATION", isMyanmar ? "ပြန်လည်လှူဒါန်းမှု" : "REDISTRIBUTION", "foodItemId=" + matchedFoodItem.getId() + "&foodName=" + matchedFoodItem.getName()));
                     }
                 }
-            } else if (!items.isEmpty()) {
+            } else if ("COOK_PRIORITY".equalsIgnoreCase(finalType)) {
+                for (PrologAssessment a : items) {
+                    if (a.getExpiryDays() >= 0 && ("IMMEDIATE_USE".equalsIgnoreCase(a.getPriorityUsage()) || "HIGH_PRIORITY".equalsIgnoreCase(a.getPriorityUsage())) && response.getSmartRecommendations().size() < 2) {
+                        String title = isMyanmar ?
+                                "👨‍🍳 " + a.getFoodName() + " ယနေ့ ဦးစားပေး ချက်ပြုတ်မည်" :
+                                "👨‍🍳 Prioritize " + a.getFoodName() + " in Today's Prep";
+                        response.addSmartAction(new SmartAction(title, "COOK_PRIORITY", isMyanmar ? "ဦးစားပေး" : "HIGH", "foodItemId=" + a.getFoodItemId()));
+                    }
+                }
+            } else if ("ACTION_REQUIRED".equalsIgnoreCase(finalType)) {
                 for (PrologAssessment a : items) {
                     if ("HIGH".equalsIgnoreCase(a.getRiskLevel()) && response.getSmartRecommendations().size() < 2) {
                         String title = isMyanmar ?
@@ -729,17 +757,19 @@ public class GroqAIService {
                         response.addSmartAction(new SmartAction(title, "SCHEDULE_DONATION", isMyanmar ? "ပြန်လည်လှူဒါန်းမှု" : "REDISTRIBUTION", "foodItemId=" + a.getFoodItemId()));
                     }
                 }
+                if (response.getSmartRecommendations().isEmpty()) {
+                    String title = isMyanmar ? "📦 ကုန်ပစ္စည်းလက်ကျန် ကြည့်ရှုမည်" : "📦 View Kitchen Inventory";
+                    response.addSmartAction(new SmartAction(title, "VIEW_INVENTORY", "INFO", "/inventory.html"));
+                }
             }
 
-            if (response.getSmartRecommendations().isEmpty() && !"DAILY_SUMMARY".equalsIgnoreCase(response.getResponseType())) {
-                String title = isMyanmar ? "📦 ကုန်ပစ္စည်းလက်ကျန်နှင့် ဝယ်လိုအား ကြည့်ရှုမည်" : "📦 View Kitchen Inventory & Demand";
-                response.addSmartAction(new SmartAction(title, "VIEW_INVENTORY", "INFO", "/inventory.html"));
-            }
-
-            // DAILY_SUMMARY must never include smart directives, donation actions, or recommendation cards
-            if ("DAILY_SUMMARY".equalsIgnoreCase(response.getResponseType())) {
+            // Strictly clear directives and related food items for all non-allowed types
+            if (!"SPECIFIC_FOOD".equalsIgnoreCase(finalType) && !"COOK_PRIORITY".equalsIgnoreCase(finalType) && !"ACTION_REQUIRED".equalsIgnoreCase(finalType)) {
                 response.getSmartDirectives().clear();
                 response.getSmartRecommendations().clear();
+            }
+
+            if (!"SPECIFIC_FOOD".equalsIgnoreCase(finalType)) {
                 response.getRelatedFoodItems().clear();
             }
 
@@ -912,6 +942,80 @@ public class GroqAIService {
             return true;
         }
         if (clean.contains("ဘာတွေလုပ်ပေးနိုင်လဲ") || clean.contains("ဘယ်လိုကူညီပေးနိုင်လဲ") || clean.equals("အကူအညီ")) {
+            return true;
+        }
+        return false;
+    }
+
+    private boolean isActionRequiredQuery(String q) {
+        if (q == null) return false;
+        String clean = q.toLowerCase().trim();
+        return clean.contains("what action") || clean.contains("what actions") ||
+               clean.contains("actions should we take") || clean.contains("action should we take") ||
+               clean.contains("action required") || clean.contains("what should we do") ||
+               clean.contains("how to prevent waste") || clean.contains("general waste risk") ||
+               clean.contains("ဘာလုပ်ဆောင်ရမလဲ") || clean.contains("ဆောင်ရွက်ရန်");
+    }
+
+    private boolean isDailySummary(String q) {
+        if (q == null) return false;
+        String clean = q.toLowerCase().trim();
+        if (isActionRequiredQuery(clean)) return false;
+
+        // English keywords
+        if (clean.equals("today") || clean.equals("daily") || clean.equals("summary") || clean.equals("report") ||
+            clean.contains("daily summary") || clean.contains("daily report") || clean.contains("today summary") ||
+            clean.contains("waste report") || clean.contains("today's food waste summary") ||
+            clean.contains("give me today's food waste summary") || clean.contains("give me today's summary") ||
+            clean.contains("give me today summary") || clean.contains("today's food waste") ||
+            clean.contains("today waste summary") || clean.contains("summary of today") || clean.contains("today overview")) {
+            return true;
+        }
+        // Myanmar keywords: ယနေ့, ဒီနေ့, အနှစ်ချုပ်, အခြေအနေ, အစီရင်ခံစာ, အလေအလွင့်, အစားအသောက် အလေအလွင့်
+        if (clean.equals("ယနေ့") || clean.equals("ဒီနေ့") || clean.equals("အနှစ်ချုပ်") ||
+            clean.contains("ယနေ့ အစားအသောက် အလေအလွင့်") || clean.contains("အစားအသောက် အလေအလွင့် အခြေအနေ") ||
+            clean.contains("အလေအလွင့် အခြေအနေ") || clean.contains("ယနေ့ အခြေအနေ") || clean.contains("ဒီနေ့ အခြေအနေ") ||
+            clean.contains("မီးဖိုချောင် အနှစ်ချုပ်") || clean.contains("အနှစ်ချုပ် ရှင်းပြပါ") ||
+            clean.contains("အခြေအနေကို ရှင်းပြပါ")) {
+            return true;
+        }
+        return false;
+    }
+
+    private boolean isHighRiskListQuery(String q) {
+        if (q == null) return false;
+        String clean = q.toLowerCase().trim();
+        if (clean.contains("which food items are high risk") || clean.contains("which food are high risk") ||
+            clean.contains("which items are high risk") || clean.contains("which food is high risk") ||
+            clean.contains("show high risk") || clean.contains("high risk items") || clean.contains("high risk food") ||
+            clean.contains("high risk foods") || clean.contains("list high risk") || clean.contains("high risk list") ||
+            clean.contains("အန္တရာယ်မြင့် ပစ္စည်း") || clean.contains("အန္တရာယ်မြင့် အစားအသောက်") ||
+            clean.contains("ဘယ်အစားအစာတွေက အန္တရာယ်မြင့်") || clean.contains("အန္တရာယ်အမြင့်ဆုံး") ||
+            clean.contains("အန္တရာယ်အရှိဆုံး")) {
+            return true;
+        }
+        return false;
+    }
+
+    private boolean isCookPriorityQuery(String q) {
+        if (q == null) return false;
+        String clean = q.toLowerCase().trim();
+        if (clean.contains("what should i cook") || clean.contains("what should our chef cook") ||
+            clean.contains("cook or prioritize today") || clean.contains("what to cook today") ||
+            clean.contains("what should we cook") || clean.contains("cook priority") || clean.contains("prep priority") ||
+            clean.contains("ဘာအရင်ချက်ရမလဲ") || clean.contains("ဦးစားပေး ချက်ပြုတ်") || clean.contains("ယနေ့ ဘယ်ကုန်ကြမ်းတွေကို ဦးစားပေး")) {
+            return true;
+        }
+        return false;
+    }
+
+    private boolean isRedistributionQuery(String q) {
+        if (q == null) return false;
+        String clean = q.toLowerCase().trim();
+        if (clean.contains("which surplus items should be redistributed") || clean.contains("what can i donate") ||
+            clean.contains("what should we donate") || clean.contains("surplus donation") ||
+            clean.contains("donation list") || clean.contains("redistribution list") ||
+            clean.contains("ဘာလှူလို့ရမလဲ") || clean.contains("ပြန်လည်လှူဒါန်းသင့်") || clean.contains("လှူဒါန်းရန် ပိုလျှံ")) {
             return true;
         }
         return false;

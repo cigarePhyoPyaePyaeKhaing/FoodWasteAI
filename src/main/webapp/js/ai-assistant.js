@@ -388,21 +388,106 @@ const AIAssistant = {
         box-shadow: var(--shadow-bubble);
         word-break: break-word;
       }
-      .gemini-sources-box {
-        margin-top: 0.6rem;
-        padding: 0.4rem 0.6rem;
-        background: var(--bg-surface-glass-subtle);
-        border-radius: 8px;
-        font-size: 0.72rem;
-        color: var(--text-muted);
+      .chat-food-card {
+        background: var(--bg-surface-glass-elevated);
+        border: 1px solid var(--glass-border);
+        border-radius: 20px;
+        padding: 0.85rem 1rem;
+        margin: 0.65rem 0;
+        box-shadow: var(--shadow-bubble);
       }
-      .gemini-sources-title {
-        font-weight: 700;
-        color: var(--text-main);
-        margin-bottom: 0.2rem;
+      .chat-food-header {
         display: flex;
         align-items: center;
-        gap: 0.3rem;
+        gap: 0.6rem;
+        margin-bottom: 0.6rem;
+      }
+      .chat-food-icon {
+        font-size: 1.5rem;
+        line-height: 1;
+      }
+      .chat-food-title-group {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+      }
+      .chat-food-name {
+        font-weight: 800;
+        font-size: 0.95rem;
+        color: var(--text-main);
+      }
+      .chat-food-stock {
+        font-size: 0.74rem;
+        color: var(--text-muted);
+      }
+      .chat-food-body {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+        font-size: 0.8rem;
+        background: var(--bg-surface-glass-subtle);
+        padding: 0.6rem 0.8rem;
+        border-radius: 14px;
+        border: 1px solid var(--glass-border-subtle);
+      }
+      .chat-food-metric-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      .chat-metric-label {
+        font-weight: 600;
+        color: var(--text-muted);
+      }
+      .chat-metric-val {
+        font-weight: 700;
+        color: var(--text-main);
+      }
+      .chat-metric-val.risk-high {
+        color: var(--risk-high-text);
+        font-weight: 800;
+      }
+      .chat-metric-val.action-val {
+        color: var(--accent-primary);
+        font-weight: 700;
+      }
+      .gemini-explainable-details {
+        margin-top: 0.65rem;
+        background: var(--bg-surface-glass-subtle);
+        border: 1px solid var(--glass-border-subtle);
+        border-radius: 12px;
+        padding: 0.4rem 0.75rem;
+        font-size: 0.75rem;
+      }
+      .gemini-explainable-summary {
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-weight: 700;
+        color: var(--text-muted);
+        user-select: none;
+        list-style: none;
+      }
+      .gemini-explainable-summary::-webkit-details-marker {
+        display: none;
+      }
+      .gemini-explainable-summary:hover {
+        color: var(--text-main);
+      }
+      .gemini-explainable-hint {
+        font-size: 0.68rem;
+        font-weight: 500;
+        color: var(--text-subtle);
+      }
+      .gemini-explainable-body {
+        margin-top: 0.45rem;
+        padding-top: 0.45rem;
+        border-top: 1px solid var(--glass-border-subtle);
+        color: var(--text-body);
+        font-size: 0.72rem;
+        line-height: 1.45;
       }
       .gemini-smart-actions {
         margin-top: 0.75rem;
@@ -663,6 +748,22 @@ const AIAssistant = {
     if (el) el.remove();
   },
 
+  getFoodEmoji(name) {
+    if (!name) return '🍲';
+    const lower = name.toLowerCase();
+    if (lower.contains ? lower.contains('milk') : lower.includes('milk')) return '🥛';
+    if (lower.includes('chicken') || lower.includes('poultry')) return '🍗';
+    if (lower.includes('beef') || lower.includes('meat') || lower.includes('steak')) return '🥩';
+    if (lower.includes('salmon') || lower.includes('fish') || lower.includes('seafood')) return '🐟';
+    if (lower.includes('egg')) return '🥚';
+    if (lower.includes('rice')) return '🍚';
+    if (lower.includes('bread') || lower.includes('bakery')) return '🍞';
+    if (lower.includes('vegetable') || lower.includes('tomato') || lower.includes('salad')) return '🥗';
+    if (lower.includes('pork')) return '🥓';
+    if (lower.includes('butter') || lower.includes('cheese')) return '🧀';
+    return '🍲';
+  },
+
   renderAIMessage(data, save = true) {
     const container = document.getElementById('gemini-messages-body');
     if (!container) return;
@@ -674,30 +775,67 @@ const AIAssistant = {
     const rawText = data.answer || data.explanation || '';
     let formattedText = this.formatMarkdown(rawText);
 
-    // Determine if this is a purely conversational / informational response
-    const conversationalTypes = ['CASUAL_CHAT', 'GREETING', 'IDENTITY', 'CAPABILITIES', 'UNKNOWN_FOOD', 'OUT_OF_DOMAIN'];
+    // Response Type
     const resType = data.responseType || data.type || '';
-    const isConversational = conversationalTypes.includes(resType);
+    const nonOperationalTypes = ['CASUAL_CHAT', 'GREETING', 'IDENTITY', 'CAPABILITIES', 'UNKNOWN_FOOD', 'OUT_OF_DOMAIN'];
+    const isNonOperational = nonOperationalTypes.includes(resType);
+    const isDailySummary = resType === 'DAILY_SUMMARY';
 
-    // Sources Box HTML — only for food/operational responses
-    let sourcesHtml = '';
-    if (!isConversational && data.sources && data.sources.length > 0) {
-      // Deduplicate sources
-      const uniqueSources = Array.from(new Set(data.sources));
-      sourcesHtml = `
-        <div class="gemini-sources-box">
-          <div class="gemini-sources-title">
-            <span>📚 ${isMm ? 'ဒေတာအရင်းအမြစ်များ:' : 'Data Sources:'}</span>
+    // 1. Food Card (rendered for SPECIFIC_FOOD queries)
+    let foodCardHtml = '';
+    if (resType === 'SPECIFIC_FOOD' && data.relatedFoodItems && data.relatedFoodItems.length > 0) {
+      const item = data.relatedFoodItems[0];
+      const emoji = this.getFoodEmoji(item.name);
+      const isExpired = String(item.expiryStatus).toUpperCase() === 'EXPIRED' || (item.expiryDays !== undefined && item.expiryDays < 0);
+      const isHighRisk = String(item.riskLevel).toUpperCase() === 'HIGH' || (item.riskScore >= 70);
+
+      const badgeClass = isExpired ? 'badge-urgent' : (isHighRisk ? 'badge-important' : 'badge-optimization');
+      const badgeText = isExpired ? (isMm ? 'သက်တမ်းကုန်ပြီး' : 'EXPIRED') : (isHighRisk ? (isMm ? 'အန္တရာယ်မြင့်' : 'HIGH RISK') : (isMm ? 'ပုံမှန်' : 'NORMAL'));
+      const riskValClass = isHighRisk || isExpired ? 'risk-high' : '';
+      const riskLevelDisplay = isMm ? (item.riskLevel === 'HIGH' ? 'အန္တရာယ်မြင့်' : 'အလယ်အလတ်') : (item.riskLevel || 'HIGH');
+
+      let actionDisplay = '';
+      if (isExpired) {
+        actionDisplay = isMm ? 'ထုတ်လုပ်မှု ချက်ချင်းရပ်ဆိုင်းပြီး ဘေးကင်းစွာ စွန့်ပစ်ပါ' : 'Stop production & dispose safely';
+      } else if (isHighRisk) {
+        actionDisplay = isMm ? 'နောက်တစ်ကြိမ် ပြင်ဆင်ချက်ပြုတ်မှု ပမာဏကို လျှော့ချပါ' : 'Reduce next prep batch';
+      } else {
+        actionDisplay = isMm ? 'ပုံမှန်အစီအစဉ်အတိုင်း သုံးစွဲပါ' : 'Normal kitchen usage';
+      }
+
+      foodCardHtml = `
+        <div class="chat-food-card">
+          <div class="chat-food-header">
+            <span class="chat-food-icon">${emoji}</span>
+            <div class="chat-food-title-group">
+              <span class="chat-food-name">${this.escapeHtml(item.name)}</span>
+              <span class="chat-food-stock">${isMm ? 'လက်ကျန်:' : 'Stock:'} ${item.stock || '0'} ${item.unit || 'kg'}</span>
+            </div>
+            <span class="badge-bubble ${badgeClass}">${badgeText}</span>
           </div>
-          <div>${uniqueSources.map(s => `&bull; ${this.escapeHtml(s)}`).join('<br>')}</div>
+          <div class="chat-food-body">
+            <div class="chat-food-metric-row">
+              <span class="chat-metric-label">${isMm ? 'အန္တရာယ်:' : 'Risk:'}</span>
+              <span class="chat-metric-val ${riskValClass}">${item.riskScore || 0}% ${riskLevelDisplay}</span>
+            </div>
+            <div class="chat-food-metric-row">
+              <span class="chat-metric-label">${isMm ? 'အခြေအနေ:' : 'Status:'}</span>
+              <span class="chat-metric-val">${this.escapeHtml(item.expiryStatus || 'OK')}</span>
+            </div>
+            <div class="chat-food-metric-row">
+              <span class="chat-metric-label">${isMm ? 'လုပ်ဆောင်ချက်:' : 'Action:'}</span>
+              <span class="chat-metric-val action-val">${actionDisplay}</span>
+            </div>
+          </div>
         </div>
       `;
     }
 
-    // Smart Actions HTML — only for actionable food/operational responses
+    // 2. Smart Directives — ONLY for SPECIFIC_FOOD, COOK_PRIORITY, ACTION_REQUIRED
     let actionsHtml = '';
+    const allowedDirectiveTypes = ['SPECIFIC_FOOD', 'SPECIFIC_FOOD_RECOMMENDATION', 'COOK_PRIORITY', 'ACTION_REQUIRED'];
     const actionsList = data.smartDirectives || data.smartRecommendations || [];
-    if (!isConversational && actionsList.length > 0) {
+    if (allowedDirectiveTypes.includes(resType) && actionsList.length > 0) {
       actionsHtml = `
         <div class="gemini-smart-actions">
           <div style="font-weight:800; font-size:0.78rem; color:var(--text-main); margin-bottom:0.25rem;">
@@ -720,9 +858,29 @@ const AIAssistant = {
       `;
     }
 
+    // 3. Explainable AI Collapsible Box (Default: Hidden / Collapsed)
+    let sourcesHtml = '';
+    if (!isNonOperational && !isDailySummary && data.sources && data.sources.length > 0) {
+      const uniqueSources = Array.from(new Set(data.sources));
+      sourcesHtml = `
+        <details class="gemini-explainable-details">
+          <summary class="gemini-explainable-summary">
+            <span>ⓘ Explainable AI</span>
+            <span class="gemini-explainable-hint">${isMm ? '(အသေးစိတ်ကြည့်ရန် နှိပ်ပါ)' : '(click to expand)'}</span>
+          </summary>
+          <div class="gemini-explainable-body">
+            <div style="font-weight:700; color:var(--text-main); margin-bottom:0.25rem;">${isMm ? 'ဒေတာရင်းမြစ်များ:' : 'Data:'}</div>
+            ${uniqueSources.map(s => `<div>• ${this.escapeHtml(s)}</div>`).join('')}
+            <div>• SWI-Prolog first-order logic reasoning</div>
+          </div>
+        </details>
+      `;
+    }
+
     div.innerHTML = `
       <div class="gemini-msg-bubble">
         ${formattedText}
+        ${foodCardHtml}
         ${actionsHtml}
         ${sourcesHtml}
       </div>
