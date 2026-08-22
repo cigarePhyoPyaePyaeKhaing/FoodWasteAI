@@ -387,5 +387,267 @@ public class GroqChatPipelineTest {
         assertFalse(chickenRes.getAnswer().toLowerCase().contains("fresh milk"), "Fresh Chicken Breast response must NOT contain fresh milk");
         assertEquals("Fresh Chicken Breast", chickenRes.getRelatedFoodItems().get(0).get("name"));
     }
+
+    @Test
+    @DisplayName("Unknown Food Handling: Querying unrecorded food returns clear not-recorded message without false risk/high-risk list")
+    public void testUnknownFoodHandling() {
+        GroqAIService.ChatResponse res = groqService.processUserQuery("Is lobster risky?", "en");
+        assertNotNull(res);
+        assertNotNull(res.getAnswer());
+        // New message: "I can't find **Lobster** in the current inventory."
+        assertTrue(
+            res.getAnswer().toLowerCase().contains("can't find") ||
+            res.getAnswer().toLowerCase().contains("inventory") ||
+            res.getAnswer().toLowerCase().contains("not currently recorded"),
+            "Must state item is not found in inventory"
+        );
+        assertTrue(res.getAnswer().contains("Lobster"), "Must mention Lobster");
+        assertFalse(res.getAnswer().toLowerCase().contains("fresh milk"), "Must not mention fresh milk");
+        assertFalse(res.getAnswer().contains("Priority High-Risk Kitchen Items"), "Must not return high-risk list");
+        assertTrue(res.getSources().isEmpty());
+        assertTrue(res.getRelatedFoodItems().isEmpty());
+    }
+
+    @Test
+    @DisplayName("User Verification 5-Step Sequence: Fresh Milk -> Chicken -> Context follow-up -> Unknown Item -> High Risk Query")
+    public void testUserVerificationSequence() throws java.sql.SQLException {
+        foodItemService.createFoodItem(
+                new com.foodwasteai.model.FoodItem(null, "Fresh Milk", "Dairy",
+                        new java.math.BigDecimal("8.00"), "liter", new java.math.BigDecimal("2000.00"),
+                        java.time.LocalDate.now().minusDays(1), new java.math.BigDecimal("2.00")), 1L
+        );
+
+        String sessionId = "user_verification_seq_" + System.currentTimeMillis();
+
+        // 1. Why is fresh milk risky? -> fresh milk
+        GroqAIService.ChatResponse res1 = groqService.processUserQuery("Why is fresh milk risky?", "en", sessionId);
+        assertNotNull(res1);
+        assertTrue(res1.getAnswer().toLowerCase().contains("milk"));
+
+        // 2. What is the waste risk for Fresh Chicken Breast? -> Fresh Chicken Breast (must not contain fresh milk)
+        GroqAIService.ChatResponse res2 = groqService.processUserQuery("What is the waste risk for Fresh Chicken Breast?", "en", sessionId);
+        assertNotNull(res2);
+        assertTrue(res2.getAnswer().contains("Fresh Chicken Breast"));
+        assertFalse(res2.getAnswer().toLowerCase().contains("fresh milk"));
+
+        // 3. what should I do with it? -> Fresh Chicken Breast recommendation
+        GroqAIService.ChatResponse res3 = groqService.processUserQuery("what should I do with it?", "en", sessionId);
+        assertNotNull(res3);
+        assertTrue(res3.getAnswer().contains("Fresh Chicken Breast") || res3.getAnswer().toLowerCase().contains("chicken"));
+
+        // 4. Is unrecorded food risky? -> not found in inventory
+        GroqAIService.ChatResponse res4 = groqService.processUserQuery("Is dragonfruit risky?", "en", sessionId);
+        assertNotNull(res4);
+        assertTrue(
+            res4.getAnswer().toLowerCase().contains("can't find") ||
+            res4.getAnswer().toLowerCase().contains("inventory") ||
+            res4.getAnswer().toLowerCase().contains("not currently recorded"),
+            "Unknown food must indicate item is not in inventory"
+        );
+        assertFalse(res4.getAnswer().toLowerCase().contains("fresh milk"));
+        assertFalse(res4.getAnswer().contains("Priority High-Risk Kitchen Items"));
+
+
+        // 5. Which food items are high risk? -> Global high risk list
+        GroqAIService.ChatResponse res5 = groqService.processUserQuery("Which food items are high risk?", "en", sessionId);
+        assertNotNull(res5);
+        assertTrue(res5.getAnswer().contains("High-Risk") || res5.getAnswer().toLowerCase().contains("risk"));
+    }
+
+    // ===================================================================
+    // FULL PRODUCTION TEST MATRIX (A - N)
+    // ===================================================================
+
+    @Test
+    @DisplayName("A. Greeting: Returns greeting only — no directives, no sources, responseType=GREETING")
+    public void testA_Greeting() {
+        GroqAIService.ChatResponse res = groqService.processUserQuery("hello");
+        assertNotNull(res);
+        assertFalse(res.getAnswer().isEmpty());
+        assertFalse(res.getAnswer().toLowerCase().contains("daily intelligence summary"));
+        assertFalse(res.getAnswer().toLowerCase().contains("high-risk"));
+        assertTrue(res.getSmartRecommendations().isEmpty());
+        assertTrue(res.getSources().isEmpty());
+        assertEquals("GREETING", res.getResponseType());
+    }
+
+    @Test
+    @DisplayName("B. Casual hehe: Returns casual, no food data, responseType=CASUAL_CHAT")
+    public void testB_CasualHehe() {
+        GroqAIService.ChatResponse res = groqService.processUserQuery("hehe");
+        assertNotNull(res);
+        assertFalse(res.getAnswer().isEmpty());
+        assertFalse(res.getAnswer().toLowerCase().contains("intelligence summary"));
+        assertTrue(res.getSmartRecommendations().isEmpty());
+        assertTrue(res.getSources().isEmpty());
+        assertEquals("CASUAL_CHAT", res.getResponseType());
+    }
+
+    @Test
+    @DisplayName("B2. Casual 'i am bored': No summary triggered, responseType=CASUAL_CHAT")
+    public void testB2_CasualBored() {
+        GroqAIService.ChatResponse res = groqService.processUserQuery("i am bored");
+        assertNotNull(res);
+        assertFalse(res.getAnswer().toLowerCase().contains("intelligence summary"));
+        assertTrue(res.getSmartRecommendations().isEmpty());
+        assertEquals("CASUAL_CHAT", res.getResponseType());
+    }
+
+    @Test
+    @DisplayName("C. Identity 'who are you': mentions assistant, no food data, responseType=CASUAL_CHAT")
+    public void testC_Identity() {
+        GroqAIService.ChatResponse res = groqService.processUserQuery("who are you");
+        assertNotNull(res);
+        assertTrue(res.getAnswer().toLowerCase().contains("foodwaste") || res.getAnswer().toLowerCase().contains("assistant"));
+        assertTrue(res.getSmartRecommendations().isEmpty());
+        assertEquals("CASUAL_CHAT", res.getResponseType());
+    }
+
+    @Test
+    @DisplayName("D. Fresh Milk specific: prologSummary non-null, responseType=SPECIFIC_FOOD")
+    public void testD_FreshMilkSpecific() throws java.sql.SQLException {
+        foodItemService.createFoodItem(
+                new com.foodwasteai.model.FoodItem(null, "Fresh Milk", "Dairy",
+                        new java.math.BigDecimal("8.00"), "liter", new java.math.BigDecimal("2000.00"),
+                        java.time.LocalDate.now().minusDays(1), new java.math.BigDecimal("2.00")), 1L
+        );
+        GroqAIService.ChatResponse res = groqService.processUserQuery("Why is Fresh Milk risky?", "en");
+        assertNotNull(res);
+        assertTrue(res.getAnswer().contains("Fresh Milk") || res.getAnswer().toLowerCase().contains("milk"));
+        assertNotNull(res.getPrologSummary());
+        assertEquals("SPECIFIC_FOOD", res.getResponseType());
+    }
+
+    @Test
+    @DisplayName("E. Chicken specific query: answer contains Chicken not Fresh Milk, responseType=SPECIFIC_FOOD")
+    public void testE_ChickenSpecificIsolated() {
+        GroqAIService.ChatResponse res = groqService.processUserQuery("What is the waste risk for Fresh Chicken Breast?", "en");
+        assertNotNull(res);
+        assertTrue(res.getAnswer().toLowerCase().contains("chicken"));
+        assertFalse(res.getAnswer().toLowerCase().contains("fresh milk"));
+        assertEquals("SPECIFIC_FOOD", res.getResponseType());
+    }
+
+    @Test
+    @DisplayName("F. Unknown food lobster: not found message, no high-risk list, responseType=UNKNOWN_FOOD")
+    public void testF_UnknownFood() {
+        GroqAIService.ChatResponse res = groqService.processUserQuery("Is lobster risky?", "en");
+        assertNotNull(res);
+        assertTrue(
+            res.getAnswer().toLowerCase().contains("inventory") ||
+            res.getAnswer().toLowerCase().contains("can't find") ||
+            res.getAnswer().toLowerCase().contains("not currently recorded") ||
+            res.getAnswer().toLowerCase().contains("add it"),
+            "Unknown food answer must guide user to add item to inventory"
+        );
+        assertFalse(res.getAnswer().contains("Priority High-Risk Kitchen Items"));
+        assertTrue(res.getSources().isEmpty());
+        assertEquals("UNKNOWN_FOOD", res.getResponseType());
+    }
+
+    @Test
+    @DisplayName("G. Global high risk list: prologSummary non-null, answer not empty")
+    public void testG_GlobalHighRiskList() {
+        GroqAIService.ChatResponse res = groqService.processUserQuery("Which food items are high risk?", "en");
+        assertNotNull(res);
+        assertFalse(res.getAnswer().isEmpty());
+        assertNotNull(res.getPrologSummary());
+    }
+
+    @Test
+    @DisplayName("H. Context food switch Milk→Chicken→it: 'it' resolves to Chicken not Milk")
+    public void testH_ContextFoodSwitch() throws java.sql.SQLException {
+        foodItemService.createFoodItem(
+                new com.foodwasteai.model.FoodItem(null, "Fresh Milk", "Dairy",
+                        new java.math.BigDecimal("8.00"), "liter", new java.math.BigDecimal("2000.00"),
+                        java.time.LocalDate.now().minusDays(1), new java.math.BigDecimal("2.00")), 1L
+        );
+        String sessionId = "ctx_switch_" + System.currentTimeMillis();
+        GroqAIService.ChatResponse r1 = groqService.processUserQuery("Why is fresh milk risky?", "en", sessionId);
+        assertNotNull(r1);
+        assertTrue(r1.getAnswer().toLowerCase().contains("milk"));
+
+        GroqAIService.ChatResponse r2 = groqService.processUserQuery("What is the waste risk for Fresh Chicken Breast?", "en", sessionId);
+        assertNotNull(r2);
+        assertTrue(r2.getAnswer().toLowerCase().contains("chicken"));
+        assertFalse(r2.getAnswer().toLowerCase().contains("fresh milk"));
+
+        GroqAIService.ChatResponse r3 = groqService.processUserQuery("what should I do with it?", "en", sessionId);
+        assertNotNull(r3);
+        assertFalse(r3.getAnswer().toLowerCase().contains("fresh milk"), "Follow-up must not revert to fresh milk");
+    }
+
+    @Test
+    @DisplayName("I. Myanmar casual 'နေကောင်းလား': No directives, responseType=CASUAL_CHAT")
+    public void testI_MyanmarCasual() {
+        GroqAIService.ChatResponse res = groqService.processUserQuery("နေကောင်းလား", "mm");
+        assertNotNull(res);
+        assertFalse(res.getAnswer().isEmpty());
+        assertTrue(res.getSmartRecommendations().isEmpty());
+        assertEquals("CASUAL_CHAT", res.getResponseType());
+    }
+
+    @Test
+    @DisplayName("J. English response: no Myanmar script leakage when lang=en")
+    public void testJ_EnglishNoMyanmarLeakage() throws java.sql.SQLException {
+        foodItemService.createFoodItem(
+                new com.foodwasteai.model.FoodItem(null, "Fresh Milk", "Dairy",
+                        new java.math.BigDecimal("8.00"), "liter", new java.math.BigDecimal("2000.00"),
+                        java.time.LocalDate.now().minusDays(1), new java.math.BigDecimal("2.00")), 1L
+        );
+        GroqAIService.ChatResponse res = groqService.processUserQuery("Why is fresh milk risky?", "en");
+        assertNotNull(res);
+        boolean hasMyanmarScript = res.getAnswer().chars().anyMatch(c -> c >= 0x1000 && c <= 0x109F);
+        assertFalse(hasMyanmarScript, "English response must not leak Myanmar script");
+    }
+
+    @Test
+    @DisplayName("K. Sources deduplication: no duplicate entries in sources list")
+    public void testK_SourcesNoDuplication() throws java.sql.SQLException {
+        foodItemService.createFoodItem(
+                new com.foodwasteai.model.FoodItem(null, "Fresh Milk", "Dairy",
+                        new java.math.BigDecimal("8.00"), "liter", new java.math.BigDecimal("2000.00"),
+                        java.time.LocalDate.now().minusDays(1), new java.math.BigDecimal("2.00")), 1L
+        );
+        GroqAIService.ChatResponse res = groqService.processUserQuery("Why is fresh milk risky?", "en");
+        assertNotNull(res);
+        java.util.Set<String> unique = new java.util.HashSet<>(res.getSources());
+        assertEquals(unique.size(), res.getSources().size(), "Sources must not contain duplicates");
+    }
+
+    @Test
+    @DisplayName("L. ResponseType set on all paths — greeting/casual/unknown food/operational")
+    public void testL_ResponseTypeSetOnAllPaths() {
+        assertEquals("GREETING", groqService.processUserQuery("hi").getResponseType());
+        assertEquals("CASUAL_CHAT", groqService.processUserQuery("haha").getResponseType());
+        assertEquals("CASUAL_CHAT", groqService.processUserQuery("thank you").getResponseType());
+        assertEquals("CASUAL_CHAT", groqService.processUserQuery("who are you").getResponseType());
+        assertEquals("CASUAL_CHAT", groqService.processUserQuery("what can you do").getResponseType());
+        assertEquals("UNKNOWN_FOOD", groqService.processUserQuery("Is unicornfish risky?", "en").getResponseType());
+        GroqAIService.ChatResponse op = groqService.processUserQuery("Give me today's food waste summary.");
+        assertNotNull(op.getResponseType());
+        assertNotEquals("CASUAL_CHAT", op.getResponseType());
+    }
+
+    @Test
+    @DisplayName("M. prologSummary non-null for all paths (casual=empty map, operational=real data)")
+    public void testM_PrologSummaryNonNull() {
+        GroqAIService.ChatResponse casual = groqService.processUserQuery("hello");
+        assertNotNull(casual.getPrologSummary(), "Casual response prologSummary must be initialized (empty map)");
+
+        GroqAIService.ChatResponse op = groqService.processUserQuery("What is our food waste risk today?");
+        assertNotNull(op.getPrologSummary());
+        assertTrue(op.getPrologSummary().containsKey("overallRiskScore"), "Operational prologSummary must contain overallRiskScore");
+    }
+
+    @Test
+    @DisplayName("N. Out-of-domain weather query: polite redirect, no food analysis triggered")
+    public void testN_OutOfDomain() {
+        GroqAIService.ChatResponse res = groqService.processUserQuery("What is the weather like today?", "en");
+        assertNotNull(res);
+        assertFalse(res.getAnswer().isEmpty());
+        assertFalse(res.getAnswer().contains("Daily Intelligence Summary"));
+        assertFalse(res.getAnswer().contains("Priority High-Risk"));
+    }
 }
 

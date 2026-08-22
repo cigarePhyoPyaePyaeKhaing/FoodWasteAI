@@ -48,6 +48,7 @@ public class GroqAIService {
         private String sourceEngine;
         private Map<String, Object> prologSummary;
         private List<SmartAction> smartRecommendations = new ArrayList<>();
+        private String responseType; // CASUAL_CHAT | GREETING | SPECIFIC_FOOD | HIGH_RISK_LIST | COOK_PRIORITY | REDISTRIBUTION | DAILY_SUMMARY | UNKNOWN_FOOD | OUT_OF_DOMAIN
 
         public ChatResponse() {}
 
@@ -90,7 +91,11 @@ public class GroqAIService {
         public List<SmartAction> getSmartRecommendations() { return smartRecommendations; }
         public void setSmartRecommendations(List<SmartAction> smartRecommendations) { this.smartRecommendations = smartRecommendations; }
         public void addSmartAction(SmartAction action) { this.smartRecommendations.add(action); }
+
+        public String getResponseType() { return responseType; }
+        public void setResponseType(String responseType) { this.responseType = responseType; }
     }
+
 
     public static class SmartAction implements Serializable {
         private static final long serialVersionUID = 1L;
@@ -144,6 +149,63 @@ public class GroqAIService {
 
     private static final Map<String, ConversationContext> SESSION_CONTEXT_MAP = new ConcurrentHashMap<>();
 
+    public static class FoodExtractionResult implements Serializable {
+        private static final long serialVersionUID = 1L;
+        private final FoodItem matchedFoodItem;
+        private final String candidateFoodName;
+        private final boolean found;
+
+        public FoodExtractionResult(FoodItem matchedFoodItem, String candidateFoodName, boolean found) {
+            this.matchedFoodItem = matchedFoodItem;
+            this.candidateFoodName = candidateFoodName;
+            this.found = found;
+        }
+
+        public FoodItem getMatchedFoodItem() { return matchedFoodItem; }
+        public String getCandidateFoodName() { return candidateFoodName; }
+        public boolean isFound() { return found; }
+    }
+
+    private static final Set<String> KNOWN_FOOD_LEXICON = new HashSet<>(Arrays.asList(
+            // Seafood
+            "salmon", "tuna", "trout", "cod", "tilapia", "mackerel", "sardine", "fish", "seafood",
+            "shrimp", "prawn", "crab", "lobster", "squid", "octopus", "clam", "mussel", "oyster",
+            // Meat & Poultry
+            "chicken", "poultry", "breast", "drumstick", "wing", "beef", "steak", "veal", "pork",
+            "bacon", "ham", "sausage", "lamb", "mutton", "duck", "turkey", "meat",
+            // Dairy & Egg
+            "milk", "cheese", "butter", "cream", "yogurt", "dairy", "egg", "eggs",
+            // Grains & Bakery
+            "rice", "bread", "noodle", "noodles", "pasta", "spaghetti", "flour", "toast", "bagel",
+            "croissant", "sandwich", "burger", "pizza",
+            // Produce & Veg & Fruit
+            "potato", "potatoes", "tomato", "tomatoes", "onion", "onions", "garlic", "ginger",
+            "carrot", "carrots", "cabbage", "lettuce", "spinach", "cucumber", "mushroom", "mushrooms",
+            "broccoli", "cauliflower", "celery", "avocado", "bean", "beans", "pea", "peas", "corn",
+            "tofu", "salad", "apple", "apples", "banana", "bananas", "orange", "oranges", "lemon",
+            "lemons", "lime", "strawberry", "strawberries", "blueberry", "grape", "grapes", "mango",
+            "mangoes", "pineapple", "watermelon", "fruit",
+            // Myanmar Food Terms
+            "ဆယ်လ်မွန်", "ဆော်လမွန်", "ငါး", "ငါးသေတ္တာ", "ပုစွန်", "ဂဏန်း", "ပြည်ကြီးငါး",
+            "ကြက်သား", "ကြက်ရင်အုံ", "ကြက်တောင်ပံ", "ကြက်ပေါင်", "အမဲသား", "ဝက်သား", "ဆိတ်သား", "ဘဲသား",
+            "နို့", "နို့စိမ်း", "ဒိန်ချဉ်", "ထောပတ်", "ဒိန်ခဲ", "ကြက်ဥ", "ဘဲဥ", "ဆန်", "ထမင်း",
+            "ခေါက်ဆွဲ", "ကြာဇံ", "ပေါင်မုန့်", "ခရမ်းချဉ်သီး", "အာလူး", "ကြက်သွန်ဖြူ", "ကြက်သွန်နီ",
+            "ဂေါ်ဖီ", "မုန်လာဥ", "မှို", "တို့ဟူး", "ပန်းသီး", "ငှက်ပျောသီး", "လိမ္မော်သီး", "သရက်သီး",
+            "ဖရဲသီး", "သခွားသီး"
+    ));
+
+    private static final Set<String> CANDIDATE_STOPWORDS = new HashSet<>(Arrays.asList(
+            "food", "foods", "food item", "food items", "item", "items", "inventory", "kitchen",
+            "today", "waste", "status", "summary", "report", "action", "recommendation", "recommendations",
+            "donation", "donations", "which", "what", "how", "who", "all", "any", "everything",
+            "it", "this", "that", "them", "the item", "our", "your", "my", "me", "us", "we", "you",
+            "high risk", "risk", "risky", "safe", "expired", "expiry", "demand", "stock", "shelf",
+            "food waste", "kitchen inventory", "kitchen items", "food products", "products", "product",
+            // Myanmar stopwords
+            "အစားအစာ", "ပစ္စည်း", "ကုန်ပစ္စည်း", "မီးဖိုချောင်", "ယနေ့", "အနှစ်ချုပ်", "အစီရင်ခံစာ",
+            "အကြံပြုချက်", "လှူဒါန်းမှု", "ဘယ်ဟာ", "ဘာ", "ဒါ", "၎င်း", "အန္တရာယ်", "အန္တရာယ်ရှိ", "အန္တရာယ်မြင့်"
+    ));
+
     private static final Map<String, String> FOOD_SYNONYMS = new LinkedHashMap<>();
     static {
         // Myanmar food synonyms to English keywords
@@ -161,6 +223,8 @@ public class GroqAIService {
         FOOD_SYNONYMS.put("ဝက်သား", "pork");
         FOOD_SYNONYMS.put("ဝက်", "pork");
         FOOD_SYNONYMS.put("ငါး", "fish");
+        FOOD_SYNONYMS.put("ဆယ်လ်မွန်", "salmon");
+        FOOD_SYNONYMS.put("ဆော်လမွန်", "salmon");
         FOOD_SYNONYMS.put("ပုစွန်", "shrimp");
         FOOD_SYNONYMS.put("အသီးအရွက်", "vegetable");
         FOOD_SYNONYMS.put("ဟင်းသီးဟင်းရွက်", "vegetable");
@@ -171,6 +235,8 @@ public class GroqAIService {
         FOOD_SYNONYMS.put("ဒိန်ခဲ", "cheese");
 
         // English synonyms
+        FOOD_SYNONYMS.put("salmon", "salmon");
+        FOOD_SYNONYMS.put("tuna", "tuna");
         FOOD_SYNONYMS.put("chicken", "chicken");
         FOOD_SYNONYMS.put("poultry", "chicken");
         FOOD_SYNONYMS.put("breast", "chicken");
@@ -243,6 +309,8 @@ public class GroqAIService {
 
         ChatResponse response = new ChatResponse();
         response.setUserQuery(userQuery);
+        // Initialize prologSummary with empty map so tests can safely call getPrologSummary()
+        response.setPrologSummary(new LinkedHashMap<>());
 
         // --- 0. FAST INTENT DETECTION (CASUAL_CHAT > GREETING > THANKS > IDENTITY > CAPABILITIES) ---
         // Optimization: Greetings and casual chat execute immediately without MySQL, Prolog, or Groq API calls.
@@ -254,6 +322,7 @@ public class GroqAIService {
             logIntentDebug(userQuery, "CASUAL_CHAT", "NONE", "Natural response");
             String casual = getCasualResponse(cleanQuery, isMyanmar);
             response.setAnswer(casual);
+            response.setResponseType("CASUAL_CHAT");
             response.setSourceEngine(null);
             response.getSources().clear();
             response.getSmartRecommendations().clear();
@@ -269,6 +338,7 @@ public class GroqAIService {
                     "မင်္ဂလာပါ 👋\nကျွန်ုပ်သည် FoodWaste AI Assistant ဖြစ်ပါသည်။\n\nအစားအစာ အန္တရာယ်၊ သက်တမ်း၊ အလေအလွင့် လျှော့ချမှုနှင့် ပြန်လည်လှူဒါန်းမှုများကို မေးမြန်းနိုင်ပါသည်။" :
                     "Hello 👋\nI am FoodWaste AI Assistant.\n\nAsk me about food risk, expiry, waste reduction, or redistribution.";
             response.setAnswer(greeting);
+            response.setResponseType("GREETING");
             response.setSourceEngine(null);
             response.getSources().clear();
             response.getSmartRecommendations().clear();
@@ -281,9 +351,10 @@ public class GroqAIService {
             ctx.setLastIntent("CASUAL_CHAT");
             logIntentDebug(userQuery, "CASUAL_CHAT", "NONE", "Natural response (Thanks)");
             String thanks = isMyanmar ?
-                    "ရပါတယ်ခင်ဗျာ! အစားအသောက် အလေအလွင့် ဆန်းစစ်ရန် လိုအပ်ပါက မည်သည့်အချိန်မဆို မေးမြန်းနိုင်ပါသည်။" :
+                    "ရပါတယ်! အစားအသောက် အလေအလွင့် ဆန်းစစ်ရန် လိုအပ်ပါက မည်သည့်အချိန်မဆို မေးမြန်းနိုင်ပါသည်။" :
                     "You're welcome! Let me know if you need help analyzing food waste.";
             response.setAnswer(thanks);
+            response.setResponseType("CASUAL_CHAT");
             response.setSourceEngine(null);
             response.getSources().clear();
             response.getSmartRecommendations().clear();
@@ -299,6 +370,7 @@ public class GroqAIService {
                     "ကျွန်ုပ်သည် FoodWaste AI Assistant ဖြစ်ပါသည်။ စားသောက်ဆိုင်များတွင် အစားအစာ အလေအလွင့် လျှော့ချရေးကို ကူညီပေးပါသည်။" :
                     "I am FoodWaste AI Assistant. I help restaurants reduce food waste using intelligent analysis.";
             response.setAnswer(idText);
+            response.setResponseType("CASUAL_CHAT");
             response.setSourceEngine(null);
             response.getSources().clear();
             response.getSmartRecommendations().clear();
@@ -314,6 +386,7 @@ public class GroqAIService {
                     "ကျွန်ုပ်သည် ကုန်ပစ္စည်းလက်ကျန် စာရင်းစစ်ဆေးခြင်း၊ သက်တမ်းကုန်ရက် စောင့်ကြည့်ခြင်း၊ အလေအလွင့် အန္တရာယ် တွက်ချက်ခြင်း၊ မီးဖိုချောင် ချက်ပြုတ်မှု ဦးစားပေး သတ်မှတ်ခြင်းနှင့် ပိုလျှံပစ္စည်းများ လှူဒါန်းခြင်းတို့ကို ကူညီပေးနိုင်ပါသည်။" :
                     "I can help you track inventory levels, monitor food expiry dates, analyze waste risks, optimize prep batches, and schedule surplus food donations.";
             response.setAnswer(capText);
+            response.setResponseType("CASUAL_CHAT");
             response.setSourceEngine(null);
             response.getSources().clear();
             response.getSmartRecommendations().clear();
@@ -321,21 +394,45 @@ public class GroqAIService {
             return response;
         }
 
+
         try {
             // 1. Fetch live MySQL Inventory & Partners for Food & Operational queries
             List<FoodItem> inventory = foodItemService.getAllFoodItems();
             List<RedistributionRecipient> recipients = redistributionService.getAllRecipients();
 
-            // 1.1 Extract Food Entity FIRST (NEW FOOD ENTITY > FOLLOW-UP CONTEXT)
-            FoodItem matchedFoodItem = extractFoodEntity(userQuery, inventory);
+            // 1.1 Food Entity Detection FIRST (CURRENT FOOD ENTITY > CONTEXT MEMORY > GLOBAL INTENT)
+            FoodExtractionResult foodResult = extractFoodCandidate(userQuery, inventory);
+            FoodItem matchedFoodItem = null;
             PrologAssessment matchedAssessment = null;
 
-            if (matchedFoodItem != null) {
-                // Priority 1: New food entity detected in user message -> overrides previous context immediately
-                ctx.setLastFoodItemName(matchedFoodItem.getName());
-                ctx.setLastFoodItemId(matchedFoodItem.getId());
-                ctx.setLastIntent("FOOD_ENTITY_QUERY");
-                logIntentDebug(userQuery, "FOOD_ENTITY_QUERY", matchedFoodItem.getName(), "Analyze selected item");
+            if (foodResult != null) {
+                if (foodResult.isFound()) {
+                    // Priority 1: New food entity detected in user message & exists in inventory
+                    matchedFoodItem = foodResult.getMatchedFoodItem();
+                    ctx.setLastFoodItemName(matchedFoodItem.getName());
+                    ctx.setLastFoodItemId(matchedFoodItem.getId());
+                    ctx.setLastIntent("FOOD_ENTITY_QUERY");
+                    logFoodDebug(matchedFoodItem.getName(), "FOUND", "FOOD_ENTITY_QUERY", "Single item analysis");
+                } else {
+                    // Priority 1 (Unknown Food): User asked about a specific food not in inventory
+                    String unknownName = foodResult.getCandidateFoodName();
+                    ctx.setLastIntent("FOOD_ENTITY_QUERY");
+                    logFoodDebug(unknownName, "NOT_FOUND", null, "Unknown food response");
+
+                    String capitalized = capitalize(unknownName);
+                    String unknownAnswer = isMyanmar ?
+                            "😕 **" + capitalized + "** ကို လက်ရှိ ကုန်ပစ္စည်းစာရင်းထဲမှာ မတွေ့ပါဘူး။\n\nStock၊ သက်တမ်းနဲ့ အလေအလွင့်အန္တရာယ်ကို ဆန်းစစ်လိုပါက Inventory ထဲကို အရင်ထည့်ပေးပါ။" :
+                            "😕 I can't find **" + capitalized + "** in the current inventory.\n\nAdd it to Inventory first if you want me to analyze its stock, expiry, and waste risk.";
+
+                    response.setAnswer(unknownAnswer);
+                    response.setResponseType("UNKNOWN_FOOD");
+                    response.setSourceEngine(isMyanmar ? "FoodWaste AI Assistant\nသင့်အစားအစာ စီမံခန့်ခွဲမှု အကူ" : "FoodWaste AI Assistant\nYour food waste helper");
+                    response.getSources().clear();
+                    response.getSmartRecommendations().clear();
+                    response.getRelatedFoodItems().clear();
+                    response.addSmartAction(new SmartAction(isMyanmar ? "📦 ကုန်ပစ္စည်းလက်ကျန် ကြည့်ရှုမည်" : "📦 View Kitchen Inventory", "VIEW_INVENTORY", "INFO", "/inventory.html"));
+                    return response;
+                }
             } else if (ctx.getLastFoodItemName() != null && isFollowUpQuery(cleanQuery)) {
                 // Priority 2: Follow-up pronoun/context reference ("it", "this", "that", "what should I do with it")
                 final String lastFoodName = ctx.getLastFoodItemName();
@@ -344,7 +441,7 @@ public class GroqAIService {
                         .findFirst().orElse(null);
                 if (matchedFoodItem != null) {
                     ctx.setLastIntent("FOOD_ENTITY_QUERY");
-                    logIntentDebug(userQuery, "FOOD_ENTITY_QUERY", matchedFoodItem.getName(), "Analyze follow-up item (" + lastFoodName + ")");
+                    logFoodDebug(matchedFoodItem.getName(), "FOUND", "FOOD_ENTITY_QUERY", "Single item analysis (Follow-up context)");
                 }
             }
 
@@ -358,6 +455,7 @@ public class GroqAIService {
                         "I specialize in FoodWaste management.\n" +
                         "I can help with inventory, expiry, waste reduction, and redistribution.";
                 response.setAnswer(unknownText);
+                response.setResponseType("OUT_OF_DOMAIN");
                 response.setSourceEngine(isMyanmar ? "FoodWaste AI Assistant\nသင့်အစားအစာ စီမံခန့်ခွဲမှု အကူ" : "FoodWaste AI Assistant\nYour food waste helper");
                 response.addSmartAction(new SmartAction(isMyanmar ? "📦 ကုန်ပစ္စည်းလက်ကျန် ကြည့်ရှုမည်" : "📦 View Kitchen Inventory", "VIEW_INVENTORY", "INFO", "/inventory.html"));
                 return response;
@@ -519,6 +617,25 @@ public class GroqAIService {
             response.setAnswer(groqExplanation);
             response.setSourceEngine(isMyanmar ? "FoodWaste AI Assistant\nသင့်အစားအစာ စီမံခန့်ခွဲမှု အကူ" : "FoodWaste AI Assistant\nYour food waste helper");
 
+            // Set responseType based on query intent
+            if (matchedFoodItem != null) {
+                response.setResponseType("SPECIFIC_FOOD");
+            } else if (cleanQuery.contains("cook") || cleanQuery.contains("menu") || cleanQuery.contains("priorit") || cleanQuery.contains("chef")
+                    || cleanQuery.contains("ချက်") || cleanQuery.contains("မီနူး") || cleanQuery.contains("ဦးစားပေး")) {
+                response.setResponseType("COOK_PRIORITY");
+            } else if (cleanQuery.contains("donat") || cleanQuery.contains("redistribut") || cleanQuery.contains("charit") || cleanQuery.contains("ngo")
+                    || cleanQuery.contains("လှူဒါန်း") || cleanQuery.contains("ပရဟိတ")) {
+                response.setResponseType("REDISTRIBUTION");
+            } else if (cleanQuery.contains("summary") || cleanQuery.contains("today") || cleanQuery.contains("overview") || cleanQuery.contains("daily")
+                    || cleanQuery.contains("အနှစ်ချုပ်") || cleanQuery.contains("ယနေ့") || cleanQuery.contains("အနေအထား")) {
+                response.setResponseType("DAILY_SUMMARY");
+            } else if (cleanQuery.contains("risk") || cleanQuery.contains("high risk") || cleanQuery.contains("danger")
+                    || cleanQuery.contains("အန္တရာယ်မြင့်") || cleanQuery.contains("စွန့်ပစ်")) {
+                response.setResponseType("HIGH_RISK_LIST");
+            } else {
+                response.setResponseType("DAILY_SUMMARY");
+            }
+
             // 6. Generate Context-Aware Smart Action Buttons
             if (matchedFoodItem != null && matchedAssessment != null) {
                 if ("HIGH".equalsIgnoreCase(matchedAssessment.getRiskLevel())) {
@@ -569,6 +686,20 @@ public class GroqAIService {
         }
 
         return response;
+    }
+
+    private void logFoodDebug(String foodName, String matchResult, String intent, String action) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("\n==================================================\n");
+        sb.append("Detected food:\n").append(foodName).append("\n\n");
+        sb.append("Match result:\n").append(matchResult).append("\n\n");
+        if (intent != null) {
+            sb.append("Intent:\n").append(intent).append("\n\n");
+        }
+        sb.append("Action:\n").append(action).append("\n");
+        sb.append("==================================================");
+        System.out.println(sb.toString());
+        logger.info("Food Match Debug -> Food: '{}' | Result: '{}' | Intent: '{}' | Action: '{}'", foodName, matchResult, intent, action);
     }
 
     private void logIntentDebug(String input, String intent, String foodEntity, String action) {
@@ -789,6 +920,77 @@ public class GroqAIService {
             return true;
         }
         return false;
+    }
+
+    /**
+     * Priority: Current Food Entity in Message > Context Memory > Global Intent.
+     * Evaluates whether user's query refers to an existing inventory item or an unknown food item.
+     */
+    private FoodExtractionResult extractFoodCandidate(String query, List<FoodItem> inventory) {
+        if (query == null || query.trim().isEmpty()) {
+            return null;
+        }
+
+        String lowerQuery = query.toLowerCase().trim();
+
+        // 1. Try matching with existing inventory items first
+        FoodItem matched = extractFoodEntity(query, inventory);
+        if (matched != null) {
+            return new FoodExtractionResult(matched, matched.getName(), true);
+        }
+
+        // 2. Check if query contains any known food lexicon term (unknown in this kitchen's inventory)
+        for (String lexiconTerm : KNOWN_FOOD_LEXICON) {
+            boolean termPresent = false;
+            if (containsMyanmarScript(lexiconTerm)) {
+                termPresent = lowerQuery.contains(lexiconTerm);
+            } else {
+                termPresent = lowerQuery.matches(".*\\b" + java.util.regex.Pattern.quote(lexiconTerm) + "\\b.*");
+            }
+
+            if (termPresent) {
+                return new FoodExtractionResult(null, lexiconTerm, false);
+            }
+        }
+
+        // 3. Check structural query patterns to extract specific food names
+        String[] patterns = {
+                "(?:what is the (?:waste )?risk (?:for|of)|risk (?:for|of)|why is|how risky is|is|tell me about|what about|how about|check)\\s+(?:the\\s+)?([a-zA-Z0-9\u1000-\u109F\\s]+?)(?:\\s+risky|\\s+safe|\\s+expired|\\s+status|\\s+good|\\s+bad|\\s+risk|\\?|$|\\.)",
+                "([a-zA-Z0-9\u1000-\u109F\\s]+?)\\s+(?:waste risk|risk status|expiry date|shelf life)",
+                "([a-zA-Z0-9\u1000-\u109F\\s]+?)(?:\\s+အန္တရာယ်ရှိလား|\\s+အကြောင်း|\\s+ဘာဖြစ်|\\s+အန္တရာယ်|\\s+အလေအလွင့်|\\s+သက်တမ်း|\\s+ရော|\\s+ရော\\?)"
+        };
+
+        for (String pat : patterns) {
+            java.util.regex.Matcher m = java.util.regex.Pattern.compile(pat, java.util.regex.Pattern.CASE_INSENSITIVE).matcher(lowerQuery);
+            if (m.find()) {
+                String candidate = m.group(1).trim();
+                candidate = candidate.replaceAll("^the\\s+", "").replaceAll("\\s+the$", "").trim();
+                boolean isStopWord = CANDIDATE_STOPWORDS.contains(candidate) ||
+                        candidate.contains("food") || candidate.contains("waste") || candidate.contains("item") ||
+                        candidate.contains("status") || candidate.contains("inventory") || candidate.contains("kitchen") ||
+                        candidate.contains("summary") || candidate.contains("today") || candidate.contains("action") ||
+                        candidate.contains("recommend") || candidate.contains("report") || candidate.contains("chef") ||
+                        candidate.contains("menu") || candidate.contains("donat") || candidate.contains("charit") ||
+                        candidate.contains("အစားအစာ") || candidate.contains("အနှစ်ချုပ်") || candidate.contains("မီးဖိုချောင်");
+                if (candidate.length() >= 2 && !isStopWord) {
+                    return new FoodExtractionResult(null, candidate, false);
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private String capitalize(String str) {
+        if (str == null || str.trim().isEmpty()) return "";
+        String[] words = str.trim().split("\\s+");
+        StringBuilder sb = new StringBuilder();
+        for (String w : words) {
+            if (!w.isEmpty()) {
+                sb.append(Character.toUpperCase(w.charAt(0))).append(w.substring(1).toLowerCase()).append(" ");
+            }
+        }
+        return sb.toString().trim();
     }
 
     /**
@@ -1095,11 +1297,7 @@ public class GroqAIService {
                         "**Risk:**\n**%d%% (%s)**\n\n" +
                         "**Stock:**\n%.1f %s\n\n" +
                         "**Reason:**\n%s\n\n" +
-                        "**Recommendation:**\n%s\n\n" +
-                        "**Data Sources:**\n" +
-                        "- ကုန်ပစ္စည်းစာရင်း\n" +
-                        "- သက်တမ်းဆန်းစစ်ချက်\n" +
-                        "- အလေအလွင့်အကဲဖြတ်ချက်",
+                        "**Recommendation:**\n%s",
                         foodName,
                         expiryStatus,
                         expiryDays,
@@ -1116,11 +1314,7 @@ public class GroqAIService {
                         "**Risk:**\n**%d%% (%s)**\n\n" +
                         "**Stock:**\n%.1f %s\n\n" +
                         "**Reason:**\n%s\n\n" +
-                        "**Recommendation:**\n%s\n\n" +
-                        "**Data Sources:**\n" +
-                        "- Inventory records\n" +
-                        "- Expiry analysis\n" +
-                        "- Waste evaluation",
+                        "**Recommendation:**\n%s",
                         foodName,
                         expiryStatus,
                         expiryDays,
@@ -1248,8 +1442,27 @@ public class GroqAIService {
 
         // 7. General Kitchen Summary
         long highCount = items.stream().filter(i -> "HIGH".equalsIgnoreCase(i.getRiskLevel())).count();
-        double totalSurplus = items.stream().mapToDouble(i -> Math.max(0, i.getStock() - i.getExpectedDemand())).sum();
         String partnerName = (recipients != null && !recipients.isEmpty()) ? recipients.get(0).getName() : (isMm ? "ပရဟိတ အဖွဲ့အစည်း" : "a verified food bank");
+
+        // Build unit-aware surplus summary string
+        Map<String, Double> surplusByUnit = new LinkedHashMap<>();
+        for (PrologAssessment a : items) {
+            double surplus = Math.max(0, a.getStock() - a.getExpectedDemand());
+            if (surplus > 0 && a.getUnit() != null) {
+                surplusByUnit.merge(a.getUnit(), surplus, Double::sum);
+            }
+        }
+        String surplusDisplay;
+        if (surplusByUnit.isEmpty()) {
+            surplusDisplay = isMm ? "0 (ပိုလျှံမှု မရှိ)" : "0 (no surplus)";
+        } else {
+            StringBuilder sb2 = new StringBuilder();
+            surplusByUnit.forEach((unit2, amt) -> {
+                if (sb2.length() > 0) sb2.append(" • ");
+                sb2.append(String.format("%.1f %s", amt, unit2));
+            });
+            surplusDisplay = sb2.toString();
+        }
 
         if (isMm) {
             return String.format(
@@ -1257,21 +1470,21 @@ public class GroqAIService {
                     "မီးဖိုချောင်ရှိ ကုန်ပစ္စည်း %d မျိုးကို ဆန်းစစ်တွက်ချက်ထားပါသည်:\n\n" +
                     "**အဓိက တွေ့ရှိချက်များ:**\n" +
                     "- **အန္တရာယ်မြင့် ကုန်ပစ္စည်းများ:** %d မျိုး\n" +
-                    "- **ခန့်မှန်း ပိုလျှံအလေအလွင့်:** %.1f liter/kg\n" +
+                    "- **ခန့်မှန်း ပိုလျှံအလေအလွင့်:** %s\n" +
                     "- **ပရဟိတ မိတ်ဖက်အဖွဲ့အစည်း:** %s\n\n" +
-                    "💡 *တိကျသော ကုန်ပစ္စည်းအမည် (ဥပမာ- Fresh Milk, Chicken) သို့မဟုတ် 'အန္တရာယ်ရှိသော ပစ္စည်းများ' ဟု မေးမြန်းနိုင်ပါသည်။*",
-                    inventory.size(), highCount, totalSurplus, partnerName
+                    "💡 *တိကျသော ကုန်ပစ္စည်းအမည် (ဥပမာ- Fresh Milk) သို့မဟုတ် 'အန္တရာယ်ရှိသော ပစ္စည်းများ' ဟု မေးမြန်းနိုင်ပါသည်။*",
+                    inventory.size(), highCount, surplusDisplay, partnerName
             );
         } else {
             return String.format(
                     "### 🍃 FoodWaste AI Daily Intelligence Summary\n\n" +
-                    "I have analyzed %d food items across your kitchen inventory:\n\n" +
+                    "I have analyzed %d food item(s) across your kitchen inventory:\n\n" +
                     "**Key Metrics:**\n" +
-                    "- **High Waste Risk Items:** %d items\n" +
-                    "- **Total Projected Surplus:** %.1f liter/kg\n" +
+                    "- **High Waste Risk Items:** %d item(s)\n" +
+                    "- **Total Projected Surplus:** %s\n" +
                     "- **Primary Charity Partner:** %s\n\n" +
                     "💡 *Try asking about a specific ingredient (e.g. 'Why is Fresh Milk risky?') or 'What should we cook today?'*",
-                    inventory.size(), highCount, totalSurplus, partnerName
+                    inventory.size(), highCount, surplusDisplay, partnerName
             );
         }
     }

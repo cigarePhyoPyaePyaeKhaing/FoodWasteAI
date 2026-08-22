@@ -94,19 +94,12 @@ public class ChatServlet extends BaseServlet {
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         try {
             Map<String, Object> status = new LinkedHashMap<>();
-            status.put("groqConnected", true);
-            status.put("groqStatus", "Connected");
-            status.put("groqModel", AppConfig.getGroqModel());
-            status.put("groqApiKeyConfigured", !AppConfig.getGroqApiKey().isEmpty());
-            status.put("prologEngineAvailable", PrologService.isPrologAvailable());
-            status.put("prologStatus", "Active");
-            status.put("databaseConnected", true);
-            status.put("databaseStatus", "Connected");
+            status.put("status", "ok");
+            status.put("ready", true);
             status.put("supportedLanguages", new String[]{"en", "mm"});
-            status.put("pipeline", "User -> ChatServlet -> MySQL Live Data -> SWI-Prolog Reasoning -> Groq AI (Llama-3.3-70b-versatile) -> Smart Directives");
             sendSuccess(resp, status);
         } catch (Exception e) {
-            sendServerError(resp, "Failed to check chat status: " + e.getMessage());
+            sendServerError(resp, "Service unavailable.");
         }
     }
 

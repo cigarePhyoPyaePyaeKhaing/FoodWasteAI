@@ -4,7 +4,7 @@
 const AIAssistant = {
   isOpen: false,
   isSending: false,
-  STORAGE_KEY: 'foodwaste_chat_history_v6',
+  STORAGE_KEY: 'foodwaste_chat_history_v7',
   SESSION_KEY: 'foodwaste_chat_session_id',
 
   getSessionId() {
@@ -724,42 +724,48 @@ const AIAssistant = {
     const rawText = data.answer || data.explanation || '';
     let formattedText = this.formatMarkdown(rawText);
 
-    // Clean Related Food Items Card (Only render if answer text doesn't already contain structured food card)
+    // Determine if this is a conversational-only response (no food cards, sources, directives)
+    const conversationalTypes = ['CASUAL_CHAT', 'GREETING', 'UNKNOWN_FOOD', 'OUT_OF_DOMAIN'];
+    const isConversational = data.responseType && conversationalTypes.includes(data.responseType);
+
+    // Clean Related Food Items Card (Only render for food/operational responses)
     let foodCardsHtml = '';
-    const hasFoodCardInText = rawText.includes('Food Item:') || rawText.includes('အစားအစာ:');
-    if (!hasFoodCardInText && data.relatedFoodItems && data.relatedFoodItems.length > 0) {
-      foodCardsHtml = data.relatedFoodItems.map(item => {
-        const statusBadgeClass = item.expiryStatus === 'EXPIRED' ? 'badge-risk-high' :
-          (item.expiryStatus === 'SAME_DAY_EXPIRY' || item.expiryStatus === 'NEAR_EXPIRY' ? 'badge-risk-medium' : 'badge-risk-low');
-        const statusText = item.expiryStatus || 'SAFE';
-        return `
-          <div class="gemini-food-card">
-            <div class="gemini-food-card-row">
-              <div class="gemini-food-card-col">
-                <span class="gemini-food-card-label">${isMm ? 'အစားအစာ:' : 'Food Item:'}</span>
-                <span class="gemini-food-card-val">🍲 ${this.escapeHtml(item.name)}</span>
-              </div>
-              <div class="gemini-food-card-col">
-                <span class="gemini-food-card-label">${isMm ? 'အခြေအနေ:' : 'Status:'}</span>
-                <span class="badge-bubble ${statusBadgeClass}" style="font-size:0.68rem; padding:0.12rem 0.4rem; width:fit-content;">${statusText}</span>
-              </div>
-              <div class="gemini-food-card-col">
-                <span class="gemini-food-card-label">${isMm ? 'လက်ကျန်:' : 'Stock:'}</span>
-                <span class="gemini-food-card-val">${item.stock} ${item.unit || ''}</span>
-              </div>
-              <div class="gemini-food-card-col">
-                <span class="gemini-food-card-label">${isMm ? 'အန္တရာယ်:' : 'Risk:'}</span>
-                <span class="gemini-food-card-val" style="color:#dc2626; font-weight:800;">${item.riskScore}%</span>
+    if (!isConversational) {
+      const hasFoodCardInText = rawText.includes('Food Item:') || rawText.includes('အစားအစာ:');
+      if (!hasFoodCardInText && data.relatedFoodItems && data.relatedFoodItems.length > 0) {
+        foodCardsHtml = data.relatedFoodItems.map(item => {
+          const statusBadgeClass = item.expiryStatus === 'EXPIRED' ? 'badge-risk-high' :
+            (item.expiryStatus === 'SAME_DAY_EXPIRY' || item.expiryStatus === 'NEAR_EXPIRY' ? 'badge-risk-medium' : 'badge-risk-low');
+          const statusText = item.expiryStatus || 'SAFE';
+          return `
+            <div class="gemini-food-card">
+              <div class="gemini-food-card-row">
+                <div class="gemini-food-card-col">
+                  <span class="gemini-food-card-label">${isMm ? 'အစားအစာ:' : 'Food Item:'}</span>
+                  <span class="gemini-food-card-val">🍲 ${this.escapeHtml(item.name)}</span>
+                </div>
+                <div class="gemini-food-card-col">
+                  <span class="gemini-food-card-label">${isMm ? 'အခြေအနေ:' : 'Status:'}</span>
+                  <span class="badge-bubble ${statusBadgeClass}" style="font-size:0.68rem; padding:0.12rem 0.4rem; width:fit-content;">${statusText}</span>
+                </div>
+                <div class="gemini-food-card-col">
+                  <span class="gemini-food-card-label">${isMm ? 'လက်ကျန်:' : 'Stock:'}</span>
+                  <span class="gemini-food-card-val">${item.stock} ${item.unit || ''}</span>
+                </div>
+                <div class="gemini-food-card-col">
+                  <span class="gemini-food-card-label">${isMm ? 'အန္တရာယ်:' : 'Risk:'}</span>
+                  <span class="gemini-food-card-val" style="color:#dc2626; font-weight:800;">${item.riskScore}%</span>
+                </div>
               </div>
             </div>
-          </div>
-        `;
-      }).join('');
+          `;
+        }).join('');
+      }
     }
 
-    // Sources Box HTML
+    // Sources Box HTML — only for food/operational responses
     let sourcesHtml = '';
-    if (data.sources && data.sources.length > 0) {
+    if (!isConversational && data.sources && data.sources.length > 0) {
       sourcesHtml = `
         <div class="gemini-sources-box">
           <div class="gemini-sources-title">
@@ -770,13 +776,13 @@ const AIAssistant = {
       `;
     }
 
-    // Smart Actions HTML
+    // Smart Actions HTML — only for food/operational responses
     let actionsHtml = '';
-    if (data.smartRecommendations && data.smartRecommendations.length > 0) {
+    if (!isConversational && data.smartRecommendations && data.smartRecommendations.length > 0) {
       actionsHtml = `
         <div class="gemini-smart-actions">
           <div style="font-weight:800; font-size:0.78rem; color:#713f12; margin-bottom:0.25rem;">
-            ${isMm ? '💡 အကြံပြုချက် လမ်းညွှန်ချက်များ (Smart Directives):' : '💡 Smart Directives:'}
+            ${isMm ? '💡 Smart Directives:' : '💡 Smart Directives:'}
           </div>
           ${data.smartRecommendations.map(act => {
             const isPriority = act.badge === 'URGENT' || act.badge === 'အရေးပေါ်' || act.badge === 'HIGH';
