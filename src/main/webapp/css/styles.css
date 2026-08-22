@@ -21,7 +21,10 @@ html {
 body {
   font-family: var(--font-family);
   background-color: var(--bg-app);
-  background-image: var(--bg-canvas-gradient);
+  background-image: 
+    radial-gradient(circle at 15% 15%, rgba(0, 122, 255, 0.08) 0%, transparent 40%),
+    radial-gradient(circle at 85% 85%, rgba(56, 189, 248, 0.08) 0%, transparent 45%),
+    linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
   background-attachment: fixed;
   background-size: cover;
   color: var(--text-main);
@@ -33,6 +36,14 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   transition: background-color var(--transition-smooth), color var(--transition-smooth);
+}
+
+[data-theme="dark"] body {
+  background-color: #061426;
+  background-image: 
+    radial-gradient(circle at 20% 15%, rgba(10, 132, 255, 0.12) 0%, transparent 50%),
+    radial-gradient(circle at 85% 85%, rgba(56, 189, 248, 0.08) 0%, transparent 50%),
+    linear-gradient(180deg, #07172B 0%, #030B17 100%);
 }
 
 /* --- Base Layout Wrapper --- */

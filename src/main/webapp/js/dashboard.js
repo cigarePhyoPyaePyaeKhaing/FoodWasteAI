@@ -287,10 +287,10 @@ const Dashboard = {
         : (isMm ? (item.day === 'Tomorrow' ? 'မနက်ဖြန် (ခန့်မှန်း)' : item.day) : (item.day === 'Tomorrow' ? 'Tomorrow (AI)' : item.day));
 
       const barStyle = isPredicted
-        ? 'background:rgba(254, 240, 138, 0.85); border:2px dashed #eab308; box-shadow:0 6px 14px rgba(234, 179, 8, 0.15);'
-        : 'background:linear-gradient(180deg, #facc15 0%, #eab308 100%); border:1px solid rgba(255,255,255,0.8); box-shadow:0 6px 14px rgba(234, 179, 8, 0.25);';
+        ? 'background:linear-gradient(180deg, #38BDF8 0%, #0EA5E9 100%); border:1px solid rgba(255,255,255,0.5); box-shadow:0 8px 20px rgba(56, 189, 248, 0.4);'
+        : 'background:linear-gradient(180deg, rgba(56, 189, 248, 0.45) 0%, rgba(10, 132, 255, 0.75) 100%); border:1px solid rgba(255,255,255,0.2); box-shadow:0 4px 12px rgba(10, 132, 255, 0.2);';
 
-      const valColor = isPredicted ? 'var(--accent-yellow-dark)' : 'var(--text-muted)';
+      const valColor = isPredicted ? 'var(--accent-cyan, #38BDF8)' : 'var(--text-muted)';
       const unitLabel = isMm ? (unitStr === 'liter' ? 'လီတာ' : unitStr) : (unitStr === 'liter' ? 'liter' : unitStr);
 
       html += `
