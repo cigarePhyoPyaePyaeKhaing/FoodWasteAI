@@ -262,4 +262,44 @@ public class GroqChatPipelineTest {
         assertFalse(response.getRelatedFoodItems().isEmpty());
         assertEquals(dynamicName, response.getRelatedFoodItems().get(0).get("name"));
     }
+
+    @Test
+    @DisplayName("Conversation Context Memory: Chatbot remembers previous food item across multi-turn queries")
+    public void testConversationContextMemory() {
+        String sessionId = "test_session_" + System.currentTimeMillis();
+
+        // Turn 1: Ask about fresh milk
+        GroqAIService.ChatResponse res1 = groqService.processUserQuery("Why is fresh milk risky?", "en", sessionId);
+        assertNotNull(res1);
+        assertTrue(res1.getAnswer().contains("fresh milk") || res1.getAnswer().contains("Fresh Milk"));
+
+        // Turn 2: Ask about chicken
+        GroqAIService.ChatResponse res2 = groqService.processUserQuery("what about chicken?", "en", sessionId);
+        assertNotNull(res2);
+        assertTrue(res2.getAnswer().toLowerCase().contains("chicken"));
+
+        // Turn 3: Follow-up question referring to "it"
+        GroqAIService.ChatResponse res3 = groqService.processUserQuery("what should I do with it?", "en", sessionId);
+        assertNotNull(res3);
+        assertTrue(res3.getAnswer().toLowerCase().contains("chicken") || (res3.getRelatedFoodItems() != null && !res3.getRelatedFoodItems().isEmpty()));
+    }
+
+    @Test
+    @DisplayName("Smart Food Matching: Supports partial names, synonyms, and Burmese food names dynamically")
+    public void testSmartFoodMatchingWithSynonymsAndPartials() {
+        // Partial: "milk"
+        GroqAIService.ChatResponse resPartial = groqService.processUserQuery("tell me about milk", "en");
+        assertNotNull(resPartial);
+        assertTrue(resPartial.getAnswer().contains("Milk") || resPartial.getAnswer().contains("milk"));
+
+        // Synonym / Myanmar: "ကြက်သား"
+        GroqAIService.ChatResponse resMm = groqService.processUserQuery("ကြက်သား အန္တရာယ် ဘယ်လိုရှိလဲ?", "mm");
+        assertNotNull(resMm);
+        assertTrue(resMm.getAnswer().contains("Chicken") || resMm.getAnswer().contains("ကြက်သား") || resMm.getAnswer().contains("အန္တရာယ်"));
+
+        // Case-insensitive
+        GroqAIService.ChatResponse resCase = groqService.processUserQuery("fReSh cHiCkEn bReAsT risk", "en");
+        assertNotNull(resCase);
+        assertTrue(resCase.getAnswer().toLowerCase().contains("chicken"));
+    }
 }

@@ -7,6 +7,20 @@ const AIAssistant = {
   isOpen: false,
   isSending: false,
   STORAGE_KEY: 'foodwaste_chat_history_v3',
+  SESSION_KEY: 'foodwaste_chat_session_id',
+
+  getSessionId() {
+    try {
+      let sid = sessionStorage.getItem(this.SESSION_KEY);
+      if (!sid) {
+        sid = 'session_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
+        sessionStorage.setItem(this.SESSION_KEY, sid);
+      }
+      return sid;
+    } catch (e) {
+      return 'default_session';
+    }
+  },
 
   init() {
     this.injectStylesAndMarkup();
@@ -620,7 +634,7 @@ const AIAssistant = {
     const typingId = this.appendTypingIndicator();
 
     try {
-      const res = await API.post('/api/chat', { message: query, language: lang });
+      const res = await API.post('/api/chat', { message: query, language: lang, sessionId: this.getSessionId() });
       this.removeTypingIndicator(typingId);
 
       if (res && res.data) {

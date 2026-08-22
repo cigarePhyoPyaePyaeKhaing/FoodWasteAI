@@ -31,6 +31,8 @@ public class ChatServlet extends BaseServlet {
         private String query;
         private String prompt;
         private String language; // "en" or "mm"
+        private String sessionId;
+        private String conversationId;
 
         public ChatRequest() {}
 
@@ -68,6 +70,24 @@ public class ChatServlet extends BaseServlet {
         public void setLanguage(String language) {
             this.language = language;
         }
+
+        public String getSessionId() {
+            if (sessionId != null && !sessionId.trim().isEmpty()) return sessionId.trim();
+            if (conversationId != null && !conversationId.trim().isEmpty()) return conversationId.trim();
+            return null;
+        }
+
+        public void setSessionId(String sessionId) {
+            this.sessionId = sessionId;
+        }
+
+        public String getConversationId() {
+            return conversationId;
+        }
+
+        public void setConversationId(String conversationId) {
+            this.conversationId = conversationId;
+        }
     }
 
     @Override
@@ -96,6 +116,11 @@ public class ChatServlet extends BaseServlet {
             ChatRequest requestPayload = parseJsonBody(req, ChatRequest.class);
             String message = requestPayload != null ? requestPayload.getMessage() : "";
             String language = requestPayload != null ? requestPayload.getLanguage() : null;
+            String sessionId = requestPayload != null ? requestPayload.getSessionId() : null;
+
+            if (sessionId == null || sessionId.trim().isEmpty()) {
+                sessionId = req.getSession(true).getId();
+            }
 
             if (language == null || language.trim().isEmpty()) {
                 String acceptLang = req.getHeader("Accept-Language");
@@ -106,7 +131,7 @@ public class ChatServlet extends BaseServlet {
                 }
             }
 
-            GroqAIService.ChatResponse chatResponse = groqService.processUserQuery(message, language);
+            GroqAIService.ChatResponse chatResponse = groqService.processUserQuery(message, language, sessionId);
             sendSuccess(resp, chatResponse);
         } catch (Exception e) {
             logger.error("Error in ChatServlet POST: {}", e.getMessage(), e);
