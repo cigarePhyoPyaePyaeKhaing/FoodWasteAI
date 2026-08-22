@@ -1,5 +1,6 @@
 /**
  * FoodWaste AI - Smart Conversational Assistant
+ * Powered by live MySQL data, SWI-Prolog reasoning, and hosted AI pipeline.
  */
 const AIAssistant = {
   isOpen: false,
@@ -27,7 +28,7 @@ const AIAssistant = {
       this.updateChips();
       this.updateWelcomeText();
       this.updateHeaderSubtitle();
-      if (typeof I18n !== 'undefined') {
+      if (typeof I18n !== 'undefined' && typeof I18n.applyTranslations === 'function') {
         I18n.applyTranslations();
       }
     });
@@ -99,12 +100,12 @@ const AIAssistant = {
     return `
       <div class="gemini-msg gemini-msg-ai">
         <div class="gemini-msg-bubble" id="gemini-welcome-bubble">
-          <div style="font-weight:800; font-size:0.95rem; margin-bottom:0.35rem; color:#713f12;">
-            ${isMm ? 'မင်္ဂလာပါ 👋<br>ကျွန်ုပ်သည် FoodWaste AI Assistant ဖြစ်ပါသည်။' : 'Hello 👋<br>I am FoodWaste AI Assistant.'}
+          <div style="font-weight:800; font-size:0.95rem; margin-bottom:0.35rem; color:var(--text-main);">
+            ${isMm ? 'မင်္ဂလာပါ 👋<br>ကျွန်ုပ်က FoodWaste AI Assistant ပါ။' : 'Hello 👋<br>I\'m FoodWaste AI Assistant.'}
           </div>
-          <div style="font-size:0.84rem; line-height:1.5; color:var(--text-main);">
+          <div style="font-size:0.84rem; line-height:1.5; color:var(--text-body);">
             ${isMm ?
-              'အစားအစာ အန္တရာယ်၊ သက်တမ်း၊ အလေအလွင့် လျှော့ချမှုနှင့် ပြန်လည်လှူဒါန်းမှုများကို မေးမြန်းနိုင်ပါသည်။' :
+              'အစားအစာ အန္တရာယ်၊ သက်တမ်း၊ အလေအလွင့် လျှော့ချမှုနှင့် ပြန်လည်လှူဒါန်းမှုများကို မေးမြန်းနိုင်ပါတယ်။' :
               'Ask me about food risk, expiry, waste reduction, or redistribution.'}
           </div>
           <div style="margin-top:0.45rem; font-size:0.78rem; color:var(--text-muted);">
@@ -120,12 +121,12 @@ const AIAssistant = {
     if (bubble) {
       const isMm = typeof I18n !== 'undefined' && I18n.isMyanmar();
       bubble.innerHTML = `
-        <div style="font-weight:800; font-size:0.95rem; margin-bottom:0.35rem; color:#713f12;">
-          ${isMm ? 'မင်္ဂလာပါ 👋<br>ကျွန်ုပ်သည် FoodWaste AI Assistant ဖြစ်ပါသည်။' : 'Hello 👋<br>I am FoodWaste AI Assistant.'}
+        <div style="font-weight:800; font-size:0.95rem; margin-bottom:0.35rem; color:var(--text-main);">
+          ${isMm ? 'မင်္ဂလာပါ 👋<br>ကျွန်ုပ်က FoodWaste AI Assistant ပါ။' : 'Hello 👋<br>I\'m FoodWaste AI Assistant.'}
         </div>
-        <div style="font-size:0.84rem; line-height:1.5; color:var(--text-main);">
+        <div style="font-size:0.84rem; line-height:1.5; color:var(--text-body);">
           ${isMm ?
-            'အစားအစာ အန္တရာယ်၊ သက်တမ်း၊ အလေအလွင့် လျှော့ချမှုနှင့် ပြန်လည်လှူဒါန်းမှုများကို မေးမြန်းနိုင်ပါသည်။' :
+            'အစားအစာ အန္တရာယ်၊ သက်တမ်း၊ အလေအလွင့် လျှော့ချမှုနှင့် ပြန်လည်လှူဒါန်းမှုများကို မေးမြန်းနိုင်ပါတယ်။' :
             'Ask me about food risk, expiry, waste reduction, or redistribution.'}
         </div>
         <div style="margin-top:0.45rem; font-size:0.78rem; color:var(--text-muted);">
@@ -140,10 +141,10 @@ const AIAssistant = {
     if (!container) return;
     const isMm = typeof I18n !== 'undefined' && I18n.isMyanmar();
     container.innerHTML = `
-      <button class="gemini-chip" onclick="AIAssistant.sendQuickChip(1)">${isMm ? '⚠️ အန္တရာယ်မြင့် ပစ္စည်းများ' : '⚠️ High Risk'}</button>
-      <button class="gemini-chip" onclick="AIAssistant.sendQuickChip(2)">${isMm ? '👨‍🍳 ဦးစားပေး ချက်ပြုတ်ရန်' : '👨‍🍳 Cook Priority'}</button>
-      <button class="gemini-chip" onclick="AIAssistant.sendQuickChip(3)">${isMm ? '🤝 ပြန်လည်လှူဒါန်းမှု' : '🤝 Redistribution'}</button>
-      <button class="gemini-chip" onclick="AIAssistant.sendQuickChip(4)">${isMm ? '📊 နေ့စဉ် အနှစ်ချုပ်' : '📊 Daily Summary'}</button>
+      <button type="button" class="gemini-chip" onclick="AIAssistant.sendQuickChip(1)">${isMm ? '⚠️ အန္တရာယ်မြင့် ပစ္စည်းများ' : '⚠️ High Risk'}</button>
+      <button type="button" class="gemini-chip" onclick="AIAssistant.sendQuickChip(2)">${isMm ? '👨‍🍳 ဦးစားပေး ချက်ပြုတ်ရန်' : '👨‍🍳 Cook Priority'}</button>
+      <button type="button" class="gemini-chip" onclick="AIAssistant.sendQuickChip(3)">${isMm ? '🤝 ပြန်လည်လှူဒါန်းမှု' : '🤝 Redistribution'}</button>
+      <button type="button" class="gemini-chip" onclick="AIAssistant.sendQuickChip(4)">${isMm ? '📊 နေ့စဉ် အနှစ်ချုပ်' : '📊 Daily Summary'}</button>
     `;
   },
 
@@ -157,13 +158,13 @@ const AIAssistant = {
     widget.id = 'gemini-chat-widget';
     widget.innerHTML = `
       <!-- Trigger Bubble Button -->
-      <button id="gemini-fab-trigger" class="gemini-fab" onclick="AIAssistant.toggle()" title="Ask FoodWaste AI Assistant">
+      <button id="gemini-fab-trigger" class="gemini-fab" onclick="AIAssistant.toggle()" title="Ask FoodWaste AI Assistant" aria-label="Open AI Assistant">
         <span class="gemini-fab-sparkle">✨</span>
         <span class="gemini-fab-text">AI Assistant</span>
       </button>
 
       <!-- Glass Chat Drawer -->
-      <div id="gemini-chat-modal" class="gemini-modal-backdrop">
+      <div id="gemini-chat-modal" class="gemini-modal-backdrop" onclick="if(event.target===this)AIAssistant.toggle()">
         <div class="gemini-modal-drawer">
           <!-- Header -->
           <div class="gemini-drawer-header">
@@ -180,8 +181,8 @@ const AIAssistant = {
               </div>
             </div>
             <div style="display:flex; align-items:center; gap:0.4rem;">
-              <button class="btn-bubble btn-glass-subtle btn-sm-bubble" onclick="AIAssistant.clearHistory()" title="Clear Chat History" style="font-size:0.75rem; padding:0.3rem 0.6rem;">🗑️</button>
-              <button class="btn-bubble btn-glass-subtle btn-sm-bubble" onclick="AIAssistant.toggle()" style="font-weight:700;">✕</button>
+              <button type="button" class="btn-bubble btn-glass-subtle btn-sm-bubble" onclick="AIAssistant.clearHistory()" title="Clear Chat History" style="font-size:0.75rem; padding:0.3rem 0.6rem;">🗑️</button>
+              <button type="button" class="btn-bubble btn-glass-subtle btn-sm-bubble" onclick="AIAssistant.toggle()" style="font-weight:700;">✕</button>
             </div>
           </div>
 
@@ -198,7 +199,7 @@ const AIAssistant = {
           <!-- Input Area -->
           <form class="gemini-input-bar" onsubmit="AIAssistant.handleSubmit(event)">
             <input type="text" id="gemini-user-input" class="gemini-text-input" placeholder="Ask about food waste, expiry, or donation..." data-i18n-placeholder="chat.placeholder" autocomplete="off">
-            <button type="submit" id="gemini-send-btn" class="gemini-send-button" title="Send Message">
+            <button type="submit" id="gemini-send-btn" class="gemini-send-button" title="Send Message" aria-label="Send">
               <span>➤</span>
             </button>
           </form>
@@ -218,21 +219,26 @@ const AIAssistant = {
         z-index: 1000;
         display: flex;
         align-items: center;
-        gap: 0.4rem;
+        gap: 0.45rem;
         padding: 0.65rem 1.15rem;
-        border-radius: 9999px;
-        background: linear-gradient(135deg, rgba(254,240,138,0.95), rgba(250,204,21,0.95));
-        border: 1px solid rgba(255,255,255,0.8);
-        box-shadow: 0 8px 24px rgba(234,179,8,0.35), 0 2px 8px rgba(0,0,0,0.06);
+        border-radius: var(--radius-pill);
+        background: linear-gradient(135deg, #fde047 0%, #facc15 100%);
+        color: var(--text-yellow-btn);
+        border: 1px solid var(--glass-border);
+        box-shadow: inset 0 1px 2px rgba(255,255,255,0.8), var(--shadow-yellow-btn);
         cursor: pointer;
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
+        backdrop-filter: var(--glass-blur);
+        -webkit-backdrop-filter: var(--glass-blur);
+        transition: transform var(--transition-bounce), box-shadow var(--transition-smooth);
         font-family: inherit;
+      }
+      [data-theme="dark"] .gemini-fab {
+        background: linear-gradient(135deg, #38bdf8 0%, #0ea5e9 100%);
+        color: #06111f;
+        box-shadow: inset 0 1px 2px rgba(255,255,255,0.6), 0 8px 24px rgba(56, 189, 248, 0.4);
       }
       .gemini-fab:hover {
         transform: translateY(-2px) scale(1.04);
-        box-shadow: 0 12px 30px rgba(234,179,8,0.45);
       }
       .gemini-fab-sparkle {
         font-size: 1.1rem;
@@ -241,14 +247,13 @@ const AIAssistant = {
       .gemini-fab-text {
         font-weight: 800;
         font-size: 0.88rem;
-        color: #713f12;
       }
       .gemini-modal-backdrop {
         position: fixed;
         inset: 0;
-        background: rgba(15, 23, 42, 0.35);
-        backdrop-filter: blur(6px);
-        -webkit-backdrop-filter: blur(6px);
+        background: var(--bg-modal-backdrop);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
         z-index: 2000;
         display: none;
         align-items: flex-end;
@@ -263,12 +268,12 @@ const AIAssistant = {
         max-width: 480px;
         height: 640px;
         max-height: 88vh;
-        background: rgba(255, 255, 255, 0.94);
-        backdrop-filter: blur(24px);
-        -webkit-backdrop-filter: blur(24px);
-        border: 1px solid rgba(255, 255, 255, 0.85);
-        border-radius: 28px;
-        box-shadow: 0 24px 60px rgba(0,0,0,0.18), 0 4px 16px rgba(0,0,0,0.06);
+        background: var(--bg-surface-glass-elevated);
+        backdrop-filter: var(--glass-blur-heavy);
+        -webkit-backdrop-filter: var(--glass-blur-heavy);
+        border: 1px solid var(--glass-border);
+        border-radius: var(--radius-xl);
+        box-shadow: var(--glass-highlight), var(--shadow-glass-float);
         display: flex;
         flex-direction: column;
         overflow: hidden;
@@ -283,19 +288,19 @@ const AIAssistant = {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        border-bottom: 1px solid rgba(0,0,0,0.05);
-        background: rgba(255,255,255,0.7);
+        border-bottom: 1px solid var(--glass-border-subtle);
+        background: var(--bg-surface-glass-subtle);
       }
       .gemini-avatar-glow {
         width: 36px;
         height: 36px;
         border-radius: 50%;
-        background: #fef08a;
+        background: var(--accent-primary-light);
         display: flex;
         align-items: center;
         justify-content: center;
         font-size: 1.15rem;
-        box-shadow: 0 0 12px rgba(250,204,21,0.5);
+        box-shadow: 0 0 12px var(--accent-primary-glow);
       }
       .gemini-active-pill {
         font-size: 0.65rem;
@@ -303,62 +308,32 @@ const AIAssistant = {
         background: rgba(16,185,129,0.15);
         color: #059669;
         padding: 0.15rem 0.45rem;
-        border-radius: 9999px;
-      }
-      .gemini-status-bar {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 0.35rem;
-        padding: 0.45rem 1rem;
-        background: rgba(255, 255, 255, 0.7);
-        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-        font-size: 0.72rem;
-        color: var(--text-muted);
-      }
-      .gemini-status-pill {
-        display: flex;
-        align-items: center;
-        gap: 0.3rem;
-        background: rgba(240, 253, 244, 0.85);
-        border: 1px solid rgba(74, 222, 128, 0.4);
-        padding: 0.2rem 0.5rem;
-        border-radius: 9999px;
-        color: #166534;
-        font-weight: 600;
-        font-size: 0.68rem;
-      }
-      .status-indicator-dot {
-        width: 6px;
-        height: 6px;
-        border-radius: 50%;
-        background: #22c55e;
-        box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.25);
-        display: inline-block;
+        border-radius: var(--radius-pill);
       }
       .gemini-chips-scroll {
         display: flex;
         gap: 0.4rem;
         padding: 0.6rem 1rem;
         overflow-x: auto;
-        border-bottom: 1px solid rgba(0,0,0,0.03);
-        background: rgba(255,255,255,0.4);
+        border-bottom: 1px solid var(--glass-border-subtle);
+        background: var(--bg-surface-glass-subtle);
       }
       .gemini-chip {
         white-space: nowrap;
-        background: rgba(255,255,255,0.88);
-        border: 1px solid rgba(0,0,0,0.08);
-        border-radius: 9999px;
+        background: var(--bg-surface-glass-elevated);
+        border: 1px solid var(--glass-border);
+        border-radius: var(--radius-pill);
         padding: 0.35rem 0.75rem;
         font-size: 0.75rem;
         font-weight: 700;
         color: var(--text-main);
         cursor: pointer;
         transition: all 0.15s ease;
+        font-family: inherit;
       }
       .gemini-chip:hover {
-        background: #fef08a;
-        border-color: #facc15;
+        background: var(--accent-primary-light);
+        border-color: var(--accent-primary);
         transform: translateY(-1px);
       }
       .gemini-messages-container {
@@ -378,33 +353,33 @@ const AIAssistant = {
         align-self: flex-end;
       }
       .gemini-msg-user .gemini-msg-bubble {
-        background: linear-gradient(135deg, #facc15, #eab308);
-        color: #713f12;
+        background: linear-gradient(135deg, var(--accent-primary-hover) 0%, var(--accent-primary) 100%);
+        color: #ffffff;
         border-radius: 20px 20px 4px 20px;
         padding: 0.7rem 1rem;
         font-size: 0.88rem;
         font-weight: 600;
-        box-shadow: 0 4px 12px rgba(234,179,8,0.2);
+        box-shadow: var(--shadow-accent-btn);
         word-break: break-word;
       }
       .gemini-msg-ai {
         align-self: flex-start;
       }
       .gemini-msg-ai .gemini-msg-bubble {
-        background: rgba(248, 250, 252, 0.98);
-        border: 1px solid rgba(0,0,0,0.06);
+        background: var(--bg-surface-glass-card);
+        border: 1px solid var(--glass-border);
         color: var(--text-main);
         border-radius: 20px 20px 20px 4px;
         padding: 0.85rem 1.05rem;
         font-size: 0.85rem;
         line-height: 1.55;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+        box-shadow: var(--shadow-bubble);
         word-break: break-word;
       }
       .gemini-sources-box {
         margin-top: 0.6rem;
         padding: 0.4rem 0.6rem;
-        background: rgba(0,0,0,0.025);
+        background: var(--bg-surface-glass-subtle);
         border-radius: 8px;
         font-size: 0.72rem;
         color: var(--text-muted);
@@ -417,46 +392,6 @@ const AIAssistant = {
         align-items: center;
         gap: 0.3rem;
       }
-      .gemini-food-card {
-        margin-top: 0.75rem;
-        margin-bottom: 0.5rem;
-        padding: 0.65rem 0.85rem;
-        background: rgba(254, 240, 138, 0.25);
-        border: 1px solid rgba(250, 204, 21, 0.45);
-        border-radius: 12px;
-      }
-      .gemini-food-card-row {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-        gap: 0.55rem 0.75rem;
-      }
-      .gemini-food-card-col {
-        display: flex;
-        flex-direction: column;
-        gap: 0.15rem;
-      }
-      .gemini-food-card-label {
-        font-size: 0.68rem;
-        font-weight: 700;
-        color: var(--text-muted);
-        text-transform: uppercase;
-        letter-spacing: 0.02em;
-      }
-      .gemini-food-card-val {
-        font-size: 0.82rem;
-        font-weight: 700;
-        color: var(--text-main);
-      }
-      .gemini-engine-badge {
-        font-size: 0.7rem;
-        color: var(--text-muted);
-        margin-top: 0.75rem;
-        padding-top: 0.5rem;
-        border-top: 1px solid rgba(0,0,0,0.06);
-        display: flex;
-        flex-direction: column;
-        gap: 0.1rem;
-      }
       .gemini-smart-actions {
         margin-top: 0.75rem;
         margin-bottom: 0.4rem;
@@ -465,9 +400,9 @@ const AIAssistant = {
         gap: 0.45rem;
       }
       .gemini-action-btn {
-        background: #fefce8;
-        border: 1px solid rgba(250, 204, 21, 0.6);
-        color: #713f12;
+        background: var(--bg-surface-glass-subtle);
+        border: 1px solid var(--glass-border);
+        color: var(--text-main);
         padding: 0.55rem 0.85rem;
         border-radius: 12px;
         cursor: pointer;
@@ -478,16 +413,18 @@ const AIAssistant = {
         gap: 0.25rem;
         width: 100%;
         transition: all 0.15s ease;
+        font-family: inherit;
       }
       .gemini-action-btn:hover {
-        background: #fef08a;
+        background: var(--accent-primary-light);
+        border-color: var(--accent-primary);
         transform: translateY(-1px);
         box-shadow: 0 2px 8px rgba(0,0,0,0.06);
       }
       .gemini-action-btn-title {
         font-weight: 700;
         font-size: 0.82rem;
-        color: #713f12;
+        color: var(--text-main);
       }
       .gemini-action-btn-meta {
         font-size: 0.7rem;
@@ -496,45 +433,46 @@ const AIAssistant = {
         gap: 0.35rem;
       }
       .gemini-action-meta-label {
-        color: #a16207;
+        color: var(--text-muted);
         font-weight: 600;
       }
       .gemini-action-meta-val {
         font-weight: 800;
-        background: rgba(250, 204, 21, 0.45);
-        color: #713f12;
+        background: var(--accent-gold-light);
+        color: var(--accent-gold-dark);
         padding: 0.1rem 0.4rem;
         border-radius: 4px;
       }
       .gemini-input-bar {
-        padding: 0.75rem 1rem;
-        border-top: 1px solid rgba(0,0,0,0.05);
-        background: rgba(255,255,255,0.75);
+        padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom, 0px)) 1rem;
+        border-top: 1px solid var(--glass-border-subtle);
+        background: var(--bg-surface-glass-elevated);
         display: flex;
         gap: 0.5rem;
         align-items: center;
       }
       .gemini-text-input {
         flex: 1;
-        border: 1px solid rgba(0,0,0,0.12);
-        border-radius: 9999px;
+        border: 1px solid var(--glass-border);
+        border-radius: var(--radius-pill);
         padding: 0.6rem 1.1rem;
         font-size: 0.85rem;
         outline: none;
-        background: rgba(255,255,255,0.95);
+        background: var(--bg-surface-glass-subtle);
+        color: var(--text-main);
         font-family: inherit;
       }
       .gemini-text-input:focus {
-        border-color: #facc15;
-        box-shadow: 0 0 0 3px rgba(250,204,21,0.25);
+        border-color: var(--accent-primary);
+        box-shadow: 0 0 0 3px var(--accent-primary-glow);
       }
       .gemini-send-button {
         width: 38px;
         height: 38px;
         border-radius: 50%;
         border: none;
-        background: #facc15;
-        color: #713f12;
+        background: var(--accent-primary);
+        color: #ffffff;
         font-weight: 800;
         cursor: pointer;
         display: flex;
@@ -544,7 +482,7 @@ const AIAssistant = {
       }
       .gemini-send-button:hover {
         transform: scale(1.08);
-        background: #eab308;
+        background: var(--accent-primary-hover);
       }
       .typing-dots {
         display: inline-flex;
@@ -555,7 +493,7 @@ const AIAssistant = {
         width: 6px;
         height: 6px;
         border-radius: 50%;
-        background: #eab308;
+        background: var(--accent-primary);
         animation: typingBlink 1.4s infinite ease-in-out both;
       }
       .typing-dots span:nth-child(1) { animation-delay: -0.32s; }
@@ -575,7 +513,7 @@ const AIAssistant = {
           border-radius: 0;
         }
         .gemini-fab {
-          bottom: 4.8rem;
+          bottom: 5.2rem;
           right: 1rem;
         }
       }
@@ -602,7 +540,7 @@ const AIAssistant = {
     let query = '';
     switch (chipIndex) {
       case 1:
-        query = isMm ? "ဘယ်အစားအစာတွေက အန္တရာယ်မြင့်နေပါသလဲ?" : "Which food items are high risk and why?";
+        query = isMm ? "ဘယ်အစားအစာတွေက အန္တရာယ်မြင့်နေပါသလဲ?" : "Which food items are high risk?";
         break;
       case 2:
         query = isMm ? "ယနေ့ ဘယ်ကုန်ကြမ်းတွေကို ဦးစားပေး ချက်ပြုတ်သင့်ပါသလဲ?" : "What ingredients should our chef cook or prioritize today?";
@@ -724,71 +662,40 @@ const AIAssistant = {
     const rawText = data.answer || data.explanation || '';
     let formattedText = this.formatMarkdown(rawText);
 
-    // Determine if this is a conversational-only response (no food cards, sources, directives)
-    const conversationalTypes = ['CASUAL_CHAT', 'GREETING', 'UNKNOWN_FOOD', 'OUT_OF_DOMAIN'];
-    const isConversational = data.responseType && conversationalTypes.includes(data.responseType);
-
-    // Clean Related Food Items Card (Only render for food/operational responses)
-    let foodCardsHtml = '';
-    if (!isConversational) {
-      const hasFoodCardInText = rawText.includes('Food Item:') || rawText.includes('အစားအစာ:');
-      if (!hasFoodCardInText && data.relatedFoodItems && data.relatedFoodItems.length > 0) {
-        foodCardsHtml = data.relatedFoodItems.map(item => {
-          const statusBadgeClass = item.expiryStatus === 'EXPIRED' ? 'badge-risk-high' :
-            (item.expiryStatus === 'SAME_DAY_EXPIRY' || item.expiryStatus === 'NEAR_EXPIRY' ? 'badge-risk-medium' : 'badge-risk-low');
-          const statusText = item.expiryStatus || 'SAFE';
-          return `
-            <div class="gemini-food-card">
-              <div class="gemini-food-card-row">
-                <div class="gemini-food-card-col">
-                  <span class="gemini-food-card-label">${isMm ? 'အစားအစာ:' : 'Food Item:'}</span>
-                  <span class="gemini-food-card-val">🍲 ${this.escapeHtml(item.name)}</span>
-                </div>
-                <div class="gemini-food-card-col">
-                  <span class="gemini-food-card-label">${isMm ? 'အခြေအနေ:' : 'Status:'}</span>
-                  <span class="badge-bubble ${statusBadgeClass}" style="font-size:0.68rem; padding:0.12rem 0.4rem; width:fit-content;">${statusText}</span>
-                </div>
-                <div class="gemini-food-card-col">
-                  <span class="gemini-food-card-label">${isMm ? 'လက်ကျန်:' : 'Stock:'}</span>
-                  <span class="gemini-food-card-val">${item.stock} ${item.unit || ''}</span>
-                </div>
-                <div class="gemini-food-card-col">
-                  <span class="gemini-food-card-label">${isMm ? 'အန္တရာယ်:' : 'Risk:'}</span>
-                  <span class="gemini-food-card-val" style="color:#dc2626; font-weight:800;">${item.riskScore}%</span>
-                </div>
-              </div>
-            </div>
-          `;
-        }).join('');
-      }
-    }
+    // Determine if this is a purely conversational / informational response
+    const conversationalTypes = ['CASUAL_CHAT', 'GREETING', 'IDENTITY', 'CAPABILITIES', 'UNKNOWN_FOOD', 'OUT_OF_DOMAIN'];
+    const resType = data.responseType || data.type || '';
+    const isConversational = conversationalTypes.includes(resType);
 
     // Sources Box HTML — only for food/operational responses
     let sourcesHtml = '';
     if (!isConversational && data.sources && data.sources.length > 0) {
+      // Deduplicate sources
+      const uniqueSources = Array.from(new Set(data.sources));
       sourcesHtml = `
         <div class="gemini-sources-box">
           <div class="gemini-sources-title">
             <span>📚 ${isMm ? 'ဒေတာအရင်းအမြစ်များ:' : 'Data Sources:'}</span>
           </div>
-          <div>${data.sources.map(s => `&bull; ${this.escapeHtml(s)}`).join('<br>')}</div>
+          <div>${uniqueSources.map(s => `&bull; ${this.escapeHtml(s)}`).join('<br>')}</div>
         </div>
       `;
     }
 
-    // Smart Actions HTML — only for food/operational responses
+    // Smart Actions HTML — only for actionable food/operational responses
     let actionsHtml = '';
-    if (!isConversational && data.smartRecommendations && data.smartRecommendations.length > 0) {
+    const actionsList = data.smartDirectives || data.smartRecommendations || [];
+    if (!isConversational && actionsList.length > 0) {
       actionsHtml = `
         <div class="gemini-smart-actions">
-          <div style="font-weight:800; font-size:0.78rem; color:#713f12; margin-bottom:0.25rem;">
-            ${isMm ? '💡 Smart Directives:' : '💡 Smart Directives:'}
+          <div style="font-weight:800; font-size:0.78rem; color:var(--text-main); margin-bottom:0.25rem;">
+            💡 Smart Directives:
           </div>
-          ${data.smartRecommendations.map(act => {
+          ${actionsList.map(act => {
             const isPriority = act.badge === 'URGENT' || act.badge === 'အရေးပေါ်' || act.badge === 'HIGH';
             const metaLabel = isPriority ? (isMm ? 'ဦးစားပေး အဆင့်:' : 'Priority:') : (isMm ? 'လုပ်ဆောင်ချက်:' : 'Action:');
             return `
-              <button class="gemini-action-btn" onclick="AIAssistant.handleSmartAction('${act.actionType}', '${act.payload}')">
+              <button type="button" class="gemini-action-btn" onclick="AIAssistant.handleSmartAction('${act.actionType}', '${act.payload}')">
                 <div class="gemini-action-btn-title">${this.escapeHtml(act.title)}</div>
                 <div class="gemini-action-btn-meta">
                   <span class="gemini-action-meta-label">${metaLabel}</span>
@@ -804,7 +711,6 @@ const AIAssistant = {
     div.innerHTML = `
       <div class="gemini-msg-bubble">
         ${formattedText}
-        ${foodCardsHtml}
         ${actionsHtml}
         ${sourcesHtml}
       </div>
@@ -872,4 +778,3 @@ if (document.readyState === 'loading') {
 } else {
   AIAssistant.init();
 }
-

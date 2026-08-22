@@ -4,6 +4,19 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FoodWaste AI - Dashboard</title>
+  <script>
+    (function() {
+      try {
+        var saved = localStorage.getItem('foodwaste_theme') || 'system';
+        var resolved = saved;
+        if (saved === 'system') {
+          resolved = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+        }
+        document.documentElement.setAttribute('data-theme', resolved);
+        document.documentElement.setAttribute('data-theme-mode', saved);
+      } catch(e) {}
+    })();
+  </script>
   <link rel="stylesheet" href="/css/variables.css">
   <link rel="stylesheet" href="/css/components.css">
   <link rel="stylesheet" href="/css/styles.css">
@@ -59,6 +72,7 @@
     </nav>
 
     <div class="sidebar-footer-group">
+      <div id="sidebar-theme-container" class="sidebar-theme-box"></div>
       <div class="sidebar-user-pill">
         <div class="user-profile-meta">
           <div class="user-avatar-bubble" id="current-user-avatar">A</div>
@@ -84,8 +98,9 @@
       </div>
       <div class="topbar-right">
         <div id="language-switcher-container"></div>
+        <div id="topbar-theme-container"></div>
         <div class="system-status-bubble">
-          <span class="status-dot-yellow"></span>
+          <span class="status-dot-blue"></span>
           <span data-i18n="chat.status">AI Engine: Active</span>
         </div>
         <a href="/prediction.html" class="btn-bubble btn-yellow btn-sm-bubble" data-i18n="pred.btn.evaluate">+ Run Prediction</a>
@@ -100,17 +115,15 @@
         <div class="kpi-bubble-card">
           <div class="kpi-bubble-top">
             <span class="kpi-bubble-label" data-i18n="dash.kpi.todayWaste">Today's Food Waste</span>
-            <div class="kpi-bubble-icon kpi-icon-red">🗑️</div>
+            <div class="kpi-bubble-icon kpi-icon-blue">🗑️</div>
           </div>
           <div>
             <div class="kpi-bubble-value" id="kpi-today-waste">0.0</div>
-            <div class="kpi-bubble-sub" id="kpi-today-sub" style="color:var(--text-muted);">
-              <span>No waste logged today</span>
-            </div>
+            <div class="kpi-bubble-sub" id="kpi-today-sub" data-i18n="dash.kpi.noWaste">No waste logged today</div>
           </div>
         </div>
 
-        <!-- 2. Predicted Tomorrow -->
+        <!-- 2. Predicted Waste Tomorrow -->
         <div class="kpi-bubble-card">
           <div class="kpi-bubble-top">
             <span class="kpi-bubble-label" data-i18n="dash.kpi.predictedTomorrow">Predicted Tomorrow</span>
@@ -118,13 +131,11 @@
           </div>
           <div>
             <div class="kpi-bubble-value" id="kpi-predicted-tomorrow">0.0</div>
-            <div class="kpi-bubble-sub" id="kpi-pred-sub" style="color:var(--accent-yellow-dark); font-weight:700;">
-              <span>No prediction available</span>
-            </div>
+            <div class="kpi-bubble-sub" id="kpi-pred-sub" data-i18n="dash.kpi.noPred">No prediction available</div>
           </div>
         </div>
 
-        <!-- 3. Estimated Money Lost -->
+        <!-- 3. Estimated Financial Loss -->
         <div class="kpi-bubble-card">
           <div class="kpi-bubble-top">
             <span class="kpi-bubble-label" data-i18n="dash.kpi.moneyLost">Estimated Money Lost</span>
@@ -132,70 +143,70 @@
           </div>
           <div>
             <div class="kpi-bubble-value" id="kpi-money-lost">0 MMK</div>
-            <div class="kpi-bubble-sub" id="kpi-money-sub" style="color:var(--text-muted);">
-              <span>Today's financial spoilage</span>
-            </div>
+            <div class="kpi-bubble-sub" id="kpi-money-sub" data-i18n="dash.kpi.financialLoss">Today's financial spoilage</div>
           </div>
         </div>
 
-        <!-- 4. Environmental Impact -->
+        <!-- 4. Diverted / Environmental Impact -->
         <div class="kpi-bubble-card">
           <div class="kpi-bubble-top">
             <span class="kpi-bubble-label" data-i18n="dash.kpi.carbonImpact">Environmental Impact</span>
-            <div class="kpi-bubble-icon kpi-icon-green">🌍</div>
+            <div class="kpi-bubble-icon kpi-icon-green">🌱</div>
           </div>
           <div>
             <div class="kpi-bubble-value" id="kpi-carbon-impact">0.0 kg CO₂e</div>
-            <div class="kpi-bubble-sub" id="kpi-carbon-sub" style="color:#047857; font-weight:600;">
-              <span>Diverted food waste tracking</span>
-            </div>
+            <div class="kpi-bubble-sub" id="kpi-carbon-sub" data-i18n="dash.kpi.diverted">Diverted food waste tracking</div>
           </div>
         </div>
       </section>
 
-      <!-- Dashboard Columns: 7-Day Prediction Chart & High Risk Foods -->
+      <!-- Multi-Column Operational Grid -->
       <div class="dashboard-grid-columns">
-        <!-- 7-Day Waste Prediction Chart Card -->
+        <!-- 7-Day Waste Trend Card -->
         <div class="card-glass">
           <div class="card-header-glass">
             <div>
               <h2 class="card-title-glass" data-i18n="dash.chart.title">📈 7-Day Waste Volume Trend (Actual vs AI Predicted)</h2>
               <div class="card-subtitle-glass" data-i18n="dash.chart.subtitle">Yellow-highlighted bar indicates tomorrow's AI predicted threshold</div>
             </div>
-            <span class="badge-bubble badge-optimization" data-i18n="dash.chart.yellowMode">Yellow AI Mode</span>
+            <div style="display:flex; align-items:center; gap:0.5rem;">
+              <span class="badge-bubble badge-urgent" style="font-size:0.72rem;" data-i18n="dash.chart.yellowMode">Yellow AI Mode</span>
+            </div>
           </div>
           <div class="card-body-glass">
-            <div id="waste-chart-container">
-              <!-- Dynamically populated by dashboard.js with golden yellow styling -->
+            <div id="waste-chart-container" style="min-height: 220px;">
+              <!-- Rendered dynamically by dashboard.js -->
             </div>
-            <div style="display:flex; justify-content:center; gap:24px; margin-top:1.25rem; font-size:0.8rem; font-weight:600;">
-              <div style="display:flex; align-items:center; gap:6px;">
-                <span style="display:inline-block; width:14px; height:14px; background:linear-gradient(180deg, #facc15 0%, #eab308 100%); border-radius:4px;"></span>
+          </div>
+          <div class="card-footer-glass">
+            <div style="display: flex; gap: 1rem; align-items: center; font-size: 0.8rem; color: var(--text-muted);">
+              <span style="display:flex; align-items:center; gap:0.35rem;">
+                <span style="width:10px; height:10px; border-radius:50%; background:linear-gradient(180deg, #38bdf8 0%, #0071e3 100%); display:inline-block;"></span>
                 <span data-i18n="dash.chart.actual">Actual Recorded Waste</span>
-              </div>
-              <div style="display:flex; align-items:center; gap:6px;">
-                <span style="display:inline-block; width:14px; height:14px; background:rgba(254, 240, 138, 0.8); border:2px dashed #eab308; border-radius:4px;"></span>
+              </span>
+              <span style="display:flex; align-items:center; gap:0.35rem;">
+                <span style="width:10px; height:10px; border-radius:50%; background:var(--accent-gold); display:inline-block;"></span>
                 <span data-i18n="dash.chart.predicted">AI Predicted Baseline</span>
-              </div>
+              </span>
             </div>
           </div>
         </div>
 
-        <!-- High Risk Foods Bubble Card -->
+        <!-- High Risk Kitchen Items Card -->
         <div class="card-glass">
           <div class="card-header-glass">
             <div>
-              <h2 class="card-title-glass" data-i18n="dash.highRisk.title">⚠️ High Risk Foods</h2>
-              <div class="card-subtitle-glass" data-i18n="dash.highRisk.subtitle">Priority kitchen items</div>
+              <h2 class="card-title-glass" data-i18n="dash.highRisk.title">🔥 High Risk Kitchen Items</h2>
+              <div class="card-subtitle-glass" data-i18n="dash.highRisk.subtitle">SWI-Prolog first-order logic assessment</div>
             </div>
-            <a href="/prediction.html" class="btn-bubble btn-glass-subtle btn-sm-bubble" data-i18n="action.details">View All</a>
+            <a href="/inventory.html" class="btn-bubble btn-glass-subtle btn-sm-bubble" data-i18n="nav.inventory">View All</a>
           </div>
-          <div class="card-body-glass" style="padding: 0.5rem 1.25rem 1.25rem 1.25rem;">
+          <div class="card-body-glass" style="padding: 0.5rem 1rem;">
             <div class="table-responsive">
-              <table class="data-table-glass">
+              <table class="data-table-glass" style="font-size: 0.85rem;">
                 <thead>
                   <tr>
-                    <th data-i18n="inv.th.item">Food Item</th>
+                    <th data-i18n="inv.th.item">Item</th>
                     <th data-i18n="pred.kpi.risk">Risk %</th>
                     <th style="text-align:right;" data-i18n="inv.th.status">Level</th>
                   </tr>
@@ -225,7 +236,7 @@
         </div>
         <div class="card-footer-glass">
           <span style="font-size:0.875rem; color:var(--text-body); font-weight:600;">
-            ✨ <span data-i18n="dash.savingsBanner">Total projected cost savings by applying recommendations:</span> <strong id="dashboard-savings-val" style="color:var(--accent-yellow-dark);">0 MMK</strong>
+            ✨ <span data-i18n="dash.savingsBanner">Total projected cost savings by applying recommendations:</span> <strong id="dashboard-savings-val" style="color:var(--accent-gold-dark);">0 MMK</strong>
           </span>
           <a href="/recommendations.html" class="btn-bubble btn-glass btn-sm-bubble" data-i18n="dash.rec.reviewRules">Review All Rules</a>
         </div>
@@ -257,12 +268,52 @@
     <span class="dock-icon">💡</span>
     <span data-i18n="dock.actions">Actions</span>
   </a>
-  <a href="/reports.html" class="dock-item">
-    <span class="dock-icon">📈</span>
-    <span data-i18n="dock.reports">Reports</span>
-  </a>
+  <button type="button" class="dock-item" onclick="toggleMobileMore()">
+    <span class="dock-icon">☰</span>
+    <span data-i18n="dock.more">More</span>
+  </button>
 </nav>
 
+<!-- Mobile More Drawer -->
+<div id="mobile-more-drawer" class="mobile-more-drawer" onclick="if(event.target===this)closeMobileMore()">
+  <div class="mobile-more-content">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.25rem;">
+      <h3 style="font-size:1.1rem; font-weight:800; color:var(--text-main);" data-i18n="more.title">More Operations</h3>
+      <button type="button" class="btn-bubble btn-glass-subtle btn-sm-bubble" onclick="closeMobileMore()">✕</button>
+    </div>
+    <div class="mobile-more-grid">
+      <a href="/sales.html" class="mobile-more-card">
+        <span class="mobile-more-icon">💰</span>
+        <span data-i18n="nav.sales">Sales</span>
+      </a>
+      <a href="/waste.html" class="mobile-more-card">
+        <span class="mobile-more-icon">🗑️</span>
+        <span data-i18n="nav.waste">Waste</span>
+      </a>
+      <a href="/redistribution.html" class="mobile-more-card">
+        <span class="mobile-more-icon">🤝</span>
+        <span data-i18n="nav.redistribution">Redistribution</span>
+      </a>
+      <a href="/reports.html" class="mobile-more-card">
+        <span class="mobile-more-icon">📈</span>
+        <span data-i18n="nav.reports">Reports</span>
+      </a>
+      <a href="/users.html" class="mobile-more-card admin-only">
+        <span class="mobile-more-icon">👥</span>
+        <span data-i18n="nav.users">Users</span>
+      </a>
+      <a href="/settings.html" class="mobile-more-card admin-only">
+        <span class="mobile-more-icon">⚙️</span>
+        <span data-i18n="nav.settings">Settings</span>
+      </a>
+    </div>
+    <button type="button" class="btn-bubble btn-glass-subtle" style="width:100%; margin-top:0.5rem;" onclick="Auth.logout()">
+      🚪 <span data-i18n="nav.logout">Logout</span>
+    </button>
+  </div>
+</div>
+
+<script src="/js/theme.js"></script>
 <script src="/js/i18n/en.js"></script>
 <script src="/js/i18n/mm.js"></script>
 <script src="/js/i18n/language.js"></script>

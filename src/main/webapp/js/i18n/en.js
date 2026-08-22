@@ -43,6 +43,13 @@ window.I18N_EN = {
   "dock.actions": "Actions",
   "dock.reports": "Reports",
   "dock.settings": "Settings",
+  "dock.more": "More",
+  "more.title": "More Operations",
+
+  // Theme Selectors
+  "theme.light": "Light",
+  "theme.dark": "Dark",
+  "theme.system": "System",
 
   // Roles & Badges
   "role.admin": "ADMIN",

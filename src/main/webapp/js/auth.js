@@ -149,12 +149,16 @@ const Auth = {
       });
     }
 
-    if (backdrop) {
-      backdrop.addEventListener('click', () => {
-        if (sidebar) sidebar.classList.remove('open');
-        backdrop.classList.remove('active');
-      });
-    }
+    // Mobile More Drawer Toggle
+    window.toggleMobileMore = () => {
+      const drawer = document.getElementById('mobile-more-drawer');
+      if (drawer) drawer.classList.toggle('active');
+    };
+
+    window.closeMobileMore = () => {
+      const drawer = document.getElementById('mobile-more-drawer');
+      if (drawer) drawer.classList.remove('active');
+    };
   }
 };
 

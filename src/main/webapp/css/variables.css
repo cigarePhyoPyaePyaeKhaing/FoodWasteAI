@@ -1,95 +1,208 @@
 /* ==========================================================================
    FoodWaste AI - Design System Variables
-   Theme: Liquid Glassmorphism, Warm Cream & Golden Yellow Accents
+   Themes: 
+     - Light: Pale Blue iOS-Inspired Bubble / Glass UI
+     - Dark:  Deep Navy Bubble / Glass UI
    ========================================================================== */
 
 :root {
-  /* Primary Yellow Accent System */
-  --accent-yellow-50: #fffbeb;
+  /* Theme Metadata */
+  --theme-name: 'light';
+
+  /* Primary Apple Blue Accent System */
+  --accent-primary: #0071e3;
+  --accent-primary-hover: #0077ed;
+  --accent-primary-active: #0062c4;
+  --accent-primary-light: #e0f2fe;
+  --accent-primary-text: #ffffff;
+  --accent-primary-glow: rgba(0, 113, 227, 0.28);
+
+  /* Gold / Yellow Accent System (for CTA & Warnings) */
+  --accent-gold: #f59e0b;
+  --accent-gold-hover: #d97706;
+  --accent-gold-light: #fef3c7;
+  --accent-gold-dark: #78350f;
+  --accent-gold-text: #1c1917;
+  --accent-gold-glow: rgba(245, 158, 11, 0.28);
+  --accent-yellow-dark: #78350f;
   --accent-yellow-100: #fef3c7;
-  --accent-yellow-200: #fde68a;
-  --accent-yellow-300: #fcd34d;
   --accent-yellow-400: #fbbf24;
   --accent-yellow-500: #f59e0b;
-  --accent-yellow-600: #d97706;
-  --accent-yellow-gold: #facc15;
-  --accent-yellow-dark: #713f12;
-  --accent-yellow-glow: rgba(250, 204, 21, 0.35);
-
-  /* Background & Base Canvas */
-  --bg-app: #fbfbfd;
-  --bg-cream: #f8f8fa;
-  --bg-surface-glass: rgba(255, 255, 255, 0.72);
-  --bg-surface-glass-card: rgba(255, 255, 255, 0.65);
-  --bg-surface-glass-elevated: rgba(255, 255, 255, 0.85);
-  --bg-surface-glass-subtle: rgba(255, 255, 255, 0.45);
-  --bg-surface-bubble: rgba(255, 255, 255, 0.9);
-
-  /* Glass Borders & Inner Highlights */
-  --glass-border: rgba(255, 255, 255, 0.8);
-  --glass-border-subtle: rgba(226, 232, 240, 0.6);
-  --glass-border-focus: rgba(250, 204, 21, 0.8);
-  --glass-highlight: inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.95), inset 0 -1px 1px 0 rgba(0, 0, 0, 0.02);
-
-  /* Typography & Slate Hierarchy */
-  --text-main: #0f172a;
-  --text-body: #334155;
-  --text-muted: #64748b;
-  --text-subtle: #94a3b8;
+  --accent-yellow-glow: rgba(245, 158, 11, 0.3);
   --text-yellow-btn: #1c1917;
 
+  /* Background & Base Canvas (Pale Blue Glass) */
+  --bg-app: #f0f6fc;
+  --bg-secondary: #e6f0fa;
+  --bg-canvas-gradient: 
+    radial-gradient(circle at 12% 15%, rgba(0, 113, 227, 0.08) 0%, transparent 40%),
+    radial-gradient(circle at 88% 85%, rgba(56, 189, 248, 0.08) 0%, transparent 45%),
+    radial-gradient(circle at 50% 50%, #f0f6fc 0%, #e8f2fc 100%);
+
+  --bg-surface-glass: rgba(255, 255, 255, 0.75);
+  --bg-surface-glass-card: rgba(255, 255, 255, 0.70);
+  --bg-surface-glass-elevated: rgba(255, 255, 255, 0.90);
+  --bg-surface-glass-subtle: rgba(235, 245, 255, 0.55);
+  --bg-surface-bubble: rgba(255, 255, 255, 0.96);
+  --bg-modal-backdrop: rgba(12, 35, 64, 0.28);
+  --bg-table-row: rgba(255, 255, 255, 0.65);
+  --bg-table-row-hover: rgba(255, 255, 255, 0.95);
+
+  /* Glass Borders & Inner Highlights */
+  --glass-border: rgba(255, 255, 255, 0.85);
+  --glass-border-subtle: rgba(186, 215, 245, 0.45);
+  --glass-border-focus: rgba(0, 113, 227, 0.75);
+  --glass-highlight: inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.95), inset 0 -1px 1px 0 rgba(0, 0, 0, 0.02);
+
+  /* Typography & Navy/Slate Hierarchy */
+  --text-main: #0c2340;
+  --text-body: #1e3a5f;
+  --text-muted: #537092;
+  --text-subtle: #7e9bbd;
+
   /* Semantic Risk & Category Glass Colors */
-  --risk-high-bg: rgba(239, 68, 68, 0.1);
+  --risk-high-bg: rgba(239, 68, 68, 0.10);
   --risk-high-text: #dc2626;
   --risk-high-border: rgba(239, 68, 68, 0.22);
-  --risk-high-bubble: rgba(254, 226, 226, 0.6);
+  --risk-high-bubble: rgba(254, 226, 226, 0.65);
 
   --risk-med-bg: rgba(245, 158, 11, 0.12);
   --risk-med-text: #b45309;
   --risk-med-border: rgba(245, 158, 11, 0.25);
-  --risk-med-bubble: rgba(254, 243, 199, 0.6);
+  --risk-med-bubble: rgba(254, 243, 199, 0.65);
 
-  --risk-low-bg: rgba(16, 185, 129, 0.1);
+  --risk-low-bg: rgba(16, 185, 129, 0.10);
   --risk-low-text: #059669;
   --risk-low-border: rgba(16, 185, 129, 0.22);
-  --risk-low-bubble: rgba(209, 250, 229, 0.6);
+  --risk-low-bubble: rgba(209, 250, 229, 0.65);
 
   --status-urgent-bg: rgba(239, 68, 68, 0.12);
   --status-urgent-text: #b91c1c;
   --status-important-bg: rgba(249, 115, 22, 0.12);
   --status-important-text: #c2410c;
-  --status-opt-bg: rgba(59, 130, 246, 0.12);
-  --status-opt-text: #1d4ed8;
+  --status-opt-bg: rgba(0, 113, 227, 0.10);
+  --status-opt-text: #0071e3;
   --status-redist-bg: rgba(168, 85, 247, 0.12);
   --status-redist-text: #7e22ce;
 
-  /* Shadows - Smooth Apple Ambient Diffuse */
-  --shadow-bubble: 0 10px 25px -5px rgba(0, 0, 0, 0.04), 0 4px 10px -3px rgba(0, 0, 0, 0.02);
-  --shadow-glass-float: 0 20px 35px -8px rgba(0, 0, 0, 0.06), 0 6px 16px -4px rgba(0, 0, 0, 0.03);
-  --shadow-yellow-btn: 0 8px 20px -4px rgba(234, 179, 8, 0.35);
-  --shadow-hover: 0 16px 30px -6px rgba(0, 0, 0, 0.08), 0 6px 12px -3px rgba(0, 0, 0, 0.04);
+  /* Ambient Diffuse Apple Shadows */
+  --shadow-bubble: 0 10px 25px -5px rgba(12, 35, 64, 0.05), 0 4px 10px -3px rgba(12, 35, 64, 0.02);
+  --shadow-glass-float: 0 20px 35px -8px rgba(12, 35, 64, 0.08), 0 6px 16px -4px rgba(12, 35, 64, 0.03);
+  --shadow-hover: 0 16px 30px -6px rgba(12, 35, 64, 0.10), 0 6px 12px -3px rgba(12, 35, 64, 0.04);
+  --shadow-accent-btn: 0 8px 20px -4px rgba(0, 113, 227, 0.35);
+  --shadow-yellow-btn: 0 8px 20px -4px rgba(245, 158, 11, 0.35);
 
   /* Border Radii Tokens */
   --radius-xs: 10px;
   --radius-sm: 16px;
-  --radius-md: 22px;
-  --radius-lg: 28px;
-  --radius-xl: 36px;
+  --radius-md: 20px;
+  --radius-lg: 26px;
+  --radius-xl: 32px;
   --radius-pill: 9999px;
 
   /* Glassmorphism Blur Tokens */
-  --glass-blur: blur(28px) saturate(190%);
-  --glass-blur-heavy: blur(36px) saturate(200%);
+  --glass-blur: blur(24px) saturate(180%);
+  --glass-blur-heavy: blur(36px) saturate(190%);
 
   /* Font System */
   --font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 
   /* Transitions */
-  --transition-bounce: 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  --transition-bounce: 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
   --transition-smooth: 0.22s cubic-bezier(0.16, 1, 0.3, 1);
 
-  /* Dimensions */
+  /* Layout Dimensions */
   --sidebar-width: 270px;
   --topbar-height: 72px;
   --mobile-bottom-nav-height: 72px;
+}
+
+/* ==========================================================================
+   DARK THEME SYSTEM (Deep Navy Bubble / Glass UI)
+   ========================================================================== */
+[data-theme="dark"] {
+  --theme-name: 'dark';
+
+  /* Primary Electric Blue Accent System */
+  --accent-primary: #38bdf8;
+  --accent-primary-hover: #60a5fa;
+  --accent-primary-active: #0ea5e9;
+  --accent-primary-light: rgba(56, 189, 248, 0.16);
+  --accent-primary-text: #06111f;
+  --accent-primary-glow: rgba(56, 189, 248, 0.35);
+
+  /* Gold / Yellow Accent System (for CTA & Warnings) */
+  --accent-gold: #facc15;
+  --accent-gold-hover: #fde047;
+  --accent-gold-light: rgba(250, 204, 21, 0.16);
+  --accent-gold-dark: #fef08a;
+  --accent-gold-text: #06111f;
+  --accent-gold-glow: rgba(250, 204, 21, 0.35);
+  --accent-yellow-dark: #fef08a;
+  --accent-yellow-100: rgba(250, 204, 21, 0.18);
+  --accent-yellow-400: #facc15;
+  --accent-yellow-500: #eab308;
+  --accent-yellow-glow: rgba(250, 204, 21, 0.35);
+  --text-yellow-btn: #06111f;
+
+  /* Background & Base Canvas (Deep Navy Glass) */
+  --bg-app: #06111f;
+  --bg-secondary: #0a192f;
+  --bg-canvas-gradient: 
+    radial-gradient(circle at 14% 15%, rgba(14, 165, 233, 0.14) 0%, transparent 40%),
+    radial-gradient(circle at 86% 85%, rgba(0, 113, 227, 0.12) 0%, transparent 45%),
+    radial-gradient(circle at 50% 50%, #06111f 0%, #040c17 100%);
+
+  --bg-surface-glass: rgba(13, 31, 56, 0.72);
+  --bg-surface-glass-card: rgba(13, 31, 56, 0.65);
+  --bg-surface-glass-elevated: rgba(18, 43, 76, 0.85);
+  --bg-surface-glass-subtle: rgba(15, 36, 64, 0.45);
+  --bg-surface-bubble: rgba(20, 48, 85, 0.92);
+  --bg-modal-backdrop: rgba(2, 6, 15, 0.65);
+  --bg-table-row: rgba(13, 31, 56, 0.60);
+  --bg-table-row-hover: rgba(22, 53, 94, 0.85);
+
+  /* Glass Borders & Inner Highlights */
+  --glass-border: rgba(56, 189, 248, 0.18);
+  --glass-border-subtle: rgba(255, 255, 255, 0.08);
+  --glass-border-focus: rgba(56, 189, 248, 0.85);
+  --glass-highlight: inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.12), inset 0 -1px 1px 0 rgba(0, 0, 0, 0.4);
+
+  /* Typography & Navy/Slate Hierarchy */
+  --text-main: #f1f5f9;
+  --text-body: #cbd5e1;
+  --text-muted: #8da2bc;
+  --text-subtle: #627d98;
+
+  /* Semantic Risk & Category Glass Colors */
+  --risk-high-bg: rgba(239, 68, 68, 0.18);
+  --risk-high-text: #f87171;
+  --risk-high-border: rgba(239, 68, 68, 0.35);
+  --risk-high-bubble: rgba(239, 68, 68, 0.25);
+
+  --risk-med-bg: rgba(245, 158, 11, 0.18);
+  --risk-med-text: #fbbf24;
+  --risk-med-border: rgba(245, 158, 11, 0.35);
+  --risk-med-bubble: rgba(245, 158, 11, 0.25);
+
+  --risk-low-bg: rgba(16, 185, 129, 0.18);
+  --risk-low-text: #34d399;
+  --risk-low-border: rgba(16, 185, 129, 0.35);
+  --risk-low-bubble: rgba(16, 185, 129, 0.25);
+
+  --status-urgent-bg: rgba(239, 68, 68, 0.20);
+  --status-urgent-text: #fca5a5;
+  --status-important-bg: rgba(249, 115, 22, 0.20);
+  --status-important-text: #fdba74;
+  --status-opt-bg: rgba(56, 189, 248, 0.18);
+  --status-opt-text: #7dd3fc;
+  --status-redist-bg: rgba(168, 85, 247, 0.20);
+  --status-redist-text: #d8b4fe;
+
+  /* Deep Glow Shadows */
+  --shadow-bubble: 0 10px 25px -5px rgba(0, 0, 0, 0.45), 0 4px 10px -3px rgba(0, 0, 0, 0.3);
+  --shadow-glass-float: 0 20px 35px -8px rgba(0, 0, 0, 0.55), 0 6px 16px -4px rgba(0, 0, 0, 0.35);
+  --shadow-hover: 0 16px 30px -6px rgba(0, 0, 0, 0.65), 0 6px 12px -3px rgba(0, 0, 0, 0.4);
+  --shadow-accent-btn: 0 8px 24px -4px rgba(56, 189, 248, 0.45);
+  --shadow-yellow-btn: 0 8px 24px -4px rgba(250, 204, 21, 0.45);
 }

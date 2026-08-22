@@ -1,6 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <script>
+    (function() {
+      try {
+        var saved = localStorage.getItem('foodwaste_theme') || 'system';
+        var resolved = saved;
+        if (saved === 'system') {
+          resolved = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+        }
+        document.documentElement.setAttribute('data-theme', resolved);
+        document.documentElement.setAttribute('data-theme-mode', saved);
+      } catch(e) {}
+    })();
+  </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FoodWaste AI - Surplus Redistribution</title>
@@ -58,6 +71,7 @@
     </nav>
 
     <div class="sidebar-footer-group">
+      <div id="sidebar-theme-container" class="sidebar-theme-box"></div>
       <div class="sidebar-user-pill">
         <div class="user-profile-meta">
           <div class="user-avatar-bubble" id="current-user-avatar">A</div>
@@ -81,6 +95,7 @@
       </div>
       <div class="topbar-right">
         <div id="language-switcher-container"></div>
+        <div id="topbar-theme-container"></div>
         <button class="btn-bubble btn-yellow btn-sm-bubble" onclick="Redistribution.openModal()" data-i18n="redist.btn.schedule">+ Schedule Surplus Dispatch</button>
       </div>
     </header>
@@ -262,6 +277,7 @@
   </a>
 </nav>
 
+<script src="/js/theme.js"></script>
 <script src="/js/i18n/en.js"></script>
 <script src="/js/i18n/mm.js"></script>
 <script src="/js/i18n/language.js"></script>

@@ -44,6 +44,13 @@ window.I18N_MM = {
   "dock.actions": "အကြံပြုချက်",
   "dock.reports": "အစီရင်ခံစာ",
   "dock.settings": "ဆက်တင်",
+  "dock.more": "အခြား",
+  "more.title": "အခြား ကဏ္ဍများ",
+
+  // Theme Selectors
+  "theme.light": "အလင်း",
+  "theme.dark": "အမှောင်",
+  "theme.system": "စနစ်အတိုင်း",
 
   // Roles & Badges (Domain Glossary)
   "role.admin": "မန်နေဂျာ (ADMIN)",

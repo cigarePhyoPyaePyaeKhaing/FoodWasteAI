@@ -4,6 +4,19 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FoodWaste AI - Sign In</title>
+  <script>
+    (function() {
+      try {
+        var saved = localStorage.getItem('foodwaste_theme') || 'system';
+        var resolved = saved;
+        if (saved === 'system') {
+          resolved = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+        }
+        document.documentElement.setAttribute('data-theme', resolved);
+        document.documentElement.setAttribute('data-theme-mode', saved);
+      } catch(e) {}
+    })();
+  </script>
   <link rel="stylesheet" href="/css/variables.css">
   <link rel="stylesheet" href="/css/components.css">
   <link rel="stylesheet" href="/css/styles.css">
@@ -13,7 +26,7 @@
       align-items: center;
       justify-content: center;
       min-height: 100vh;
-      padding: 1.5rem;
+      padding: 1.25rem;
     }
 
     .login-glass-container {
@@ -28,10 +41,18 @@
       -webkit-backdrop-filter: var(--glass-blur-heavy);
       border: 1px solid var(--glass-border);
       border-radius: var(--radius-xl);
-      box-shadow: var(--glass-highlight), 0 25px 50px -12px rgba(234, 179, 8, 0.15), 0 12px 30px -4px rgba(0, 0, 0, 0.06);
-      padding: 2.8rem 2.4rem;
+      box-shadow: var(--glass-highlight), var(--shadow-glass-float);
+      padding: 2.5rem 2.2rem;
       position: relative;
       overflow: hidden;
+      transition: background var(--transition-smooth), border-color var(--transition-smooth);
+    }
+
+    .login-top-controls {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.5rem;
     }
 
     .brand-hero-box {
@@ -40,17 +61,17 @@
     }
 
     .brand-glow-bubble {
-      width: 68px;
-      height: 68px;
-      background: linear-gradient(135deg, #fde047 0%, #facc15 100%);
+      width: 64px;
+      height: 64px;
+      background: linear-gradient(135deg, var(--accent-primary) 0%, #38bdf8 100%);
       border-radius: var(--radius-lg);
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      font-size: 2.2rem;
-      box-shadow: inset 0 2px 2px rgba(255, 255, 255, 0.8), var(--shadow-yellow-btn);
-      border: 1px solid rgba(255, 255, 255, 0.9);
-      margin-bottom: 1.1rem;
+      font-size: 2rem;
+      box-shadow: inset 0 2px 2px rgba(255, 255, 255, 0.8), var(--shadow-accent-btn);
+      border: 1px solid var(--glass-border);
+      margin-bottom: 1rem;
       animation: floatBadge 3s ease-in-out infinite;
     }
 
@@ -60,7 +81,7 @@
     }
 
     .brand-headline-text {
-      font-size: 1.85rem;
+      font-size: 1.8rem;
       font-weight: 800;
       color: var(--text-main);
       letter-spacing: -0.03em;
@@ -72,21 +93,25 @@
 
 <div class="login-glass-container">
   <div class="login-bubble-card">
+    <div class="login-top-controls">
+      <div id="login-lang-container"></div>
+      <div id="login-theme-container"></div>
+    </div>
+
     <div class="brand-hero-box">
       <div class="brand-glow-bubble">🍃</div>
       <h1 class="brand-headline-text" data-i18n="brand.name">FoodWaste AI</h1>
-      <div style="margin-top: 0.85rem;" id="login-lang-container"></div>
     </div>
 
     <form id="login-form" onsubmit="handleLogin(event)">
       <div class="form-group-bubble">
         <label class="form-label-bubble" for="username" data-i18n="login.username">Username</label>
-        <input class="form-input-bubble" type="text" id="username" value="" required placeholder="e.g. admin or staff">
+        <input class="form-input-bubble" type="text" id="username" value="" required placeholder="e.g. admin or staff" autocomplete="username">
       </div>
 
       <div class="form-group-bubble">
         <label class="form-label-bubble" for="password" data-i18n="login.password">Password</label>
-        <input class="form-input-bubble" type="password" id="password" value="" required placeholder="••••••••">
+        <input class="form-input-bubble" type="password" id="password" value="" required placeholder="••••••••" autocomplete="current-password">
       </div>
 
       <button type="submit" class="btn-bubble btn-yellow" style="width: 100%; margin-top: 1.25rem; padding: 0.85rem; font-size: 0.95rem;" data-i18n="login.submit">
@@ -96,6 +121,7 @@
   </div>
 </div>
 
+<script src="/js/theme.js"></script>
 <script src="/js/i18n/en.js"></script>
 <script src="/js/i18n/mm.js"></script>
 <script src="/js/i18n/language.js"></script>
@@ -125,7 +151,6 @@
       }
     } catch (err) {
       console.error('Authentication error:', err);
-      // Explicit error handling: do NOT proceed or set fake demo user
     }
   }
 </script>

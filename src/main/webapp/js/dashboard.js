@@ -29,12 +29,17 @@ const Dashboard = {
 
     await this.fetchLiveDashboardData();
 
-    // Listen for language changes to re-translate dynamic text
+    // Listen for language and theme changes
     window.addEventListener('languageChanged', () => {
       this.renderKPIs();
       this.renderChart();
       this.renderHighRiskList();
       this.renderRecommendations();
+    });
+
+    window.addEventListener('foodwaste:themechange', () => {
+      this.renderChart();
+      this.renderKPIs();
     });
   },
 
