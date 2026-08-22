@@ -39,7 +39,7 @@ const AIAssistant = {
     const subtitle = document.getElementById('gemini-header-subtitle');
     if (subtitle) {
       const isMm = typeof I18n !== 'undefined' && I18n.isMyanmar();
-      subtitle.textContent = isMm ? 'အစားအစာ စီမံခန့်ခွဲမှု စမတ်အကူအညီပေးသူ' : 'Smart Food Waste Assistant';
+      subtitle.textContent = isMm ? 'အစားအစာ စီမံခန့်ခွဲမှု စမတ်အကူ' : 'Smart Food Waste Assistant';
     }
   },
 
@@ -140,12 +140,10 @@ const AIAssistant = {
     if (!container) return;
     const isMm = typeof I18n !== 'undefined' && I18n.isMyanmar();
     container.innerHTML = `
-      <button class="gemini-chip" onclick="AIAssistant.sendQuickChip(1)">${isMm ? '🥛 နို့စိမ်း အန္တရာယ်' : '🥛 Fresh Milk'}</button>
-      <button class="gemini-chip" onclick="AIAssistant.sendQuickChip(2)">${isMm ? '🍗 ကြက်သား အန္တရာယ်' : '🍗 Chicken Risk'}</button>
-      <button class="gemini-chip" onclick="AIAssistant.sendQuickChip(3)">${isMm ? '⚠️ အန္တရာယ်မြင့် ပစ္စည်းများ' : '⚠️ High Risk'}</button>
-      <button class="gemini-chip" onclick="AIAssistant.sendQuickChip(4)">${isMm ? '👨‍🍳 ဦးစားပေး ချက်ပြုတ်ရန်' : '👨‍🍳 Cook Priority'}</button>
-      <button class="gemini-chip" onclick="AIAssistant.sendQuickChip(5)">${isMm ? '🤝 ပြန်လည်လှူဒါန်းမှု' : '🤝 Redistribution'}</button>
-      <button class="gemini-chip" onclick="AIAssistant.sendQuickChip(6)">${isMm ? '📊 နေ့စဉ် အနှစ်ချုပ်' : '📊 Daily Summary'}</button>
+      <button class="gemini-chip" onclick="AIAssistant.sendQuickChip(1)">${isMm ? '⚠️ အန္တရာယ်မြင့် ပစ္စည်းများ' : '⚠️ High Risk'}</button>
+      <button class="gemini-chip" onclick="AIAssistant.sendQuickChip(2)">${isMm ? '👨‍🍳 ဦးစားပေး ချက်ပြုတ်ရန်' : '👨‍🍳 Cook Priority'}</button>
+      <button class="gemini-chip" onclick="AIAssistant.sendQuickChip(3)">${isMm ? '🤝 ပြန်လည်လှူဒါန်းမှု' : '🤝 Redistribution'}</button>
+      <button class="gemini-chip" onclick="AIAssistant.sendQuickChip(4)">${isMm ? '📊 နေ့စဉ် အနှစ်ချုပ်' : '📊 Daily Summary'}</button>
     `;
   },
 
@@ -177,7 +175,7 @@ const AIAssistant = {
                   <span class="gemini-active-pill">LIVE</span>
                 </div>
                 <div style="font-size:0.75rem; color:var(--text-muted);" id="gemini-header-subtitle">
-                  ${isMm ? 'အစားအစာ စီမံခန့်ခွဲမှု စမတ်အကူအညီပေးသူ' : 'Smart Food Waste Assistant'}
+                  ${isMm ? 'အစားအစာ စီမံခန့်ခွဲမှု စမတ်အကူ' : 'Smart Food Waste Assistant'}
                 </div>
               </div>
             </div>
@@ -604,21 +602,15 @@ const AIAssistant = {
     let query = '';
     switch (chipIndex) {
       case 1:
-        query = isMm ? "fresh milk ဘာကြောင့် အန္တရာယ်ရှိတာလဲ?" : "Why is fresh milk risky?";
-        break;
-      case 2:
-        query = isMm ? "Fresh Chicken Breast အလေအလွင့် အန္တရာယ် ဘယ်လိုရှိလဲ?" : "What is the waste risk for Fresh Chicken Breast?";
-        break;
-      case 3:
         query = isMm ? "ဘယ်အစားအစာတွေက အန္တရာယ်မြင့်နေပါသလဲ?" : "Which food items are high risk and why?";
         break;
-      case 4:
+      case 2:
         query = isMm ? "ယနေ့ ဘယ်ကုန်ကြမ်းတွေကို ဦးစားပေး ချက်ပြုတ်သင့်ပါသလဲ?" : "What ingredients should our chef cook or prioritize today?";
         break;
-      case 5:
+      case 3:
         query = isMm ? "ဘယ်ပိုလျှံအစားအစာတွေကို ပြန်လည်လှူဒါန်းသင့်ပါသလဲ?" : "Which surplus items should be redistributed?";
         break;
-      case 6:
+      case 4:
       default:
         query = isMm ? "ယနေ့ အစားအသောက် အလေအလွင့် အခြေအနေကို ရှင်းပြပါ။" : "Give me today's food waste summary.";
         break;
