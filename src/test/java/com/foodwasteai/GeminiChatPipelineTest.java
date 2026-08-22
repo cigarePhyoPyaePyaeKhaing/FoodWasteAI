@@ -96,4 +96,71 @@ public class GeminiChatPipelineTest {
         assertNotNull(res.getExplanation());
         assertFalse(res.getExplanation().isEmpty());
     }
+
+    @Test
+    @DisplayName("Conversational AI: Specific Fresh Milk risk query returns dynamic answer, sources, related items, and risk info")
+    public void testFreshMilkSpecificQuery() throws java.sql.SQLException {
+        // Create an expired or near-expiry milk item
+        foodItemService.createFoodItem(
+                new com.foodwasteai.model.FoodItem(null, "Fresh Milk", "Dairy",
+                        new java.math.BigDecimal("8.00"), "liter", new java.math.BigDecimal("2000.00"),
+                        java.time.LocalDate.now().minusDays(1), new java.math.BigDecimal("2.00")), 1L
+        );
+
+        String query = "Why is Fresh Milk risky?";
+        GeminiExplanationService.ChatResponse response = geminiService.processUserQuery(query, "en");
+
+        assertNotNull(response);
+        assertEquals(query, response.getUserQuery());
+        assertNotNull(response.getAnswer(), "Answer must not be null");
+        assertEquals(response.getAnswer(), response.getExplanation());
+        assertTrue(response.getAnswer().contains("Fresh Milk"), "Must preserve exact food name Fresh Milk");
+        assertTrue(response.getAnswer().contains("liter"), "Must preserve unit liter");
+        assertTrue(response.getAnswer().contains("8.0"), "Must preserve stock 8.0");
+
+        // Verify Sources
+        assertNotNull(response.getSources());
+        assertFalse(response.getSources().isEmpty(), "Sources must not be empty");
+        assertTrue(response.getSources().stream().anyMatch(s -> s.contains("Fresh Milk") || s.contains("MySQL") || s.contains("assess_waste_risk")));
+
+        // Verify Related Food Items
+        assertNotNull(response.getRelatedFoodItems());
+        assertFalse(response.getRelatedFoodItems().isEmpty(), "Related food items must contain Fresh Milk");
+        assertEquals("Fresh Milk", response.getRelatedFoodItems().get(0).get("name"));
+
+        // Verify Risk Info
+        assertNotNull(response.getRiskInfo());
+        assertTrue(response.getRiskInfo().containsKey("totalItemsEvaluated"));
+        assertTrue(response.getRiskInfo().containsKey("highRiskCount"));
+    }
+
+    @Test
+    @DisplayName("Conversational AI: Myanmar Fresh Milk query returns fully localized Burmese explanation preserving food name and units")
+    public void testMyanmarFreshMilkQuery() throws java.sql.SQLException {
+        foodItemService.createFoodItem(
+                new com.foodwasteai.model.FoodItem(null, "Fresh Milk", "Dairy",
+                        new java.math.BigDecimal("8.00"), "liter", new java.math.BigDecimal("2000.00"),
+                        java.time.LocalDate.now().minusDays(1), new java.math.BigDecimal("2.00")), 1L
+        );
+
+        String query = "Fresh Milk ဘာကြောင့် အန္တရာယ်ရှိတာလဲ?";
+        GeminiExplanationService.ChatResponse response = geminiService.processUserQuery(query, "mm");
+
+        assertNotNull(response);
+        assertNotNull(response.getAnswer());
+        assertTrue(response.getAnswer().contains("Fresh Milk"), "Must preserve food name Fresh Milk in Myanmar answer");
+        assertTrue(response.getAnswer().contains("liter"), "Must preserve unit liter");
+        assertTrue(response.getAnswer().contains("assess_waste_risk"), "Must preserve SWI-Prolog predicate");
+    }
+
+    @Test
+    @DisplayName("Conversational AI: High risk items query returns list of high risk items")
+    public void testHighRiskQuery() {
+        String query = "Which items are high risk?";
+        GeminiExplanationService.ChatResponse response = geminiService.processUserQuery(query, "en");
+
+        assertNotNull(response);
+        assertNotNull(response.getAnswer());
+        assertTrue(response.getAnswer().toLowerCase().contains("risk") || response.getAnswer().toLowerCase().contains("swi-prolog"));
+    }
 }

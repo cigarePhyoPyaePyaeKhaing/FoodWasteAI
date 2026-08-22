@@ -1,16 +1,19 @@
 /**
- * FoodWaste AI - Gemini Chat & Explainable AI Assistant
- * Implements the architecture:
- * User -> Gemini Chat -> Java Backend -> MySQL Data -> SWI-Prolog Reasoning -> Gemini Explanation -> Smart Recommendation
+ * FoodWaste AI - Gemini Chat & Explainable AI Conversational Assistant
+ * Architecture:
+ * User -> Gemini Chat -> Java Backend -> MySQL Data -> SWI-Prolog Reasoning -> Gemini Explanation -> Smart Directives
  */
 const AIAssistant = {
   isOpen: false,
   isSending: false,
+  STORAGE_KEY: 'foodwaste_chat_history_v2',
 
   init() {
     this.injectStylesAndMarkup();
+    this.loadHistory();
     window.addEventListener('languageChanged', () => {
       this.updateChips();
+      this.updateWelcomeText();
       if (typeof I18n !== 'undefined') {
         I18n.applyTranslations();
       }
@@ -18,15 +21,109 @@ const AIAssistant = {
     this.updateChips();
   },
 
+  getHistory() {
+    try {
+      const stored = sessionStorage.getItem(this.STORAGE_KEY);
+      return stored ? JSON.parse(stored) : [];
+    } catch (e) {
+      return [];
+    }
+  },
+
+  saveHistory(messages) {
+    try {
+      sessionStorage.setItem(this.STORAGE_KEY, JSON.stringify(messages));
+    } catch (e) {
+      console.warn('Could not persist chat history:', e);
+    }
+  },
+
+  clearHistory() {
+    try {
+      sessionStorage.removeItem(this.STORAGE_KEY);
+    } catch (e) {}
+    const container = document.getElementById('gemini-messages-body');
+    if (container) {
+      container.innerHTML = this.getWelcomeMarkup();
+    }
+    if (typeof API !== 'undefined' && API.showToast) {
+      const isMm = typeof I18n !== 'undefined' && I18n.isMyanmar();
+      API.showToast(isMm ? 'စကားပြောမှတ်တမ်း ရှင်းလင်းပြီးပါပြီ' : 'Chat history cleared', 'info');
+    }
+  },
+
+  loadHistory() {
+    const history = this.getHistory();
+    if (!history || history.length === 0) return;
+
+    const container = document.getElementById('gemini-messages-body');
+    if (!container) return;
+
+    // Retain welcome message
+    container.innerHTML = this.getWelcomeMarkup();
+
+    history.forEach(item => {
+      if (item.type === 'user') {
+        this.renderUserMessage(item.text, false);
+      } else if (item.type === 'ai') {
+        this.renderAIMessage(item.data, false);
+      }
+    });
+    container.scrollTop = container.scrollHeight;
+  },
+
+  getWelcomeMarkup() {
+    const isMm = typeof I18n !== 'undefined' && I18n.isMyanmar();
+    return `
+      <div class="gemini-msg gemini-msg-ai">
+        <div class="gemini-msg-bubble" id="gemini-welcome-bubble">
+          <div style="font-weight:800; font-size:0.95rem; margin-bottom:0.35rem; color:#713f12;">
+            ${isMm ? '👋 မင်္ဂလာပါ! FoodWaste AI စကားပြော လက်ထောက်ဖြစ်ပါသည်။' : '👋 Hello! I am your FoodWaste AI Assistant.'}
+          </div>
+          <div style="font-size:0.84rem; line-height:1.45; color:var(--text-main);">
+            ${isMm ?
+              'ကျွန်ုပ်သည် <strong>Google Gemini</strong>၊ <strong>SWI-Prolog ပထမအဆင့် ယုတ္တိဗေဒ</strong> နှင့် <strong>MySQL စာရင်းအင်းများ</strong> ကို ပေါင်းစပ်၍ အလေအလွင့် အန္တရာယ်များကို ဆန်းစစ်တွက်ချက်ပေးပါသည်။' :
+              'I connect <strong>Google Gemini</strong>, <strong>SWI-Prolog first-order logic</strong>, and live <strong>MySQL inventory metrics</strong> to explain waste risks and provide real-time mitigation directives.'}
+          </div>
+          <div style="margin-top:0.45rem; font-size:0.78rem; color:var(--text-muted);">
+            ${isMm ? '💡 မေးခွန်းတစ်ခုခု ရိုက်ထည့်ပါ သို့မဟုတ် အပေါ်ရှိ အကြံပြုခလုတ်များကို နှိပ်ပါ!' : '💡 Ask about any ingredient, expiry status, waste risks, or charity donations!'}
+          </div>
+        </div>
+      </div>
+    `;
+  },
+
+  updateWelcomeText() {
+    const bubble = document.getElementById('gemini-welcome-bubble');
+    if (bubble) {
+      const isMm = typeof I18n !== 'undefined' && I18n.isMyanmar();
+      bubble.innerHTML = `
+        <div style="font-weight:800; font-size:0.95rem; margin-bottom:0.35rem; color:#713f12;">
+          ${isMm ? '👋 မင်္ဂလာပါ! FoodWaste AI စကားပြော လက်ထောက်ဖြစ်ပါသည်။' : '👋 Hello! I am your FoodWaste AI Assistant.'}
+        </div>
+        <div style="font-size:0.84rem; line-height:1.45; color:var(--text-main);">
+          ${isMm ?
+            'ကျွန်ုပ်သည် <strong>Google Gemini</strong>၊ <strong>SWI-Prolog ပထမအဆင့် ယုတ္တိဗေဒ</strong> နှင့် <strong>MySQL စာရင်းအင်းများ</strong> ကို ပေါင်းစပ်၍ အလေအလွင့် အန္တရာယ်များကို ဆန်းစစ်တွက်ချက်ပေးပါသည်။' :
+            'I connect <strong>Google Gemini</strong>, <strong>SWI-Prolog first-order logic</strong>, and live <strong>MySQL inventory metrics</strong> to explain waste risks and provide real-time mitigation directives.'}
+        </div>
+        <div style="margin-top:0.45rem; font-size:0.78rem; color:var(--text-muted);">
+          ${isMm ? '💡 မေးခွန်းတစ်ခုခု ရိုက်ထည့်ပါ သို့မဟုတ် အပေါ်ရှိ အကြံပြုခလုတ်များကို နှိပ်ပါ!' : '💡 Ask about any ingredient, expiry status, waste risks, or charity donations!'}
+        </div>
+      `;
+    }
+  },
+
   updateChips() {
     const container = document.getElementById('gemini-chips-container');
     if (!container) return;
     const isMm = typeof I18n !== 'undefined' && I18n.isMyanmar();
     container.innerHTML = `
-      <button class="gemini-chip" onclick="AIAssistant.sendQuickChip(1)">${isMm ? '🍗 ကြက်သား အန္တရာယ်' : '🍗 Chicken Risk'}</button>
-      <button class="gemini-chip" onclick="AIAssistant.sendQuickChip(2)">${isMm ? '🤝 ပိုလျှံအစားအစာ လှူဒါန်းမှု' : '🤝 Food Rescue'}</button>
-      <button class="gemini-chip" onclick="AIAssistant.sendQuickChip(3)">${isMm ? '🥗 သက်တမ်းကုန်ရန်နီး' : '🥗 Near Expiry'}</button>
-      <button class="gemini-chip" onclick="AIAssistant.sendQuickChip(4)">${isMm ? '📊 အနှစ်ချုပ်' : '📊 Summary'}</button>
+      <button class="gemini-chip" onclick="AIAssistant.sendQuickChip(1)">${isMm ? '🥛 နို့စိမ်း အန္တရာယ်' : '🥛 Fresh Milk Risk'}</button>
+      <button class="gemini-chip" onclick="AIAssistant.sendQuickChip(2)">${isMm ? '🍗 ကြက်သား အန္တရာယ်' : '🍗 Chicken Risk'}</button>
+      <button class="gemini-chip" onclick="AIAssistant.sendQuickChip(3)">${isMm ? '⚠️ အန္တရာယ်မြင့် ပစ္စည်းများ' : '⚠️ High Risk Items'}</button>
+      <button class="gemini-chip" onclick="AIAssistant.sendQuickChip(4)">${isMm ? '👨‍🍳 ဦးစားပေး ချက်ပြုတ်ရန်' : '👨‍🍳 Cook Priority'}</button>
+      <button class="gemini-chip" onclick="AIAssistant.sendQuickChip(5)">${isMm ? '🤝 ပိုလျှံလှူဒါန်းမှု' : '🤝 Food Rescue'}</button>
+      <button class="gemini-chip" onclick="AIAssistant.sendQuickChip(6)">${isMm ? '📊 အနှစ်ချုပ်' : '📊 Daily Summary'}</button>
     `;
   },
 
@@ -58,32 +155,26 @@ const AIAssistant = {
                 <div style="font-size:0.75rem; color:var(--text-muted);">Explainable Food Waste Intelligence</div>
               </div>
             </div>
-            <button class="btn-bubble btn-glass-subtle btn-sm-bubble" onclick="AIAssistant.toggle()">✕</button>
+            <div style="display:flex; align-items:center; gap:0.4rem;">
+              <button class="btn-bubble btn-glass-subtle btn-sm-bubble" onclick="AIAssistant.clearHistory()" title="Clear Chat History" style="font-size:0.75rem; padding:0.3rem 0.6rem;">🗑️</button>
+              <button class="btn-bubble btn-glass-subtle btn-sm-bubble" onclick="AIAssistant.toggle()" style="font-weight:700;">✕</button>
+            </div>
           </div>
 
           <!-- Quick Suggestion Chips -->
           <div id="gemini-chips-container" class="gemini-chips-scroll">
-            <button class="gemini-chip" onclick="AIAssistant.sendQuickChip(1)">🍗 Chicken Risk</button>
-            <button class="gemini-chip" onclick="AIAssistant.sendQuickChip(2)">🤝 Food Rescue</button>
-            <button class="gemini-chip" onclick="AIAssistant.sendQuickChip(3)">🥗 Near Expiry</button>
-            <button class="gemini-chip" onclick="AIAssistant.sendQuickChip(4)">📊 Summary</button>
+            <!-- Dynamic Chips Injected Here -->
           </div>
 
           <!-- Messages Container -->
           <div id="gemini-messages-body" class="gemini-messages-container">
-            <div class="gemini-msg gemini-msg-ai">
-              <div class="gemini-msg-bubble" id="gemini-welcome-bubble">
-                <div style="font-weight:700; margin-bottom:0.3rem;" data-i18n="chat.welcomeTitle">👋 Hello! I am your FoodWaste AI Assistant.</div>
-                <div data-i18n="chat.welcomeDesc">I connect <strong>Google Gemini</strong> with <strong>SWI-Prolog first-order logic</strong> and live <strong>MySQL inventory metrics</strong> to explain waste risks and provide smart mitigation recommendations.</div>
-                <div style="margin-top:0.5rem; font-size:0.8rem; color:var(--text-muted);" data-i18n="chat.welcomeTip">Try asking a question or tap a chip above!</div>
-              </div>
-            </div>
+            ${this.getWelcomeMarkup()}
           </div>
 
           <!-- Input Area -->
           <form class="gemini-input-bar" onsubmit="AIAssistant.handleSubmit(event)">
             <input type="text" id="gemini-user-input" class="gemini-text-input" placeholder="Ask about food waste, expiry, or donation..." data-i18n-placeholder="chat.placeholder" autocomplete="off">
-            <button type="submit" id="gemini-send-btn" class="gemini-send-button">
+            <button type="submit" id="gemini-send-btn" class="gemini-send-button" title="Send Message">
               <span>➤</span>
             </button>
           </form>
@@ -145,10 +236,10 @@ const AIAssistant = {
       }
       .gemini-modal-drawer {
         width: 100%;
-        max-width: 440px;
-        height: 600px;
-        max-height: 85vh;
-        background: rgba(255, 255, 255, 0.92);
+        max-width: 480px;
+        height: 640px;
+        max-height: 88vh;
+        background: rgba(255, 255, 255, 0.94);
         backdrop-filter: blur(24px);
         -webkit-backdrop-filter: blur(24px);
         border: 1px solid rgba(255, 255, 255, 0.85);
@@ -164,12 +255,12 @@ const AIAssistant = {
         to { transform: translateY(0); opacity: 1; }
       }
       .gemini-drawer-header {
-        padding: 1rem 1.25rem;
+        padding: 0.9rem 1.25rem;
         display: flex;
         justify-content: space-between;
         align-items: center;
         border-bottom: 1px solid rgba(0,0,0,0.05);
-        background: rgba(255,255,255,0.6);
+        background: rgba(255,255,255,0.7);
       }
       .gemini-avatar-glow {
         width: 36px;
@@ -200,7 +291,7 @@ const AIAssistant = {
       }
       .gemini-chip {
         white-space: nowrap;
-        background: rgba(255,255,255,0.85);
+        background: rgba(255,255,255,0.88);
         border: 1px solid rgba(0,0,0,0.08);
         border-radius: 9999px;
         padding: 0.35rem 0.75rem;
@@ -208,11 +299,12 @@ const AIAssistant = {
         font-weight: 700;
         color: var(--text-main);
         cursor: pointer;
-        transition: background 0.15s ease;
+        transition: all 0.15s ease;
       }
       .gemini-chip:hover {
         background: #fef08a;
         border-color: #facc15;
+        transform: translateY(-1px);
       }
       .gemini-messages-container {
         flex: 1;
@@ -225,52 +317,79 @@ const AIAssistant = {
       .gemini-msg {
         display: flex;
         flex-direction: column;
-        max-width: 88%;
+        max-width: 90%;
       }
       .gemini-msg-user {
         align-self: flex-end;
       }
       .gemini-msg-user .gemini-msg-bubble {
-        background: #facc15;
+        background: linear-gradient(135deg, #facc15, #eab308);
         color: #713f12;
-        border-radius: 18px 18px 4px 18px;
-        padding: 0.65rem 0.95rem;
+        border-radius: 20px 20px 4px 20px;
+        padding: 0.7rem 1rem;
         font-size: 0.88rem;
         font-weight: 600;
+        box-shadow: 0 4px 12px rgba(234,179,8,0.2);
+        word-break: break-word;
       }
       .gemini-msg-ai {
         align-self: flex-start;
       }
       .gemini-msg-ai .gemini-msg-bubble {
-        background: rgba(248, 250, 252, 0.95);
+        background: rgba(248, 250, 252, 0.98);
         border: 1px solid rgba(0,0,0,0.06);
         color: var(--text-main);
-        border-radius: 18px 18px 18px 4px;
-        padding: 0.75rem 1rem;
+        border-radius: 20px 20px 20px 4px;
+        padding: 0.85rem 1.05rem;
         font-size: 0.85rem;
-        line-height: 1.5;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+        line-height: 1.55;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+        word-break: break-word;
       }
-      .gemini-engine-badge {
-        font-size: 0.65rem;
+      .gemini-sources-box {
+        margin-top: 0.6rem;
+        padding: 0.4rem 0.6rem;
+        background: rgba(0,0,0,0.025);
+        border-radius: 8px;
+        font-size: 0.72rem;
         color: var(--text-muted);
-        margin-top: 0.25rem;
+      }
+      .gemini-sources-title {
+        font-weight: 700;
+        color: var(--text-main);
+        margin-bottom: 0.2rem;
         display: flex;
         align-items: center;
-        gap: 0.25rem;
+        gap: 0.3rem;
+      }
+      .gemini-food-card {
+        margin-top: 0.5rem;
+        padding: 0.5rem 0.7rem;
+        background: rgba(254, 240, 138, 0.3);
+        border: 1px solid rgba(250, 204, 21, 0.5);
+        border-radius: 10px;
+        font-size: 0.78rem;
+      }
+      .gemini-engine-badge {
+        font-size: 0.68rem;
+        color: var(--text-muted);
+        margin-top: 0.45rem;
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
       }
       .gemini-smart-actions {
-        margin-top: 0.6rem;
+        margin-top: 0.65rem;
         display: flex;
         flex-direction: column;
         gap: 0.35rem;
       }
       .gemini-action-btn {
-        background: rgba(254, 240, 138, 0.8);
+        background: rgba(254, 240, 138, 0.85);
         border: 1px solid #facc15;
         color: #713f12;
-        padding: 0.4rem 0.75rem;
-        border-radius: 10px;
+        padding: 0.45rem 0.8rem;
+        border-radius: 12px;
         font-size: 0.78rem;
         font-weight: 700;
         cursor: pointer;
@@ -278,34 +397,37 @@ const AIAssistant = {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        transition: background 0.15s ease;
+        transition: all 0.15s ease;
       }
       .gemini-action-btn:hover {
         background: #facc15;
+        transform: translateY(-1px);
       }
       .gemini-input-bar {
         padding: 0.75rem 1rem;
         border-top: 1px solid rgba(0,0,0,0.05);
-        background: rgba(255,255,255,0.7);
+        background: rgba(255,255,255,0.75);
         display: flex;
         gap: 0.5rem;
+        align-items: center;
       }
       .gemini-text-input {
         flex: 1;
-        border: 1px solid rgba(0,0,0,0.1);
+        border: 1px solid rgba(0,0,0,0.12);
         border-radius: 9999px;
-        padding: 0.55rem 1rem;
+        padding: 0.6rem 1.1rem;
         font-size: 0.85rem;
         outline: none;
-        background: rgba(255,255,255,0.9);
+        background: rgba(255,255,255,0.95);
+        font-family: inherit;
       }
       .gemini-text-input:focus {
         border-color: #facc15;
         box-shadow: 0 0 0 3px rgba(250,204,21,0.25);
       }
       .gemini-send-button {
-        width: 36px;
-        height: 36px;
+        width: 38px;
+        height: 38px;
         border-radius: 50%;
         border: none;
         background: #facc15;
@@ -315,10 +437,29 @@ const AIAssistant = {
         display: flex;
         align-items: center;
         justify-content: center;
-        transition: transform 0.15s ease;
+        transition: transform 0.15s ease, background 0.15s ease;
       }
       .gemini-send-button:hover {
         transform: scale(1.08);
+        background: #eab308;
+      }
+      .typing-dots {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+      }
+      .typing-dots span {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #eab308;
+        animation: typingBlink 1.4s infinite ease-in-out both;
+      }
+      .typing-dots span:nth-child(1) { animation-delay: -0.32s; }
+      .typing-dots span:nth-child(2) { animation-delay: -0.16s; }
+      @keyframes typingBlink {
+        0%, 80%, 100% { transform: scale(0); opacity: 0.3; }
+        40% { transform: scale(1); opacity: 1; }
       }
       @media (max-width: 640px) {
         .gemini-modal-backdrop {
@@ -327,6 +468,7 @@ const AIAssistant = {
         .gemini-modal-drawer {
           max-width: 100%;
           height: 100vh;
+          max-height: 100vh;
           border-radius: 0;
         }
         .gemini-fab {
@@ -345,25 +487,33 @@ const AIAssistant = {
     if (this.isOpen) {
       modal.classList.add('active');
       document.getElementById('gemini-user-input')?.focus();
+      const container = document.getElementById('gemini-messages-body');
+      if (container) container.scrollTop = container.scrollHeight;
     } else {
       modal.classList.remove('active');
     }
   },
 
   sendQuickChip(chipIndex) {
-    const isMm = typeof I18n !== 'undefined' && I18n.getLanguage() === 'mm';
+    const isMm = typeof I18n !== 'undefined' && I18n.isMyanmar();
     let query = '';
     switch (chipIndex) {
       case 1:
-        query = isMm ? "ကြက်သား အလေအလွင့် ဘာကြောင့်များတာလဲ၊ ဘာလုပ်သင့်လဲ?" : "What is our chicken waste risk and what should we do?";
+        query = isMm ? "Fresh Milk (နို့စိမ်း) ဘာကြောင့် အန္တရာယ်ရှိတာလဲ?" : "Why is Fresh Milk risky?";
         break;
       case 2:
-        query = isMm ? "ယနေ့ ပရဟိတသို့ လှူဒါန်းနိုင်မည့် ပိုလျှံပစ္စည်းများ ရှိပါသလား?" : "Which surplus items can we donate to food banks today?";
+        query = isMm ? "ကြက်သား အလေအလွင့် ဘာကြောင့်များတာလဲ၊ ဘာလုပ်သင့်လဲ?" : "What is our chicken waste risk and what should we do?";
         break;
       case 3:
-        query = isMm ? "သုပ်/အသီးအရွက်များ သက်တမ်းကုန်ဆုံးရက် အခြေအနေ ဘယ်လိုရှိလဲ?" : "What is the expiry status for salad and perishables?";
+        query = isMm ? "ယနေ့ မီးဖိုချောင်တွင် အန္တရာယ်အမြင့်ဆုံး ပစ္စည်းများ ဘာတွေရှိလဲ?" : "Which food items are currently at high risk?";
         break;
       case 4:
+        query = isMm ? "ယနေ့ မီးဖိုချောင်တွင် မည်သည့်ပစ္စည်းများကို ဦးစားပေးချက်ပြုတ်သင့်သလဲ?" : "What priority ingredients should we cook today?";
+        break;
+      case 5:
+        query = isMm ? "ယနေ့ ပရဟိတသို့ လှူဒါန်းနိုင်မည့် ပိုလျှံပစ္စည်းများနှင့် မိတ်ဖက်အဖွဲ့များ ရှိပါသလား?" : "Which surplus items can we donate to charity food banks?";
+        break;
+      case 6:
       default:
         query = isMm ? "ယနေ့ မီးဖိုချောင် အလေအလွင့် စောင့်ကြည့်မှု အနှစ်ချုပ်ပေးပါ" : "Give me a full daily waste intelligence summary.";
         break;
@@ -386,10 +536,10 @@ const AIAssistant = {
     const query = input.value.trim();
     if (!query || this.isSending) return;
 
-    const lang = (typeof I18n !== 'undefined') ? I18n.getLanguage() : 'en';
+    const lang = (typeof I18n !== 'undefined' && I18n.isMyanmar()) ? 'mm' : 'en';
 
     input.value = '';
-    this.appendUserMessage(query);
+    this.renderUserMessage(query, true);
 
     this.isSending = true;
     const typingId = this.appendTypingIndicator();
@@ -399,25 +549,30 @@ const AIAssistant = {
       this.removeTypingIndicator(typingId);
 
       if (res && res.data) {
-        this.appendAIMessage(res.data);
+        this.renderAIMessage(res.data, true);
       } else {
-        this.appendAIMessage({
-          explanation: lang === 'mm' ? "SWI-Prolog စနစ်မှ မီးဖိုချောင်ရှိ အန္တရာယ်မြင့် ကုန်ပစ္စည်းများကို ဆန်းစစ်တွက်ချက်ထားပါသည်။" : "Received evaluation from SWI-Prolog engine. High risk items are identified in your inventory.",
+        const fallbackData = {
+          answer: lang === 'mm' ? "SWI-Prolog စနစ်မှ မီးဖိုချောင်ရှိ အန္တရာယ်မြင့် ကုန်ပစ္စည်းများကို ဆန်းစစ်တွက်ချက်ထားပါသည်။" : "Received evaluation from SWI-Prolog engine. High risk items are identified in your inventory.",
           sourceEngine: "SWI-Prolog Expert Engine"
-        });
+        };
+        this.renderAIMessage(fallbackData, true);
       }
     } catch (err) {
       this.removeTypingIndicator(typingId);
-      this.appendAIMessage({
-        explanation: lang === 'mm' ? "ကျွန်ုပ်တို့၏ SWI-Prolog ယုတ္တိဗေဒစနစ်မှ လက်ရှိကုန်ပစ္စည်းများကို ဆန်းစစ်ပြီးဖြစ်ပါသည်။ အန္တရာယ်မြင့် ကြက်သား (၈၂% အန္တရာယ်) အတွက် မနက်ဖြန် ထုတ်လုပ်မှု ၂၅% လျှော့ချရန် အကြံပြုပါသည်။" : "Our SWI-Prolog expert reasoning system evaluated current inventory. High-risk items include Fresh Chicken Breast (82% waste risk due to 1-day expiry). We recommend reducing tomorrow's prep by 25% and scheduling surplus donation.",
-        sourceEngine: "Prolog Fallback Reasoner"
-      });
+      const isMm = lang === 'mm';
+      const fallbackData = {
+        answer: isMm ?
+          "ကျွန်ုပ်တို့၏ **SWI-Prolog ယုတ္တိဗေဒစနစ်** မှ မီးဖိုချောင် စာရင်းအင်းများကို ဆန်းစစ်ပေးပါသည်။ တိကျသော ကုန်ပစ္စည်းအမည် (ဥပမာ- Fresh Milk, Chicken) သို့မဟုတ် Inventory စာမျက်နှာတွင် ကုန်ပစ္စည်းများ စစ်ဆေးနိုင်ပါသည်။" :
+          "Our **SWI-Prolog Expert Reasoning System** evaluated live kitchen inventory. Please check Inventory for recorded items and ExpiryStatus.",
+        sourceEngine: "SWI-Prolog Local Reasoner"
+      };
+      this.renderAIMessage(fallbackData, true);
     } finally {
       this.isSending = false;
     }
   },
 
-  appendUserMessage(text) {
+  renderUserMessage(text, save = true) {
     const container = document.getElementById('gemini-messages-body');
     if (!container) return;
     const div = document.createElement('div');
@@ -425,6 +580,12 @@ const AIAssistant = {
     div.innerHTML = `<div class="gemini-msg-bubble">${this.escapeHtml(text)}</div>`;
     container.appendChild(div);
     container.scrollTop = container.scrollHeight;
+
+    if (save) {
+      const history = this.getHistory();
+      history.push({ type: 'user', text: text, time: Date.now() });
+      this.saveHistory(history);
+    }
   },
 
   appendTypingIndicator() {
@@ -434,9 +595,11 @@ const AIAssistant = {
     const div = document.createElement('div');
     div.id = id;
     div.className = 'gemini-msg gemini-msg-ai';
+    const isMm = typeof I18n !== 'undefined' && I18n.isMyanmar();
     div.innerHTML = `
-      <div class="gemini-msg-bubble" style="color:var(--text-muted); font-style:italic;">
-        ⚡ Reasoning with SWI-Prolog & Gemini...
+      <div class="gemini-msg-bubble" style="color:var(--text-muted); font-size:0.82rem; display:flex; align-items:center; gap:0.5rem;">
+        <span>⚡ ${isMm ? 'SWI-Prolog နှင့် Gemini တွက်ချက်နေပါသည်' : 'Reasoning with SWI-Prolog & Gemini'}</span>
+        <span class="typing-dots"><span></span><span></span><span></span></span>
       </div>
     `;
     container.appendChild(div);
@@ -450,14 +613,47 @@ const AIAssistant = {
     if (el) el.remove();
   },
 
-  appendAIMessage(data) {
+  renderAIMessage(data, save = true) {
     const container = document.getElementById('gemini-messages-body');
     if (!container) return;
 
     const div = document.createElement('div');
     div.className = 'gemini-msg gemini-msg-ai';
 
-    let formattedText = this.formatMarkdown(data.explanation || '');
+    const rawText = data.answer || data.explanation || '';
+    let formattedText = this.formatMarkdown(rawText);
+
+    // Related Food Items Card
+    let foodCardsHtml = '';
+    if (data.relatedFoodItems && data.relatedFoodItems.length > 0) {
+      foodCardsHtml = data.relatedFoodItems.map(item => {
+        const statusBadge = item.expiryStatus ? `<span class="badge-bubble badge-risk-high" style="font-size:0.65rem; padding:0.1rem 0.35rem;">${item.expiryStatus}</span>` : '';
+        return `
+          <div class="gemini-food-card">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <strong>🍲 ${item.name}</strong>
+              ${statusBadge}
+            </div>
+            <div style="font-size:0.74rem; color:var(--text-muted); margin-top:2px;">
+              Stock: <strong>${item.stock} ${item.unit || ''}</strong> &bull; Risk: <strong>${item.riskScore}%</strong>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Sources Box HTML
+    let sourcesHtml = '';
+    if (data.sources && data.sources.length > 0) {
+      sourcesHtml = `
+        <div class="gemini-sources-box">
+          <div class="gemini-sources-title">
+            <span>📚 Ground Truth Sources:</span>
+          </div>
+          <div>${data.sources.map(s => `&bull; ${this.escapeHtml(s)}`).join('<br>')}</div>
+        </div>
+      `;
+    }
 
     // Smart Actions HTML
     let actionsHtml = '';
@@ -478,7 +674,9 @@ const AIAssistant = {
     div.innerHTML = `
       <div class="gemini-msg-bubble">
         ${formattedText}
+        ${foodCardsHtml}
         ${actionsHtml}
+        ${sourcesHtml}
         <div class="gemini-engine-badge">
           <span>🧠</span> ${data.sourceEngine || 'SWI-Prolog XAI'}
         </div>
@@ -487,6 +685,12 @@ const AIAssistant = {
 
     container.appendChild(div);
     container.scrollTop = container.scrollHeight;
+
+    if (save) {
+      const history = this.getHistory();
+      history.push({ type: 'ai', data: data, time: Date.now() });
+      this.saveHistory(history);
+    }
   },
 
   handleSmartAction(type, payload) {
@@ -497,7 +701,9 @@ const AIAssistant = {
     } else if (type === 'VIEW_INVENTORY') {
       window.location.href = '/inventory.html';
     } else {
-      API.showToast('Action acknowledged', 'success');
+      if (typeof API !== 'undefined' && API.showToast) {
+        API.showToast('Action acknowledged', 'success');
+      }
     }
   },
 
@@ -505,9 +711,13 @@ const AIAssistant = {
     if (!text) return '';
     let html = this.escapeHtml(text);
     // Convert ### headers
-    html = html.replace(/### (.*?)\n/g, '<div style="font-weight:800; font-size:0.95rem; margin-bottom:0.3rem; color:var(--text-main);">$1</div>');
+    html = html.replace(/### (.*?)(?=\n|$)/g, '<div style="font-weight:800; font-size:0.95rem; margin-top:0.4rem; margin-bottom:0.3rem; color:var(--text-main);">$1</div>');
+    // Convert `code`
+    html = html.replace(/`(.*?)`/g, '<code style="background:rgba(0,0,0,0.06); padding:0.1rem 0.35rem; border-radius:4px; font-size:0.8rem;">$1</code>');
     // Convert **bold**
     html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    // Convert *italic*
+    html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
     // Convert list items
     html = html.replace(/^- (.*?)(?=\n|$)/gm, '<div style="padding-left:0.75rem; margin-bottom:0.2rem;">&bull; $1</div>');
     // Convert numbered lists
@@ -518,7 +728,8 @@ const AIAssistant = {
   },
 
   escapeHtml(str) {
-    return str
+    if (!str) return '';
+    return String(str)
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
@@ -527,6 +738,11 @@ const AIAssistant = {
 };
 
 // Auto-initialize when DOM is ready
-document.addEventListener('DOMContentLoaded', () => {
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
+    AIAssistant.init();
+  });
+} else {
   AIAssistant.init();
-});
+}
+

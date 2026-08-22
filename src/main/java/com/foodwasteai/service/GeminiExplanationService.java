@@ -11,6 +11,7 @@ import com.google.gson.JsonParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.Serializable;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -32,9 +33,14 @@ public class GeminiExplanationService {
     private final HttpClient httpClient;
     private final Gson gson = new Gson();
 
-    public static class ChatResponse {
+    public static class ChatResponse implements Serializable {
+        private static final long serialVersionUID = 1L;
         private String userQuery;
-        private String explanation;
+        private String answer;
+        private String explanation; // Synchronized alias for answer
+        private List<String> sources = new ArrayList<>();
+        private List<Map<String, Object>> relatedFoodItems = new ArrayList<>();
+        private Map<String, Object> riskInfo = new LinkedHashMap<>();
         private String sourceEngine;
         private Map<String, Object> prologSummary;
         private List<SmartAction> smartRecommendations = new ArrayList<>();
@@ -44,8 +50,28 @@ public class GeminiExplanationService {
         public String getUserQuery() { return userQuery; }
         public void setUserQuery(String userQuery) { this.userQuery = userQuery; }
 
-        public String getExplanation() { return explanation; }
-        public void setExplanation(String explanation) { this.explanation = explanation; }
+        public String getAnswer() { return answer != null ? answer : explanation; }
+        public void setAnswer(String answer) {
+            this.answer = answer;
+            this.explanation = answer;
+        }
+
+        public String getExplanation() { return explanation != null ? explanation : answer; }
+        public void setExplanation(String explanation) {
+            this.explanation = explanation;
+            this.answer = explanation;
+        }
+
+        public List<String> getSources() { return sources; }
+        public void setSources(List<String> sources) { this.sources = sources; }
+        public void addSource(String source) { if (source != null && !this.sources.contains(source)) this.sources.add(source); }
+
+        public List<Map<String, Object>> getRelatedFoodItems() { return relatedFoodItems; }
+        public void setRelatedFoodItems(List<Map<String, Object>> relatedFoodItems) { this.relatedFoodItems = relatedFoodItems; }
+        public void addRelatedFoodItem(Map<String, Object> item) { this.relatedFoodItems.add(item); }
+
+        public Map<String, Object> getRiskInfo() { return riskInfo; }
+        public void setRiskInfo(Map<String, Object> riskInfo) { this.riskInfo = riskInfo; }
 
         public String getSourceEngine() { return sourceEngine; }
         public void setSourceEngine(String sourceEngine) { this.sourceEngine = sourceEngine; }
@@ -58,7 +84,8 @@ public class GeminiExplanationService {
         public void addSmartAction(SmartAction action) { this.smartRecommendations.add(action); }
     }
 
-    public static class SmartAction {
+    public static class SmartAction implements Serializable {
+        private static final long serialVersionUID = 1L;
         private String title;
         private String actionType; // REDUCE_PRODUCTION, PRIORITIZE_MENU, SCHEDULE_DONATION, VIEW_INVENTORY
         private String badge;
@@ -101,7 +128,8 @@ public class GeminiExplanationService {
     }
 
     /**
-     * Executes the complete pipeline: User Query -> MySQL Data -> SWI-Prolog Reasoning -> Gemini Explanation -> Smart Recommendations
+     * Executes the complete pipeline:
+     * User Query -> Intent Analysis -> Live MySQL Data -> SWI-Prolog Reasoning -> Gemini / Rule-Grounded Explanation -> Structured ChatResponse
      */
     public ChatResponse processUserQuery(String userQuery) {
         return processUserQuery(userQuery, "en");
@@ -131,8 +159,79 @@ public class GeminiExplanationService {
 
             @SuppressWarnings("unchecked")
             List<PrologAssessment> items = (List<PrologAssessment>) prologReport.get("items");
+            if (items == null) items = Collections.emptyList();
 
-            // 3. Synthesize Gemini Explanation
+            // 3. Compute Risk Summary Info
+            long highRiskCount = items.stream().filter(i -> "HIGH".equalsIgnoreCase(i.getRiskLevel())).count();
+            long medRiskCount = items.stream().filter(i -> "MEDIUM".equalsIgnoreCase(i.getRiskLevel())).count();
+            long lowRiskCount = items.stream().filter(i -> "LOW".equalsIgnoreCase(i.getRiskLevel())).count();
+            double overallRisk = prologReport.get("overallRiskScore") instanceof Number ?
+                    ((Number) prologReport.get("overallRiskScore")).doubleValue() : 0.0;
+            double potentialSavings = prologReport.get("potentialSavings") instanceof Number ?
+                    ((Number) prologReport.get("potentialSavings")).doubleValue() : 0.0;
+
+            Map<String, Object> riskInfoMap = new LinkedHashMap<>();
+            riskInfoMap.put("totalItemsEvaluated", inventory.size());
+            riskInfoMap.put("highRiskCount", highRiskCount);
+            riskInfoMap.put("mediumRiskCount", medRiskCount);
+            riskInfoMap.put("lowRiskCount", lowRiskCount);
+            riskInfoMap.put("overallRiskScore", Math.round(overallRisk));
+            riskInfoMap.put("potentialSavingsMMK", potentialSavings);
+            response.setRiskInfo(riskInfoMap);
+
+            // 4. Identify Related Food Items mentioned in user query
+            FoodItem matchedFoodItem = null;
+            PrologAssessment matchedAssessment = null;
+            String lowerQuery = userQuery.toLowerCase();
+
+            for (FoodItem fi : inventory) {
+                if (fi.getName() != null && !fi.getName().trim().isEmpty()) {
+                    String fiNameLower = fi.getName().toLowerCase();
+                    if (lowerQuery.contains(fiNameLower) || fiNameLower.contains(lowerQuery)) {
+                        matchedFoodItem = fi;
+                        break;
+                    }
+                    // Word boundary check (e.g. "milk" in "Fresh Milk")
+                    String[] tokens = fiNameLower.split("\\s+");
+                    for (String token : tokens) {
+                        if (token.length() > 3 && lowerQuery.contains(token)) {
+                            matchedFoodItem = fi;
+                            break;
+                        }
+                    }
+                    if (matchedFoodItem != null) break;
+                }
+            }
+
+            if (matchedFoodItem != null) {
+                final Long matchedId = matchedFoodItem.getId();
+                matchedAssessment = items.stream()
+                        .filter(a -> a.getFoodItemId() != null && a.getFoodItemId().equals(matchedId))
+                        .findFirst().orElse(null);
+
+                Map<String, Object> itemMap = new LinkedHashMap<>();
+                itemMap.put("id", matchedFoodItem.getId());
+                itemMap.put("name", matchedFoodItem.getName());
+                itemMap.put("stock", matchedFoodItem.getQuantity());
+                itemMap.put("unit", matchedFoodItem.getUnit());
+                itemMap.put("pricePerUnit", matchedFoodItem.getPricePerUnit());
+                itemMap.put("expiryDate", matchedFoodItem.getExpiryDate() != null ? matchedFoodItem.getExpiryDate().toString() : "");
+                itemMap.put("expiryStatus", matchedFoodItem.getExpiryStatus());
+                itemMap.put("riskLevel", matchedAssessment != null ? matchedAssessment.getRiskLevel() : "LOW");
+                itemMap.put("riskScore", matchedAssessment != null ? Math.round(matchedAssessment.getRiskPercentage()) : 0);
+                response.addRelatedFoodItem(itemMap);
+
+                response.addSource("MySQL Inventory #" + matchedFoodItem.getId() + " (" + matchedFoodItem.getName() + ")");
+                response.addSource("SWI-Prolog assess_waste_risk/6");
+                if (matchedFoodItem.getExpiryStatus() != null) {
+                    response.addSource("ExpiryStatusResolver (" + matchedFoodItem.getExpiryStatus() + ")");
+                }
+            } else {
+                response.addSource("MySQL Live Kitchen Inventory (" + inventory.size() + " items)");
+                response.addSource("SWI-Prolog Expert Reasoning Engine (foodwaste_rules.pl)");
+            }
+
+            // 5. Synthesize Explanation (Gemini API or Intelligent Grounded Fallback)
             String apiKey = AppConfig.getGeminiApiKey();
             String geminiExplanation = null;
 
@@ -141,62 +240,59 @@ public class GeminiExplanationService {
             }
 
             if (geminiExplanation == null || geminiExplanation.trim().isEmpty()) {
-                geminiExplanation = generateRuleGroundedExplanation(userQuery, inventory, items, recipients, activeLang);
+                geminiExplanation = generateRuleGroundedExplanation(userQuery, inventory, items, recipients, matchedFoodItem, matchedAssessment, activeLang);
                 response.setSourceEngine(isMyanmar ? "SWI-Prolog Expert Reasoner (Myanmar XAI)" : "SWI-Prolog Expert Reasoner + Intelligent XAI Synthesizer");
             } else {
-                response.setSourceEngine("Google Gemini (" + AppConfig.getGeminiModel() + ") + SWI-Prolog Knowledge Base");
+                response.setSourceEngine("Google Gemini (" + AppConfig.getGeminiModel() + ") + SWI-Prolog Ground Truth");
+                response.addSource("Google Gemini Generative AI (" + AppConfig.getGeminiModel() + ")");
             }
 
-            response.setExplanation(geminiExplanation);
+            response.setAnswer(geminiExplanation);
 
-            // 4. Generate structured Smart Action Recommendations
-            if (items != null) {
+            // 6. Generate Context-Aware Smart Action Buttons
+            if (matchedFoodItem != null && matchedAssessment != null) {
+                if ("HIGH".equalsIgnoreCase(matchedAssessment.getRiskLevel())) {
+                    String title = isMyanmar ?
+                            "⚡ " + matchedFoodItem.getName() + " ထုတ်လုပ်မှုပမာဏ လျှော့ချမည်" :
+                            "⚡ Reduce Next Prep Batch for " + matchedFoodItem.getName();
+                    response.addSmartAction(new SmartAction(title, "REDUCE_PRODUCTION", isMyanmar ? "အရေးပေါ်" : "URGENT", "foodItemId=" + matchedFoodItem.getId()));
+                }
+                if (matchedAssessment.isRecommendRedistribution() || (matchedFoodItem.getQuantity() != null && matchedFoodItem.getQuantity().doubleValue() > matchedAssessment.getExpectedDemand())) {
+                    String title = isMyanmar ?
+                            "🤝 " + matchedFoodItem.getName() + " ပိုလျှံမှု ပရဟိတသို့ လှူဒါန်းမည်" :
+                            "🤝 Dispatch Surplus " + matchedFoodItem.getName() + " to Charity";
+                    response.addSmartAction(new SmartAction(title, "SCHEDULE_DONATION", isMyanmar ? "ပြန်လည်လှူဒါန်းမှု" : "REDISTRIBUTION", "foodItemId=" + matchedFoodItem.getId() + "&foodName=" + matchedFoodItem.getName()));
+                }
+            } else if (!items.isEmpty()) {
                 for (PrologAssessment a : items) {
-                    if ("HIGH".equalsIgnoreCase(a.getRiskLevel())) {
+                    if ("HIGH".equalsIgnoreCase(a.getRiskLevel()) && response.getSmartRecommendations().size() < 2) {
                         String title = isMyanmar ?
                                 "⚡ " + a.getFoodName() + " ထုတ်လုပ်မှုပမာဏ လျှော့ချမည်" :
                                 "⚡ " + a.getRecommendation();
-                        String badge = isMyanmar ? "အရေးပေါ်" : "URGENT";
-                        response.addSmartAction(new SmartAction(
-                                title,
-                                "REDUCE_PRODUCTION",
-                                badge,
-                                "foodItemId=" + a.getFoodItemId()
-                        ));
+                        response.addSmartAction(new SmartAction(title, "REDUCE_PRODUCTION", isMyanmar ? "အရေးပေါ်" : "URGENT", "foodItemId=" + a.getFoodItemId()));
                     }
-                    if (a.isRecommendRedistribution()) {
+                    if (a.isRecommendRedistribution() && response.getSmartRecommendations().size() < 3) {
                         String title = isMyanmar ?
                                 "🤝 " + a.getFoodName() + " ပိုလျှံမှု ပရဟိတသို့ လှူဒါန်းမည်" :
                                 "🤝 Dispatch Surplus " + a.getFoodName() + " to Charity";
-                        String badge = isMyanmar ? "ပြန်လည်လှူဒါန်းမှု" : "REDISTRIBUTION";
-                        response.addSmartAction(new SmartAction(
-                                title,
-                                "SCHEDULE_DONATION",
-                                badge,
-                                "foodItemId=" + a.getFoodItemId()
-                        ));
+                        response.addSmartAction(new SmartAction(title, "SCHEDULE_DONATION", isMyanmar ? "ပြန်လည်လှူဒါန်းမှု" : "REDISTRIBUTION", "foodItemId=" + a.getFoodItemId()));
                     }
                 }
             }
 
             if (response.getSmartRecommendations().isEmpty()) {
-                String title = isMyanmar ? "📊 ကုန်ပစ္စည်းလက်ကျန်နှင့် ဝယ်လိုအား ကြည့်ရှုမည်" : "📊 View Inventory & Demand Forecast";
-                response.addSmartAction(new SmartAction(
-                        title,
-                        "VIEW_INVENTORY",
-                        "INFO",
-                        "/inventory.html"
-                ));
+                String title = isMyanmar ? "📦 ကုန်ပစ္စည်းလက်ကျန်နှင့် ဝယ်လိုအား ကြည့်ရှုမည်" : "📦 View Kitchen Inventory & Demand";
+                response.addSmartAction(new SmartAction(title, "VIEW_INVENTORY", "INFO", "/inventory.html"));
             }
 
         } catch (Exception e) {
             logger.error("Error in GeminiExplanationService: {}", e.getMessage(), e);
             if (isMyanmar) {
-                response.setExplanation("ကျွန်ုပ်တို့၏ SWI-Prolog ယုတ္တိဗေဒစနစ်မှ မီးဖိုချောင် စာရင်းအင်းများကို ဆန်းစစ်ပေးပါသည်။ လက်ရှိတွင် စာရင်းသွင်းထားသော ကုန်ပစ္စည်း မရှိသေးပါက Inventory သို့ သွားရောက် ထည့်သွင်းပေးပါ။");
+                response.setAnswer("ကျွန်ုပ်တို့၏ SWI-Prolog ယုတ္တိဗေဒစနစ်မှ မီးဖိုချောင် စာရင်းအင်းများကို ဆန်းစစ်ပေးပါသည်။ လက်ရှိတွင် စာရင်းသွင်းထားသော ကုန်ပစ္စည်း မရှိသေးပါက Inventory သို့ သွားရောက် ထည့်သွင်းပေးပါ။");
                 response.setSourceEngine("FoodWaste AI Reasoner");
                 response.addSmartAction(new SmartAction("ကုန်ပစ္စည်းလက်ကျန် ကြည့်ရှုမည်", "VIEW_INVENTORY", "အချက်အလက်", "/inventory.html"));
             } else {
-                response.setExplanation("Our SWI-Prolog expert reasoning system evaluates live kitchen inventory. Please ensure food items are recorded in the Inventory section to generate waste predictions and mitigation directives.");
+                response.setAnswer("Our SWI-Prolog expert reasoning system evaluates live kitchen inventory. Please ensure food items are recorded in the Inventory section to generate waste predictions and mitigation directives.");
                 response.setSourceEngine("FoodWaste AI Reasoner");
                 response.addSmartAction(new SmartAction("View Kitchen Inventory", "VIEW_INVENTORY", "INFO", "/inventory.html"));
             }
@@ -225,11 +321,11 @@ public class GeminiExplanationService {
             String endpoint = "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent?key=" + apiKey;
 
             StringBuilder contextBuilder = new StringBuilder();
-            contextBuilder.append("You are the Explainable AI Assistant for FoodWaste AI, an intelligent system for food waste prediction, prevention, and redistribution.\n\n");
+            contextBuilder.append("You are the Explainable AI Assistant for FoodWaste AI, an intelligent conversational system for food waste prediction, prevention, and redistribution.\n\n");
             contextBuilder.append("CURRENT INVENTORY & DATABASE METRICS (MySQL):\n");
             for (FoodItem item : inventory) {
-                contextBuilder.append(String.format("- %s (ID %d): Stock=%.1f %s, Price=%s MMK/unit, Expiry=%s, Status=%s\n",
-                        item.getName(), item.getId(), item.getQuantity(), item.getUnit(), item.getPricePerUnit(), item.getExpiryDate(), item.getStatus()));
+                contextBuilder.append(String.format("- %s (ID %d): Stock=%.1f %s, Price=%s MMK/unit, Expiry=%s, Status=%s, ExpiryStatus=%s\n",
+                        item.getName(), item.getId(), item.getQuantity(), item.getUnit(), item.getPricePerUnit(), item.getExpiryDate(), item.getStatus(), item.getExpiryStatus()));
             }
 
             contextBuilder.append("\nSWI-PROLOG EXPERT REASONING RESULTS (Mathematical Ground Truth):\n");
@@ -246,12 +342,13 @@ public class GeminiExplanationService {
 
             contextBuilder.append("\nINSTRUCTIONS FOR GEMINI:\n");
             if ("mm".equalsIgnoreCase(lang)) {
-                contextBuilder.append("1. Answer the user's question in professional, elegant Business Myanmar (Burmese) language using Myanmar Unicode script.\n");
+                contextBuilder.append("1. Answer the user's question in natural, highly articulate Professional Business Myanmar (Burmese) language using Myanmar Unicode script.\n");
             } else {
                 contextBuilder.append("1. Answer the user's question concisely, clearly, and politely using an articulate, professional English tone.\n");
             }
             contextBuilder.append("2. Strictly adhere to the SWI-Prolog logical conclusions and MySQL metrics above. Do not invent contradictory numbers.\n");
-            contextBuilder.append("3. Format with clean bullet points, bold highlights, and actionable mitigation advice.\n");
+            contextBuilder.append("3. Always preserve exact food names, numbers, units (liter, kg, MMK, pieces), and Prolog predicates (assess_waste_risk/6, evaluate_priority_use/3, recommend_production/6, evaluate_redistribution/6).\n");
+            contextBuilder.append("4. Format with clean markdown: bold headings, bullet points, and clear actionable mitigation directives.\n");
 
             JsonObject requestBody = new JsonObject();
             JsonArray contents = new JsonArray();
@@ -293,42 +390,40 @@ public class GeminiExplanationService {
     }
 
     /**
-     * Synthesizes a structured, highly articulate Explainable AI response based on real Prolog & MySQL data
+     * Synthesizes a structured, dynamic Explainable AI response based on real Prolog & MySQL data
+     * (Zero hardcoded canned responses, handles ANY food item or operational query).
      */
     private String generateRuleGroundedExplanation(String query, List<FoodItem> inventory,
-                                                   List<PrologAssessment> items, List<RedistributionRecipient> recipients, String lang) {
+                                                   List<PrologAssessment> items, List<RedistributionRecipient> recipients,
+                                                   FoodItem matchedFoodItem, PrologAssessment matchedAssessment,
+                                                   String lang) {
         String lowerQuery = query.toLowerCase();
         boolean isMm = "mm".equalsIgnoreCase(lang);
 
-        // Handle completely empty inventory
+        // 1. Handle completely empty inventory
         if (inventory == null || inventory.isEmpty() || items == null || items.isEmpty()) {
             if (lowerQuery.contains("donat") || lowerQuery.contains("redistribut") || lowerQuery.contains("charit") || lowerQuery.contains("ngo") || lowerQuery.contains("လှူဒါန်း")) {
-                StringBuilder recipientBlockMm = new StringBuilder();
-                StringBuilder recipientBlockEn = new StringBuilder();
-
+                StringBuilder recipientBlock = new StringBuilder();
                 if (recipients != null && !recipients.isEmpty()) {
                     int idx = 1;
                     for (RedistributionRecipient r : recipients) {
-                        recipientBlockMm.append(String.format("%d. 🏢 **%s** (%s, ဖုန်း: %s)\n", idx, r.getName(), r.getContactPerson(), r.getPhone()));
-                        recipientBlockEn.append(String.format("%d. 🏢 **%s** (%s, Contact: %s, Phone: %s)\n", idx, r.getName(), r.getOrganizationType(), r.getContactPerson(), r.getPhone()));
+                        recipientBlock.append(String.format("%d. 🏢 **%s** (%s, %s: %s)\n",
+                                idx, r.getName(), r.getOrganizationType(), isMm ? "ဖုန်း" : "Phone", r.getPhone()));
                         idx++;
                     }
-                } else {
-                    recipientBlockMm.append("*(လက်ရှိတွင် စနစ်အတွင်း မှတ်ပုံတင်ထားသော ပရဟိတ မိတ်ဖက်အဖွဲ့အစည်း မရှိသေးပါ)*\n");
-                    recipientBlockEn.append("*(No verified charity partners currently registered in database)*\n");
                 }
 
                 if (isMm) {
                     return "### 🤝 ပိုလျှံအစားအစာ ပြန်လည်လှူဒါန်းရေး အစီအစဉ်\n\n" +
                            "လက်ရှိတွင် လှူဒါန်းရန် ပိုလျှံအစားအစာ စာရင်း မရှိသေးပါ။\n\n" +
                            "**မှတ်ပုံတင်ထားသော ပရဟိတ မိတ်ဖက်အဖွဲ့အစည်းများ:**\n" +
-                           recipientBlockMm.toString() + "\n" +
+                           recipientBlock.toString() + "\n" +
                            "💡 *ပိုလျှံအစားအစာများ ရှိလာပါက Redistribution ကဏ္ဍတွင် အချိန်ဇယားဆွဲနိုင်ပါသည်။*";
                 } else {
                     return "### 🤝 Surplus Food Redistribution Directory\n\n" +
                            "No surplus food items are currently flagged for donation in your inventory.\n\n" +
                            "**Verified Charity Partners Available for Pickup:**\n" +
-                           recipientBlockEn.toString() + "\n" +
+                           recipientBlock.toString() + "\n" +
                            "💡 *When surplus food is identified, you can schedule dispatches in the Redistribution tab.*";
                 }
             }
@@ -348,100 +443,217 @@ public class GeminiExplanationService {
             }
         }
 
-        // 1. Chicken specific query
-        if (lowerQuery.contains("chicken") || lowerQuery.contains("poultry") || lowerQuery.contains("ကြက်သား")) {
-            PrologAssessment chicken = items.stream().filter(i -> i.getFoodName().toLowerCase().contains("chicken") || i.getFoodName().contains("ကြက်သား")).findFirst().orElse(null);
-            if (chicken != null) {
-                String partnerNameMm = (recipients != null && !recipients.isEmpty()) ? "**" + recipients.get(0).getName() + "**" : "ပရဟိတ မိတ်ဖက်အဖွဲ့အစည်း";
-                String partnerNameEn = (recipients != null && !recipients.isEmpty()) ? "**" + recipients.get(0).getName() + "**" : "a verified charity partner";
+        // 2. Specific Food Item Analysis (e.g., "Why is Fresh Milk risky?", "Tell me about chicken", etc.)
+        if (matchedFoodItem != null && matchedAssessment != null) {
+            String foodName = matchedFoodItem.getName();
+            double stock = matchedFoodItem.getQuantity() != null ? matchedFoodItem.getQuantity().doubleValue() : 0.0;
+            String unit = matchedFoodItem.getUnit() != null ? matchedFoodItem.getUnit() : "liter";
+            double demand = matchedAssessment.getExpectedDemand();
+            double surplus = Math.max(0.0, stock - demand);
+            int expiryDays = matchedAssessment.getExpiryDays();
+            String expiryStatus = matchedFoodItem.getExpiryStatus() != null ? matchedFoodItem.getExpiryStatus() : "SAFE";
+            String riskLevel = matchedAssessment.getRiskLevel();
+            double riskPct = matchedAssessment.getRiskPercentage();
+            double pricePerUnit = matchedFoodItem.getPricePerUnit() != null ? matchedFoodItem.getPricePerUnit().doubleValue() : 0.0;
+            double potentialLoss = stock * pricePerUnit;
 
-                if (isMm) {
-                    return String.format(
-                            "### 🍗 ကြက်သား အလေအလွင့် အန္တရာယ် ဆန်းစစ်ချက်\n\n" +
-                            "**အန္တရာယ် အဆင့်အတန်း:** %s (%d%%)\n\n" +
-                            "**Prolog ယုတ္တိဗေဒ အကြောင်းရင်းများ:**\n" +
-                            "%s\n\n" +
-                            "**လက်ရှိ စာရင်းအင်း အချက်အလက်များ:**\n" +
-                            "- **လက်ကျန်ပမာဏ:** %.1f kg (သက်တမ်းကုန်ရန် %d ရက်ကျန်ရှိ)\n" +
-                            "- **ခန့်မှန်းလိုအပ်ချက်:** %.1f kg\n" +
-                            "- **ပိုလျှံနေသော ပမာဏ:** %.1f kg\n\n" +
-                            "**AI အကြံပြုချက်:**\n" +
-                            "💡 %s။ ပိုလျှံမှုရှိပါက %s သို့ လှူဒါန်းနိုင်ပါသည်။",
-                            chicken.getRiskLevel(),
-                            Math.round(chicken.getRiskPercentage()),
-                            chicken.getReasons().stream().map(r -> "- " + r).reduce((a, b) -> a + "\n" + b).orElse("- သက်တမ်းကုန်ဆုံးရက် နီးကပ်နေပါသည်"),
-                            chicken.getStock(),
-                            chicken.getExpiryDays(),
-                            chicken.getExpectedDemand(),
-                            Math.max(0, chicken.getStock() - chicken.getExpectedDemand()),
-                            chicken.getRecommendation(),
-                            partnerNameMm
-                    );
-                } else {
-                    return String.format(
-                            "### 🍗 Chicken Waste Risk Assessment\n\n" +
-                            "**Risk Level:** %s (%d%% Probability)\n\n" +
-                            "**Prolog Logical Reasons:**\n" +
-                            "%s\n\n" +
-                            "**Operational Metrics:**\n" +
-                            "- **Current Stock:** %.1f kg (Expiry: %d day(s) remaining)\n" +
-                            "- **Expected Demand:** %.1f kg\n" +
-                            "- **Surplus Inventory:** %.1f kg\n\n" +
-                            "**Smart AI Recommendation:**\n" +
-                            "💡 %s. Surplus can be dispatched to %s.",
-                            chicken.getRiskLevel(),
-                            Math.round(chicken.getRiskPercentage()),
-                            chicken.getReasons().stream().map(r -> "- " + r).reduce((a, b) -> a + "\n" + b).orElse("- Expiry approaching"),
-                            chicken.getStock(),
-                            chicken.getExpiryDays(),
-                            chicken.getExpectedDemand(),
-                            Math.max(0, chicken.getStock() - chicken.getExpectedDemand()),
-                            chicken.getRecommendation(),
-                            partnerNameEn
-                    );
-                }
+            List<String> reasons = (isMm && matchedAssessment.getReasonsMy() != null && !matchedAssessment.getReasonsMy().isEmpty()) ?
+                    matchedAssessment.getReasonsMy() : matchedAssessment.getReasons();
+            String reasonsBullet = reasons.stream().map(r -> "- " + r).reduce((a, b) -> a + "\n" + b).orElse(isMm ? "- သက်တမ်းကုန်ဆုံးရက် နီးကပ်နေပါသည်" : "- Expiry date approaching");
+
+            String recommendation = (isMm && matchedAssessment.getRecommendationMy() != null) ?
+                    matchedAssessment.getRecommendationMy() : matchedAssessment.getRecommendation();
+
+            String riskLevelDisplay = riskLevel;
+            if (isMm) {
+                if ("HIGH".equalsIgnoreCase(riskLevel)) riskLevelDisplay = "အန္တရာယ်မြင့်";
+                else if ("MEDIUM".equalsIgnoreCase(riskLevel)) riskLevelDisplay = "အလယ်အလတ်အန္တရာယ်";
+                else riskLevelDisplay = "အန္တရာယ်နည်း";
+            }
+
+            String expiryStatusDisplay = expiryStatus;
+            if (isMm) {
+                if ("EXPIRED".equalsIgnoreCase(expiryStatus)) expiryStatusDisplay = "သက်တမ်းကုန်ပြီး";
+                else if ("SAME_DAY_EXPIRY".equalsIgnoreCase(expiryStatus)) expiryStatusDisplay = "ယနေ့သက်တမ်းကုန်";
+                else if ("NEAR_EXPIRY".equalsIgnoreCase(expiryStatus)) expiryStatusDisplay = "သက်တမ်းကုန်ရန်နီး";
+                else expiryStatusDisplay = "ပုံမှန်ကောင်းမွန်";
+            }
+
+            if (isMm) {
+                return String.format(
+                        "### 🍲 %s အလေအလွင့် အန္တရာယ်နှင့် အခြေအနေ ဆန်းစစ်ချက်\n\n" +
+                        "**အန္တရာယ် အဆင့်အတန်း:** **%s (%d%% ဖြစ်နိုင်ခြေ)**\n" +
+                        "**သက်တမ်း အခြေအနေ:** `%s` (သက်တမ်းကုန်ရန် %d ရက်ကျန်ရှိ)\n\n" +
+                        "**SWI-Prolog ယုတ္တိဗေဒ အကြောင်းရင်းများ (`assess_waste_risk/6`):**\n" +
+                        "%s\n\n" +
+                        "**လက်ရှိ မီးဖိုချောင် စာရင်းအင်း အချက်အလက်များ:**\n" +
+                        "- **လက်ကျန်ပမာဏ:** %.1f %s\n" +
+                        "- **ခန့်မှန်းဝယ်လိုအား:** %.1f %s\n" +
+                        "- **ပိုလျှံနေသော ပမာဏ:** %.1f %s\n" +
+                        "- **ဆုံးရှုံးနိုင်ခြေ တန်ဖိုး:** %,.0f MMK\n\n" +
+                        "**AI လုပ်ဆောင်ချက် လမ်းညွှန်ချက်:**\n" +
+                        "💡 **%s**",
+                        foodName,
+                        riskLevelDisplay,
+                        Math.round(riskPct),
+                        expiryStatusDisplay,
+                        expiryDays,
+                        reasonsBullet,
+                        stock, unit,
+                        demand, unit,
+                        surplus, unit,
+                        potentialLoss,
+                        recommendation
+                );
+            } else {
+                return String.format(
+                        "### 🍲 %s Waste Risk & Expiry Assessment\n\n" +
+                        "**Risk Level:** **%s (%d%% Probability)**\n" +
+                        "**Expiry Status:** `%s` (%d day(s) remaining)\n\n" +
+                        "**SWI-Prolog Logical Reasons (`assess_waste_risk/6`):**\n" +
+                        "%s\n\n" +
+                        "**Operational Inventory Metrics:**\n" +
+                        "- **Current Stock:** %.1f %s\n" +
+                        "- **Expected Demand:** %.1f %s\n" +
+                        "- **Surplus Quantity:** %.1f %s\n" +
+                        "- **Financial Spoilage at Risk:** %,.0f MMK\n\n" +
+                        "**Smart AI Action Directive:**\n" +
+                        "💡 **%s**",
+                        foodName,
+                        riskLevelDisplay,
+                        Math.round(riskPct),
+                        expiryStatusDisplay,
+                        expiryDays,
+                        reasonsBullet,
+                        stock, unit,
+                        demand, unit,
+                        surplus, unit,
+                        potentialLoss,
+                        recommendation
+                );
             }
         }
 
-        // 2. Donation / Redistribution query
-        if (lowerQuery.contains("donat") || lowerQuery.contains("redistribut") || lowerQuery.contains("charit") || lowerQuery.contains("ngo") || lowerQuery.contains("လှူဒါန်း")) {
-            StringBuilder recipientBlockMm = new StringBuilder();
-            StringBuilder recipientBlockEn = new StringBuilder();
+        // 3. High Risk Query ("Which items are risky?", "high risk items", etc.)
+        if (lowerQuery.contains("risk") || lowerQuery.contains("danger") || lowerQuery.contains("အန္တရာယ်") || lowerQuery.contains("စွန့်ပစ်")) {
+            List<PrologAssessment> highRiskItems = items.stream().filter(i -> "HIGH".equalsIgnoreCase(i.getRiskLevel())).toList();
+            if (!highRiskItems.isEmpty()) {
+                StringBuilder sb = new StringBuilder();
+                if (isMm) {
+                    sb.append(String.format("### ⚠️ အလေအလွင့် အန္တရာယ်မြင့် မီးဖိုချောင်သုံး ပစ္စည်းများ (%d မျိုး)\n\n", highRiskItems.size()));
+                    sb.append("SWI-Prolog ယုတ္တိဗေဒစနစ်မှ ချက်ချင်း အရေးယူဆောင်ရွက်ရန် လိုအပ်သော ပစ္စည်းများကို တွေ့ရှိထားပါသည်:\n\n");
+                    for (PrologAssessment a : highRiskItems) {
+                        sb.append(String.format("- **%s**: အန္တရာယ် **%d%%** (လက်ကျန်: %.1f %s, သက်တမ်းကုန်ရန်: %d ရက်) → *%s*\n",
+                                a.getFoodName(), Math.round(a.getRiskPercentage()), a.getStock(), a.getUnit(), a.getExpiryDays(),
+                                a.getRecommendationMy() != null ? a.getRecommendationMy() : a.getRecommendation()));
+                    }
+                    sb.append("\n💡 *Recommendations စာမျက်နှာတွင် အဆိုပြုချက်များကို အတည်ပြုနိုင်ပါသည်။*");
+                } else {
+                    sb.append(String.format("### ⚠️ Priority High-Risk Kitchen Items (%d Items)\n\n", highRiskItems.size()));
+                    sb.append("Our SWI-Prolog expert reasoning system flagged these items requiring immediate operational action:\n\n");
+                    for (PrologAssessment a : highRiskItems) {
+                        sb.append(String.format("- **%s**: Risk **%d%%** (Stock: %.1f %s, Expiry: %d day(s)) → *%s*\n",
+                                a.getFoodName(), Math.round(a.getRiskPercentage()), a.getStock(), a.getUnit(), a.getExpiryDays(), a.getRecommendation()));
+                    }
+                    sb.append("\n💡 *Navigate to the Recommendations tab to execute automated mitigation directives.*");
+                }
+                return sb.toString();
+            }
+        }
 
+        // 4. Expired / Near Expiry Query
+        if (lowerQuery.contains("expir") || lowerQuery.contains("shelf") || lowerQuery.contains("သက်တမ်း")) {
+            List<FoodItem> expiredList = inventory.stream()
+                    .filter(i -> "EXPIRED".equalsIgnoreCase(i.getExpiryStatus()) || "SAME_DAY_EXPIRY".equalsIgnoreCase(i.getExpiryStatus()) || "NEAR_EXPIRY".equalsIgnoreCase(i.getExpiryStatus()))
+                    .toList();
+
+            if (!expiredList.isEmpty()) {
+                StringBuilder sb = new StringBuilder();
+                if (isMm) {
+                    sb.append(String.format("### 📅 သက်တမ်းကုန်ဆုံးခြင်းနှင့် သက်တမ်းကုန်ခါနီး စာရင်း (%d မျိုး)\n\n", expiredList.size()));
+                    for (FoodItem fi : expiredList) {
+                        String statusStr = "EXPIRED".equalsIgnoreCase(fi.getExpiryStatus()) ? "❌ သက်တမ်းကုန်ပြီး" :
+                                ("SAME_DAY_EXPIRY".equalsIgnoreCase(fi.getExpiryStatus()) ? "⚠️ ယနေ့သက်တမ်းကုန်" : "⚡ သက်တမ်းကုန်ရန်နီး");
+                        sb.append(String.format("- **%s** (%s): လက်ကျန် %.1f %s (သက်တမ်းကုန်ရက်: %s)\n",
+                                fi.getName(), statusStr, fi.getQuantity(), fi.getUnit(), fi.getExpiryDate()));
+                    }
+                    sb.append("\n💡 *သက်တမ်းကုန်ဆုံးသွားသော အစားအစာများကို ဧည့်သည်များထံ မကျွေးမွေးပါနှင့်။ စွန့်ပစ် သို့မဟုတ် မြေဆွေးပြုလုပ်ရန် မှတ်တမ်းတင်ပါ။*");
+                } else {
+                    sb.append(String.format("### 📅 Expiry & Shelf-Life Tracker (%d Items)\n\n", expiredList.size()));
+                    for (FoodItem fi : expiredList) {
+                        String statusStr = "EXPIRED".equalsIgnoreCase(fi.getExpiryStatus()) ? "❌ EXPIRED" :
+                                ("SAME_DAY_EXPIRY".equalsIgnoreCase(fi.getExpiryStatus()) ? "⚠️ SAME DAY EXPIRY" : "⚡ NEAR EXPIRY");
+                        sb.append(String.format("- **%s** (%s): Stock %.1f %s (Expiry Date: %s)\n",
+                                fi.getName(), statusStr, fi.getQuantity(), fi.getUnit(), fi.getExpiryDate()));
+                    }
+                    sb.append("\n💡 *Do not serve expired items. Dispose safely and log under Waste Records.*");
+                }
+                return sb.toString();
+            }
+        }
+
+        // 5. Menu / Cooking / Priority Use Query ("What should we cook today?", etc.)
+        if (lowerQuery.contains("cook") || lowerQuery.contains("menu") || lowerQuery.contains("priorit") || lowerQuery.contains("ချက်") || lowerQuery.contains("သုံးစွဲ")) {
+            List<PrologAssessment> priorityList = items.stream()
+                    .filter(i -> "IMMEDIATE_USE".equalsIgnoreCase(i.getPriorityUsage()) || "HIGH_PRIORITY".equalsIgnoreCase(i.getPriorityUsage()))
+                    .toList();
+
+            if (!priorityList.isEmpty()) {
+                StringBuilder sb = new StringBuilder();
+                if (isMm) {
+                    sb.append("### 👨‍🍳 ယနေ့ မီးဖိုချောင် ဦးစားပေး ချက်ပြုတ်သုံးစွဲရမည့် အစားအစာများ\n\n");
+                    sb.append("SWI-Prolog `evaluate_priority_use/3` စည်းမျဉ်းအရ သက်တမ်းမကုန်မီ ဦးစားပေးသုံးစွဲသင့်သော ကုန်ကြမ်းများ:\n\n");
+                    for (PrologAssessment a : priorityList) {
+                        sb.append(String.format("- **%s** (လက်ကျန်: %.1f %s, သက်တမ်း: %d ရက်) → နေ့စဉ် အထူးဟင်းလျာတွင် ထည့်သွင်းချက်ပြုတ်ပါ\n",
+                                a.getFoodName(), a.getStock(), a.getUnit(), a.getExpiryDays()));
+                    }
+                    sb.append("\n💡 *ဤပစ္စည်းများကို ယနေ့ မီနူးတွင် ဦးစားပေး သုံးစွဲခြင်းဖြင့် အလေအလွင့်ကို အထိရောက်ဆုံး ကာကွယ်နိုင်ပါသည်။*");
+                } else {
+                    sb.append("### 👨‍🍳 Chef's Priority Kitchen Usage Plan for Today\n\n");
+                    sb.append("Grounded in SWI-Prolog `evaluate_priority_use/3`, prioritize these ingredients for today's lunch/dinner service:\n\n");
+                    for (PrologAssessment a : priorityList) {
+                        sb.append(String.format("- **%s** (Stock: %.1f %s, Shelf-life: %d day(s)) → Feature in daily specials\n",
+                                a.getFoodName(), a.getStock(), a.getUnit(), a.getExpiryDays()));
+                    }
+                    sb.append("\n💡 *Drawing down these near-expiry ingredients today prevents future financial spoilage.*");
+                }
+                return sb.toString();
+            }
+        }
+
+        // 6. Redistribution / Donation Query
+        if (lowerQuery.contains("donat") || lowerQuery.contains("redistribut") || lowerQuery.contains("charit") || lowerQuery.contains("ngo") || lowerQuery.contains("လှူဒါန်း") || lowerQuery.contains("ပရဟိတ")) {
+            StringBuilder recipientBlock = new StringBuilder();
             if (recipients != null && !recipients.isEmpty()) {
                 int idx = 1;
                 for (RedistributionRecipient r : recipients) {
-                    recipientBlockMm.append(String.format("%d. 🏢 **%s** (%s, ဖုန်း: %s)\n", idx, r.getName(), r.getContactPerson(), r.getPhone()));
-                    recipientBlockEn.append(String.format("%d. 🏢 **%s** (%s, Contact: %s, Phone: %s)\n", idx, r.getName(), r.getOrganizationType(), r.getContactPerson(), r.getPhone()));
+                    recipientBlock.append(String.format("%d. 🏢 **%s** (%s, %s: %s)\n",
+                            idx, r.getName(), r.getOrganizationType(), isMm ? "ဖုန်း" : "Phone", r.getPhone()));
                     idx++;
                 }
-            } else {
-                recipientBlockMm.append("*(လက်ရှိတွင် စနစ်အတွင်း မှတ်ပုံတင်ထားသော ပရဟိတ မိတ်ဖက်အဖွဲ့အစည်း မရှိသေးပါ)*\n");
-                recipientBlockEn.append("*(No verified charity partners currently registered in database)*\n");
             }
 
             long eligibleCount = items.stream().filter(PrologAssessment::isRecommendRedistribution).count();
 
             if (isMm) {
                 return "### 🤝 ပိုလျှံအစားအစာ ပြန်လည်လှူဒါန်းရေး အစီအစဉ်\n\n" +
-                       String.format("SWI-Prolog စည်းမျဉ်း `evaluate_redistribution/6` အရ လက်ရှိတွင် လှူဒါန်းရန် သင့်တော်သော ပစ္စည်း %d မျိုး ရှိပါသည်:\n\n", eligibleCount) +
-                       "**လက်ခံမည့် ပရဟိတ မိတ်ဖက်အဖွဲ့အစည်းများ:**\n" +
-                       recipientBlockMm.toString() + "\n" +
-                       "💡 *အောက်ပါ ခလုတ်ကို နှိပ်၍ လှူဒါန်းမှု အချိန်ဇယားဆွဲနိုင်ပါသည်။*";
+                       String.format("SWI-Prolog စည်းမျဉ်း `evaluate_redistribution/6` အရ လှူဒါန်းရန် သင့်တော်သော ပိုလျှံပစ္စည်း **%d မျိုး** ရှိပါသည်:\n\n", eligibleCount) +
+                       "**မှတ်ပုံတင်ထားသော ပရဟိတ မိတ်ဖက်အဖွဲ့အစည်းများ:**\n" +
+                       recipientBlock.toString() + "\n" +
+                       "💡 *Redistribution စာမျက်နှာသို့ သွားရောက်၍ ကယ်ဆယ်ရေး လှူဒါန်းမှု အချိန်ဇယားဆွဲနိုင်ပါသည်။*";
             } else {
-                return "### 🤝 Surplus Food Redistribution Plan\n\n" +
-                       String.format("Based on SWI-Prolog evaluation rule `evaluate_redistribution/6`, %d surplus food item(s) are eligible for charity donation:\n\n", eligibleCount) +
-                       "**Verified Charity Partners Available for Pickup:**\n" +
-                       recipientBlockEn.toString() + "\n" +
-                       "💡 *Click below or go to Redistribution tab to schedule courier dispatch.*";
+                return "### 🤝 Surplus Food Redistribution & Charity Plan\n\n" +
+                       String.format("Based on SWI-Prolog rule `evaluate_redistribution/6`, **%d food item(s)** are eligible for surplus donation:\n\n", eligibleCount) +
+                       "**Verified Charity Partners Available for Dispatch:**\n" +
+                       recipientBlock.toString() + "\n" +
+                       "💡 *Navigate to the Redistribution tab to schedule automated courier dispatches.*";
             }
         }
 
-        // 3. Default comprehensive overview
+        // 7. General Kitchen Summary
         long highCount = items.stream().filter(i -> "HIGH".equalsIgnoreCase(i.getRiskLevel())).count();
         double totalSurplus = items.stream().mapToDouble(i -> Math.max(0, i.getStock() - i.getExpectedDemand())).sum();
-        String partnerSummaryMm = (recipients != null && !recipients.isEmpty()) ? recipients.get(0).getName() : "ပရဟိတ အဖွဲ့အစည်း";
-        String partnerSummaryEn = (recipients != null && !recipients.isEmpty()) ? recipients.get(0).getName() : "a verified food bank";
+        String partnerName = (recipients != null && !recipients.isEmpty()) ? recipients.get(0).getName() : (isMm ? "ပရဟိတ အဖွဲ့အစည်း" : "a verified food bank");
 
         if (isMm) {
             return String.format(
@@ -449,21 +661,21 @@ public class GeminiExplanationService {
                     "ကျွန်ုပ်တို့၏ **SWI-Prolog Expert Engine** မှ မီးဖိုချောင်ရှိ ကုန်ပစ္စည်း %d မျိုးကို ဆန်းစစ်တွက်ချက်ပြီး ဖြစ်ပါသည်:\n\n" +
                     "**အဓိက တွေ့ရှိချက်များ:**\n" +
                     "- **အန္တရာယ်မြင့် ကုန်ပစ္စည်းများ:** %d မျိုး\n" +
-                    "- **ခန့်မှန်း ပိုလျှံအလေအလွင့်:** %.1f kg\n\n" +
-                    "**မိတ်ဖက် အဖွဲ့အစည်းများ:** %s\n\n" +
-                    "မည်သည့် အစားအစာ သို့မဟုတ် လုပ်ဆောင်ချက်ကို အသေးစိတ် ဆက်လက်စစ်ဆေးလိုပါသလဲ?",
-                    inventory.size(), highCount, totalSurplus, partnerSummaryMm
+                    "- **ခန့်မှန်း ပိုလျှံအလေအလွင့်:** %.1f liter/kg\n" +
+                    "- **ပရဟိတ မိတ်ဖက်အဖွဲ့အစည်း:** %s\n\n" +
+                    "💡 *တိကျသော ကုန်ပစ္စည်းအမည် (ဥပမာ- Fresh Milk, Chicken) သို့မဟုတ် 'အန္တရာယ်ရှိသော ပစ္စည်းများ' ဟု မေးမြန်းနိုင်ပါသည်။*",
+                    inventory.size(), highCount, totalSurplus, partnerName
             );
         } else {
             return String.format(
                     "### 🍃 FoodWaste AI Daily Intelligence Summary\n\n" +
                     "Our **SWI-Prolog Expert Engine** analyzed %d food items across your live MySQL inventory.\n\n" +
-                    "**Key Findings:**\n" +
+                    "**Key Metrics:**\n" +
                     "- **High Waste Risk Items:** %d items\n" +
-                    "- **Estimated Total Surplus:** %.1f kg\n\n" +
-                    "**Partner Directory:** %s\n\n" +
-                    "What specific item or operational action would you like to explore?",
-                    inventory.size(), highCount, totalSurplus, partnerSummaryEn
+                    "- **Total Projected Surplus:** %.1f liter/kg\n" +
+                    "- **Primary Charity Partner:** %s\n\n" +
+                    "💡 *Try asking about a specific ingredient (e.g. 'Why is Fresh Milk risky?') or 'What should we cook today?'*",
+                    inventory.size(), highCount, totalSurplus, partnerName
             );
         }
     }

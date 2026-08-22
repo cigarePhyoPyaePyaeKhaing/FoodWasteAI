@@ -28,16 +28,37 @@ public class ChatServlet extends BaseServlet {
     public static class ChatRequest implements Serializable {
         private static final long serialVersionUID = 1L;
         private String message;
+        private String query;
+        private String prompt;
         private String language; // "en" or "mm"
 
         public ChatRequest() {}
 
         public String getMessage() {
-            return message;
+            if (message != null && !message.trim().isEmpty()) return message.trim();
+            if (query != null && !query.trim().isEmpty()) return query.trim();
+            if (prompt != null && !prompt.trim().isEmpty()) return prompt.trim();
+            return "";
         }
 
         public void setMessage(String message) {
             this.message = message;
+        }
+
+        public String getQuery() {
+            return query;
+        }
+
+        public void setQuery(String query) {
+            this.query = query;
+        }
+
+        public String getPrompt() {
+            return prompt;
+        }
+
+        public void setPrompt(String prompt) {
+            this.prompt = prompt;
         }
 
         public String getLanguage() {
