@@ -288,6 +288,13 @@ public class GroqChatPipelineTest {
         assertTrue(res3.getAnswer().contains("Fresh Chicken Breast") || res3.getAnswer().toLowerCase().contains("chicken"));
         assertNotNull(res3.getRelatedFoodItems());
         assertEquals("Fresh Chicken Breast", res3.getRelatedFoodItems().get(0).get("name"));
+
+        // Turn 4: Context switch to beef
+        GroqAIService.ChatResponse res4 = groqService.processUserQuery("what about beef?", "en", sessionId);
+        assertNotNull(res4);
+        assertTrue(res4.getAnswer().toLowerCase().contains("beef"));
+        assertNotNull(res4.getRelatedFoodItems());
+        assertTrue(res4.getRelatedFoodItems().get(0).get("name").toString().toLowerCase().contains("beef"));
     }
 
     @Test
@@ -307,5 +314,23 @@ public class GroqChatPipelineTest {
         GroqAIService.ChatResponse resCase = groqService.processUserQuery("fReSh cHiCkEn bReAsT risk", "en");
         assertNotNull(resCase);
         assertTrue(resCase.getAnswer().toLowerCase().contains("chicken"));
+    }
+
+    @Test
+    @DisplayName("Dynamic Salmon Test: Adding Salmon dynamically to MySQL is immediately recognized by chatbot")
+    public void testDynamicSalmonSupport() throws java.sql.SQLException {
+        String dynamicSalmon = "Fresh Atlantic Salmon " + System.currentTimeMillis();
+        foodItemService.createFoodItem(
+                new com.foodwasteai.model.FoodItem(null, dynamicSalmon, "Seafood",
+                        new java.math.BigDecimal("10.00"), "kg", new java.math.BigDecimal("25000.00"),
+                        java.time.LocalDate.now().plusDays(2), new java.math.BigDecimal("3.00")), 1L
+        );
+
+        GroqAIService.ChatResponse response = groqService.processUserQuery("is salmon risky?", "en");
+        assertNotNull(response);
+        assertNotNull(response.getAnswer());
+        assertTrue(response.getAnswer().toLowerCase().contains("salmon"), "Must dynamically evaluate Salmon");
+        assertNotNull(response.getRelatedFoodItems());
+        assertEquals(dynamicSalmon, response.getRelatedFoodItems().get(0).get("name"));
     }
 }

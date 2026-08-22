@@ -713,9 +713,10 @@ const AIAssistant = {
     const rawText = data.answer || data.explanation || '';
     let formattedText = this.formatMarkdown(rawText);
 
-    // Clean Related Food Items Card
+    // Clean Related Food Items Card (Only render if answer text doesn't already contain structured food card)
     let foodCardsHtml = '';
-    if (data.relatedFoodItems && data.relatedFoodItems.length > 0) {
+    const hasFoodCardInText = rawText.includes('Food Item:') || rawText.includes('အစားအစာ:');
+    if (!hasFoodCardInText && data.relatedFoodItems && data.relatedFoodItems.length > 0) {
       foodCardsHtml = data.relatedFoodItems.map(item => {
         const statusBadgeClass = item.expiryStatus === 'EXPIRED' ? 'badge-risk-high' :
           (item.expiryStatus === 'SAME_DAY_EXPIRY' || item.expiryStatus === 'NEAR_EXPIRY' ? 'badge-risk-medium' : 'badge-risk-low');

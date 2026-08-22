@@ -416,6 +416,16 @@ public class GroqAIService {
                 groqExplanation = callGroqApi(userQuery, inventory, items, recipients, apiKey, activeLang);
             }
 
+            // 5.1 Response Validation: If a specific food item was detected, ensure response focuses on it
+            if (matchedFoodItem != null && groqExplanation != null) {
+                String matchedName = matchedFoodItem.getName();
+                boolean containsMatched = groqExplanation.toLowerCase().contains(matchedName.toLowerCase());
+                if (!containsMatched) {
+                    logger.warn("Response validation mismatch: Expected {} in answer. Falling back to grounded XAI.", matchedName);
+                    groqExplanation = null;
+                }
+            }
+
             if (groqExplanation == null || groqExplanation.trim().isEmpty()) {
                 groqExplanation = generateRuleGroundedExplanation(userQuery, inventory, items, recipients, matchedFoodItem, matchedAssessment, activeLang);
                 response.setSourceEngine("FoodWaste AI Assistant\nPowered by Groq AI + SWI-Prolog");
@@ -674,10 +684,10 @@ public class GroqAIService {
         }
 
         if (bestMatch != null && bestScore > 0) {
-            System.out.println("Detected food:\n" + (detectedWord != null ? detectedWord : bestMatch.getName()) +
-                               "\n\nMatched inventory:\n" + bestMatch.getName() +
+            System.out.println("Detected food keyword:\n" + (detectedWord != null ? detectedWord : bestMatch.getName()) +
+                               "\n\nMatched inventory item:\n" + bestMatch.getName() +
                                "\n\nContext updated:\n" + bestMatch.getName());
-            logger.info("Detected food: {} | Matched inventory: {} | Context updated: {}",
+            logger.info("Detected food keyword: {} | Matched inventory item: {} | Context updated: {}",
                     detectedWord != null ? detectedWord : bestMatch.getName(), bestMatch.getName(), bestMatch.getName());
         }
 
@@ -738,18 +748,20 @@ public class GroqAIService {
             StringBuilder systemPrompt = new StringBuilder();
             systemPrompt.append("You are FoodWaste AI Assistant.\n\n");
             systemPrompt.append("Act like a professional food waste consultant.\n\n");
-            systemPrompt.append("Answer naturally and conversationally.\n\n");
+            systemPrompt.append("Answer naturally like a human assistant.\n\n");
+            systemPrompt.append("Use verified food inventory information.\n\n");
+            systemPrompt.append("Never invent:\n");
+            systemPrompt.append("- food items\n");
+            systemPrompt.append("- stock quantity\n");
+            systemPrompt.append("- expiry date\n");
+            systemPrompt.append("- risk percentage\n\n");
             systemPrompt.append("Do not mention:\n");
             systemPrompt.append("- Groq\n");
             systemPrompt.append("- MySQL\n");
             systemPrompt.append("- backend\n");
             systemPrompt.append("- API\n");
             systemPrompt.append("- internal architecture\n\n");
-            systemPrompt.append("unless asked.\n\n");
-            systemPrompt.append("ANTI-HALLUCINATION POLICY:\n");
-            systemPrompt.append("- NEVER invent food items, stock quantities, prices, expiry dates, or risk percentages.\n");
-            systemPrompt.append("- ONLY use the verified facts provided below from current inventory and SWI-Prolog deductions.\n");
-            systemPrompt.append("- If an item does not exist in inventory, state clearly that it is not currently recorded in the kitchen inventory.\n\n");
+            systemPrompt.append("unless the user explicitly asks.\n\n");
             systemPrompt.append("OPERATIONAL KITCHEN FACTS & DEDUCTIONS:\n");
             systemPrompt.append(contextBuilder.toString());
             systemPrompt.append("\nRULES:\n");
