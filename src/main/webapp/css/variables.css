@@ -1,0 +1,238 @@
+/* ==========================================================================
+   FoodWaste AI - iOS 26 Inspired Bubble Glass Design System Variables
+   Themes:
+     - Light: Pale Blue Canvas (#F5F9FF), Translucent White Glass (rgba(255,255,255,0.75)), Apple Blue (#007AFF)
+     - Dark:  Baby Blue Canvas (#A2CFFE), Translucent White Glass (rgba(255,255,255,0.28)), iOS Blue (#3B82F6)
+   ========================================================================== */
+
+:root {
+  /* Theme Metadata */
+  --theme-name: 'light';
+
+  /* Standard CSS Variable System */
+  --bg-primary: #F8FAFC;
+  --bg-app: #F8FAFC;
+  --bg-secondary: #F1F5F9;
+  --surface: rgba(255, 255, 255, 0.78);
+  --surface-primary: rgba(255, 255, 255, 0.78);
+  --surface-glass: rgba(255, 255, 255, 0.78);
+  --card: rgba(255, 255, 255, 0.78);
+  --bg-surface-glass: rgba(255, 255, 255, 0.78);
+  --bg-surface-glass-card: rgba(255, 255, 255, 0.78);
+  --bg-surface-glass-elevated: rgba(255, 255, 255, 0.90);
+  --bg-surface-glass-subtle: rgba(241, 245, 249, 0.65);
+  --bg-surface-bubble: rgba(255, 255, 255, 0.95);
+  --bg-modal-backdrop: rgba(15, 23, 42, 0.35);
+  --bg-table-row: rgba(255, 255, 255, 0.68);
+  --bg-table-row-hover: rgba(241, 245, 249, 0.95);
+
+  /* Primary Accent & Pale Blue Elements */
+  --accent: #007AFF;
+  --accent-primary: #007AFF;
+  --accent-primary-hover: #0069D9;
+  --accent-primary-active: #0056B3;
+  --accent-primary-light: rgba(0, 122, 255, 0.10);
+  --accent-primary-text: #FFFFFF;
+  --accent-primary-glow: rgba(0, 122, 255, 0.22);
+  --accent-pale-blue: #7DD3FC;
+  --accent-icy-blue: #BAE6FD;
+  --accent-cyan: #38BDF8;
+
+  /* Semantic Colors */
+  --success: #34C759;
+  --warning: #F59E0B;
+  --danger: #FF3B30;
+  
+  /* Primary Action Button Colors */
+  --btn-action-bg: #007AFF;
+  --btn-action-hover: #0069D9;
+  --btn-action-text: #FFFFFF;
+  --btn-action-glow: rgba(0, 122, 255, 0.25);
+  --accent-gold: #F59E0B;
+  --accent-gold-hover: #D97706;
+  --accent-gold-light: rgba(245, 158, 11, 0.12);
+  --accent-gold-dark: #B45309;
+  --accent-gold-text: #1C1917;
+  --accent-gold-glow: rgba(245, 158, 11, 0.20);
+  --accent-yellow-dark: #B45309;
+  --accent-yellow-100: rgba(245, 158, 11, 0.12);
+  --accent-yellow-400: #F59E0B;
+  --accent-yellow-500: #D97706;
+  --accent-yellow-glow: rgba(245, 158, 11, 0.20);
+  --text-yellow-btn: #FFFFFF;
+
+  /* Typography & Hierarchy */
+  --text-primary: #0F172A;
+  --text-secondary: #64748B;
+  --text-main: #0F172A;
+  --text-body: #1E293B;
+  --text-muted: #64748B;
+  --text-subtle: #94A3B8;
+
+  /* Glass Borders & Inner Highlights */
+  --border: rgba(210, 226, 245, 0.70);
+  --border-glass: rgba(255, 255, 255, 0.75);
+  --glass-border: rgba(210, 226, 245, 0.70);
+  --glass-border-subtle: rgba(220, 235, 250, 0.55);
+  --glass-border-focus: rgba(0, 122, 255, 0.65);
+  --glass-highlight: inset 0 1px 1px 0 rgba(255, 255, 255, 0.90);
+
+  /* Semantic Risk Colors */
+  --risk-high-bg: rgba(255, 59, 48, 0.10);
+  --risk-high-text: #FF3B30;
+  --risk-high-border: rgba(255, 59, 48, 0.22);
+  --risk-high-bubble: rgba(254, 226, 226, 0.70);
+
+  --risk-med-bg: rgba(245, 158, 11, 0.10);
+  --risk-med-text: #D97706;
+  --risk-med-border: rgba(245, 158, 11, 0.22);
+  --risk-med-bubble: rgba(254, 243, 199, 0.70);
+
+  --risk-low-bg: rgba(52, 199, 89, 0.10);
+  --risk-low-text: #16A34A;
+  --risk-low-border: rgba(52, 199, 89, 0.22);
+  --risk-low-bubble: rgba(209, 250, 229, 0.70);
+
+  --status-urgent-bg: rgba(255, 59, 48, 0.12);
+  --status-urgent-text: #FF3B30;
+  --status-important-bg: rgba(245, 158, 11, 0.12);
+  --status-important-text: #D97706;
+  --status-opt-bg: rgba(0, 122, 255, 0.10);
+  --status-opt-text: #007AFF;
+  --status-redist-bg: rgba(175, 82, 222, 0.12);
+  --status-redist-text: #AF52DE;
+
+  /* Ambient Glass Floating Shadows */
+  --shadow: 0 8px 24px -4px rgba(0, 30, 80, 0.06), 0 2px 6px -1px rgba(0, 30, 80, 0.02);
+  --shadow-soft: 0 8px 24px -4px rgba(0, 30, 80, 0.06), 0 2px 6px -1px rgba(0, 30, 80, 0.02);
+  --shadow-bubble: 0 8px 24px -4px rgba(0, 30, 80, 0.06), 0 2px 6px -1px rgba(0, 30, 80, 0.02);
+  --shadow-glass-float: 0 16px 36px -6px rgba(0, 30, 80, 0.08), 0 4px 12px -2px rgba(0, 30, 80, 0.03);
+  --shadow-hover: 0 12px 28px -4px rgba(0, 30, 80, 0.10), 0 4px 8px -2px rgba(0, 30, 80, 0.04);
+  --shadow-accent-btn: 0 4px 14px -2px rgba(0, 122, 255, 0.35);
+  --shadow-yellow-btn: 0 4px 14px -2px rgba(0, 122, 255, 0.35);
+
+  /* Border Radii Tokens */
+  --radius-xs: 8px;
+  --radius-sm: 12px;
+  --radius-md: 18px;
+  --radius-lg: 24px;
+  --radius-xl: 28px;
+  --radius-pill: 9999px;
+
+  /* Glass Blur Tokens */
+  --glass-blur: blur(24px) saturate(180%);
+  --glass-blur-heavy: blur(32px) saturate(190%);
+
+  /* Font System with Myanmar Support */
+  --font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", "Pyidaungsu", "Padauk", Roboto, Helvetica, Arial, sans-serif;
+
+  /* Smooth Transitions */
+  --transition-smooth: 0.20s cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-bounce: 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+
+  /* Layout Dimensions */
+  --sidebar-width: 260px;
+  --topbar-height: 64px;
+  --mobile-bottom-nav-height: 68px;
+}
+
+/* ==========================================================================
+   DARK THEME SYSTEM (Baby Blue Glass Canvas: #A2CFFE)
+   ========================================================================== */
+[data-theme="dark"] {
+  --theme-name: 'dark';
+
+  /* Color System */
+  --bg-primary: #CBD5E1;
+  --bg-app: #CBD5E1;
+  --bg-secondary: #E2E8F0;
+  --surface: rgba(255, 255, 255, 0.28);
+  --surface-primary: rgba(255, 255, 255, 0.28);
+  --surface-glass: rgba(255, 255, 255, 0.28);
+  --card: rgba(255, 255, 255, 0.28);
+  --bg-surface-glass: rgba(255, 255, 255, 0.28);
+  --bg-surface-glass-card: rgba(255, 255, 255, 0.28);
+  --bg-surface-glass-elevated: rgba(255, 255, 255, 0.40);
+  --bg-surface-glass-subtle: rgba(255, 255, 255, 0.20);
+  --bg-surface-bubble: rgba(255, 255, 255, 0.65);
+  --bg-modal-backdrop: rgba(15, 23, 42, 0.25);
+  --bg-table-row: rgba(255, 255, 255, 0.28);
+  --bg-table-row-hover: rgba(255, 255, 255, 0.45);
+
+  /* Primary Accent System */
+  --accent: #3B82F6;
+  --accent-primary: #3B82F6;
+  --accent-primary-hover: #2563EB;
+  --accent-primary-active: #1D4ED8;
+  --accent-primary-light: rgba(59, 130, 246, 0.16);
+  --accent-primary-text: #FFFFFF;
+  --accent-primary-glow: rgba(59, 130, 246, 0.25);
+  --accent-cyan: #0EA5E9;
+
+  /* Semantic Colors */
+  --success: #22C55E;
+  --warning: #F59E0B;
+  --danger: #EF4444;
+  --accent-gold: #F59E0B;
+  --accent-gold-hover: #D97706;
+  --accent-gold-light: rgba(245, 158, 11, 0.14);
+  --accent-gold-dark: #B45309;
+  --accent-gold-text: #FFFFFF;
+  --accent-gold-glow: rgba(245, 158, 11, 0.25);
+  --accent-yellow-dark: #B45309;
+  --accent-yellow-100: rgba(245, 158, 11, 0.14);
+  --accent-yellow-400: #F59E0B;
+  --accent-yellow-500: #D97706;
+  --accent-yellow-glow: rgba(245, 158, 11, 0.25);
+  --text-yellow-btn: #FFFFFF;
+
+  /* Typography & Neutral System */
+  --text-primary: #0F172A;
+  --text-secondary: #334155;
+  --text-main: #0F172A;
+  --text-body: #334155;
+  --text-muted: #64748B;
+  --text-subtle: #475569;
+
+  /* Glass Borders & Inner Highlights */
+  --border: rgba(255, 255, 255, 0.55);
+  --border-glass: rgba(255, 255, 255, 0.55);
+  --glass-border: rgba(255, 255, 255, 0.55);
+  --glass-border-subtle: rgba(255, 255, 255, 0.35);
+  --glass-border-focus: rgba(59, 130, 246, 0.65);
+  --glass-highlight: inset 0 1px 1px 0 rgba(255, 255, 255, 0.70);
+
+  /* Semantic Risk Colors */
+  --risk-high-bg: rgba(239, 68, 68, 0.12);
+  --risk-high-text: #EF4444;
+  --risk-high-border: rgba(239, 68, 68, 0.25);
+  --risk-high-bubble: rgba(254, 226, 226, 0.70);
+
+  --risk-med-bg: rgba(245, 158, 11, 0.12);
+  --risk-med-text: #F59E0B;
+  --risk-med-border: rgba(245, 158, 11, 0.25);
+  --risk-med-bubble: rgba(254, 243, 199, 0.70);
+
+  --risk-low-bg: rgba(34, 197, 94, 0.12);
+  --risk-low-text: #22C55E;
+  --risk-low-border: rgba(34, 197, 94, 0.25);
+  --risk-low-bubble: rgba(209, 250, 229, 0.70);
+
+  --status-urgent-bg: rgba(239, 68, 68, 0.12);
+  --status-urgent-text: #EF4444;
+  --status-important-bg: rgba(245, 158, 11, 0.12);
+  --status-important-text: #F59E0B;
+  --status-opt-bg: rgba(59, 130, 246, 0.12);
+  --status-opt-text: #2563EB;
+  --status-redist-bg: rgba(168, 85, 247, 0.12);
+  --status-redist-text: #9333EA;
+
+  /* Ambient Glass Soft Blue Shadows */
+  --shadow: 0 8px 24px -4px rgba(37, 99, 235, 0.12), 0 2px 6px -1px rgba(37, 99, 235, 0.04);
+  --shadow-soft: 0 8px 24px -4px rgba(37, 99, 235, 0.12), 0 2px 6px -1px rgba(37, 99, 235, 0.04);
+  --shadow-bubble: 0 12px 30px rgba(37, 99, 235, 0.10);
+  --shadow-glass-float: 0 16px 36px -6px rgba(37, 99, 235, 0.14), 0 4px 12px -2px rgba(37, 99, 235, 0.05);
+  --shadow-hover: 0 16px 32px -4px rgba(37, 99, 235, 0.16), 0 6px 12px -2px rgba(37, 99, 235, 0.06);
+  --shadow-accent-btn: 0 4px 14px -2px rgba(37, 99, 235, 0.35);
+  --shadow-yellow-btn: 0 4px 14px -2px rgba(245, 158, 11, 0.35);
+}

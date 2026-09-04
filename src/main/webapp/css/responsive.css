@@ -1,0 +1,237 @@
+/* ==========================================================================
+   FoodWaste AI - Responsive Layout Overrides & Breakpoints
+   - Mobile:  <= 767px
+   - Tablet:  768px - 1199px
+   - Desktop: >= 1200px
+   ========================================================================== */
+
+/* --- Desktop (> 1200px) --- */
+@media (min-width: 1200px) {
+  .app-container {
+    max-width: 1600px;
+    margin: 0 auto;
+  }
+}
+
+/* --- Tablet (768px - 1199px) --- */
+@media (min-width: 768px) and (max-width: 1199px) {
+  :root {
+    --sidebar-width: 220px;
+  }
+  
+  .dashboard-grid-columns,
+  .prediction-main-grid {
+    grid-template-columns: 1fr !important;
+  }
+  
+  .kpi-grid,
+  .kpi-bubble-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 1rem;
+  }
+
+  .topbar-glass {
+    padding: 0.85rem 1.25rem;
+    min-height: 64px;
+    margin-bottom: 1.25rem;
+  }
+}
+
+/* --- Mobile (<= 767px) --- */
+@media (max-width: 767px) {
+  .app-container {
+    padding: 0.5rem;
+    gap: 0.5rem;
+  }
+
+  .sidebar-float {
+    display: none !important;
+  }
+
+  .mobile-bottom-dock {
+    display: flex !important;
+  }
+
+  .main-wrapper-float {
+    height: auto;
+    min-height: 100vh;
+    padding-bottom: calc(var(--mobile-bottom-nav-height, 68px) + env(safe-area-inset-bottom, 12px) + 20px);
+  }
+
+  .kpi-grid,
+  .kpi-bubble-grid {
+    grid-template-columns: 1fr !important;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+  }
+
+  .dashboard-grid-columns,
+  .prediction-main-grid {
+    grid-template-columns: 1fr !important;
+    gap: 0.75rem;
+  }
+
+  .recommendations-grid {
+    grid-template-columns: 1fr !important;
+    gap: 0.75rem;
+  }
+
+  .topbar-glass {
+    padding: 0.75rem 0.95rem;
+    min-height: 56px;
+    margin-bottom: 0.85rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .page-eyebrow {
+    font-size: 0.65rem;
+  }
+
+  .page-headline-glass {
+    font-size: 1.15rem;
+  }
+
+  .page-description-glass {
+    display: none;
+  }
+
+  .card-glass {
+    border-radius: var(--radius-md, 18px);
+    margin-bottom: 0.85rem;
+  }
+
+  .card-header-glass {
+    padding: 0.85rem 1rem;
+  }
+
+  .card-body-glass {
+    padding: 1rem;
+  }
+
+  .data-table-glass th,
+  .data-table-glass td {
+    padding: 0.65rem 0.75rem;
+    font-size: 0.78rem;
+  }
+
+  /* Mobile Stacked Card View for Waste Records */
+  .waste-records-table,
+  .waste-records-table tbody,
+  .waste-records-table tr.waste-row,
+  .waste-records-table td {
+    display: block;
+    width: 100% !important;
+  }
+
+  .waste-records-table thead {
+    display: none;
+  }
+
+  .waste-records-table tr.waste-row {
+    background: var(--bg-surface-glass-card);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-md);
+    padding: 0.85rem 1rem;
+    margin-bottom: 0.75rem;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .waste-records-table td {
+    padding: 0.35rem 0 !important;
+    background: transparent !important;
+    border: none !important;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.85rem;
+  }
+
+  .waste-records-table td::before {
+    content: attr(data-label);
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    letter-spacing: 0.03em;
+  }
+
+  .waste-records-table td.col-date .waste-datetime-box {
+    text-align: right;
+    align-items: flex-end;
+  }
+
+  .waste-records-table td.col-action {
+    margin-top: 0.4rem;
+    padding-top: 0.4rem !important;
+    border-top: 1px solid var(--glass-border-subtle) !important;
+    justify-content: flex-end;
+  }
+
+  .waste-records-table td.col-action::before {
+    display: none;
+  }
+
+  /* Recommendations Grid Mobile Single-Column */
+  .recommendations-2col-grid,
+  .redist-candidate-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Mobile Stacked Card View for Redistribution Records */
+  .redist-history-table,
+  .redist-history-table tbody,
+  .redist-history-table tr.redist-row,
+  .redist-history-table td {
+    display: block;
+    width: 100% !important;
+  }
+
+  .redist-history-table thead {
+    display: none;
+  }
+
+  .redist-history-table tr.redist-row {
+    background: var(--bg-surface-glass-card);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-md);
+    padding: 0.85rem 1rem;
+    margin-bottom: 0.75rem;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .redist-history-table td {
+    padding: 0.35rem 0 !important;
+    background: transparent !important;
+    border: none !important;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.85rem;
+  }
+
+  .redist-history-table td::before {
+    content: attr(data-label);
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    letter-spacing: 0.03em;
+  }
+
+  .redist-history-table td.col-date .redist-datetime-box {
+    text-align: right;
+    align-items: flex-end;
+  }
+
+  .redist-history-table td.col-action {
+    margin-top: 0.4rem;
+    padding-top: 0.4rem !important;
+    border-top: 1px solid var(--glass-border-subtle) !important;
+    justify-content: flex-end;
+  }
+
+  .redist-history-table td.col-action::before {
+    display: none;
+  }
+}

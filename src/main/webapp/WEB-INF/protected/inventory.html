@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>
+    (function() {
+      try {
+        var saved = localStorage.getItem('foodwaste_theme') || 'system';
+        var resolved = saved;
+        if (saved === 'system') {
+          resolved = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+        }
+        document.documentElement.setAttribute('data-theme', resolved);
+        document.documentElement.setAttribute('data-theme-mode', saved);
+      } catch(e) {}
+    })();
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FoodWaste AI - Inventory</title>
+  <link rel="stylesheet" href="/css/variables.css">
+  <link rel="stylesheet" href="/css/theme.css?v=1">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="/css/styles.css">
+  <link rel="stylesheet" href="/css/responsive.css?v=1">
+</head>
+<body>
+
+<div class="app-container">
+  <!-- Desktop Sidebar -->
+  <aside class="sidebar-float">
+    <div class="sidebar-header">
+      <div class="brand-bubble-logo"><svg width="48" height="48" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs><linearGradient id="bodyGradient" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#34D399"/><stop offset="100%" stop-color="#059669"/></linearGradient><linearGradient id="plateGradient" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#FBBF24"/><stop offset="100%" stop-color="#D97706"/></linearGradient></defs><ellipse cx="100" cy="173" rx="58" ry="14" fill="url(#plateGradient)"/><ellipse cx="100" cy="171" rx="46" ry="9" fill="#FDE68A" opacity="0.6"/><ellipse cx="75" cy="163" rx="9" ry="6" fill="#059669"/><ellipse cx="125" cy="163" rx="9" ry="6" fill="#059669"/><path d="M 100 48 C 132 58 148 94 142 124 C 137 154 118 168 100 168 C 82 168 63 154 58 124 C 52 94 68 58 100 48 Z" fill="url(#bodyGradient)"/><path d="M 100 60 L 100 150" stroke="#047857" stroke-width="2" stroke-linecap="round" opacity="0.4"/><path d="M 100 85 C 88 92 80 100 78 108" stroke="#047857" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0.35"/><path d="M 100 85 C 112 92 120 100 122 108" stroke="#047857" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0.35"/><ellipse cx="56" cy="120" rx="10" ry="7" fill="#34D399" transform="rotate(-20 56 120)"/><ellipse cx="144" cy="120" rx="10" ry="7" fill="#34D399" transform="rotate(20 144 120)"/><circle cx="84" cy="108" r="11" fill="#FFFFFF"/><circle cx="116" cy="108" r="11" fill="#FFFFFF"/><circle cx="86" cy="110" r="5" fill="#064E3B"/><circle cx="114" cy="110" r="5" fill="#064E3B"/><circle cx="88" cy="108" r="1.6" fill="#FFFFFF"/><circle cx="116" cy="108" r="1.6" fill="#FFFFFF"/><path d="M 86 128 Q 100 140 114 128" stroke="#064E3B" stroke-width="3" stroke-linecap="round" fill="none"/><ellipse cx="70" cy="122" rx="6" ry="4" fill="#FBBF24" opacity="0.5"/><ellipse cx="130" cy="122" rx="6" ry="4" fill="#FBBF24" opacity="0.5"/><line x1="100" y1="48" x2="100" y2="26" stroke="#059669" stroke-width="3" stroke-linecap="round"/><circle cx="100" cy="20" r="8" fill="#FBBF24"/><path d="M 100 14 L 102 19 L 107 20 L 102 21 L 100 26 L 98 21 L 93 20 L 98 19 Z" fill="#FFFFFF"/></svg></div>
+      <div class="brand-title-group">
+        <div class="brand-main-title" data-i18n="brand.name">FoodWaste AI</div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav-scroll">
+      <div class="nav-bubble-section-title" data-i18n="nav.core">Core Operations</div>
+      <a href="/dashboard.html" class="nav-bubble-link">
+        <span class="nav-bubble-icon">📊</span> <span data-i18n="nav.dashboard">Dashboard</span>
+      </a>
+      <a href="/inventory.html" class="nav-bubble-link active">
+        <span class="nav-bubble-icon">📦</span> <span data-i18n="nav.inventory">Inventory</span>
+      </a>
+      <a href="/sales.html" class="nav-bubble-link">
+        <span class="nav-bubble-icon">💰</span> <span data-i18n="nav.sales">Sales Entry</span>
+      </a>
+      <a href="/waste.html" class="nav-bubble-link">
+        <span class="nav-bubble-icon">🗑️</span> <span data-i18n="nav.waste">Waste Records</span>
+      </a>
+
+      <div class="nav-bubble-section-title" data-i18n="nav.ai">AI & Intelligence</div>
+      <a href="/redistribution.html" class="nav-bubble-link">
+        <span class="nav-bubble-icon">🤝</span> <span data-i18n="nav.redistribution">Redistribution</span>
+      </a>
+
+      <div class="nav-section-title" data-i18n="nav.management">Management</div>
+      <a href="/reports.html" class="nav-bubble-link">
+        <span class="nav-bubble-icon">📈</span> <span data-i18n="nav.reports">Reports</span>
+      </a>
+      <a href="/settings.html" class="nav-bubble-link">
+        <span class="nav-bubble-icon">⚙️</span> <span data-i18n="nav.settings">Settings</span>
+      </a>
+    </nav>
+  </aside>
+
+  <!-- Main Canvas -->
+  <div class="main-wrapper-float">
+    <header class="topbar-glass">
+      <div class="topbar-left">
+        <div class="page-title-group">
+          <span class="page-eyebrow" data-i18n="nav.core">CORE OPERATIONS</span>
+          <div style="display:inline-flex; align-items:center; gap:0.55rem;">
+            <h1 class="page-headline-glass" data-i18n="inv.headline" style="margin:0;">Inventory Management</h1>
+            <button type="button" class="btn-bubble btn-glass-subtle btn-sm-bubble" id="btn-inventory-summary" onclick="event.stopPropagation(); Inventory.openSummaryModal();" title="Sales & Donations Summary" data-i18n-title="inv.summary.title" style="padding:0.25rem 0.55rem; font-size:1.05rem; cursor:pointer; line-height:1; vertical-align:middle; border-radius:var(--radius-pill); display:inline-flex; align-items:center; justify-content:center;">📋</button>
+          </div>
+          <p class="page-description-glass" data-i18n="inv.subtitle">Manage the food currently available in your kitchen.</p>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <div id="language-switcher-container"></div>
+        <button class="btn-bubble btn-yellow btn-sm-bubble" onclick="Inventory.openModal()" data-i18n="inv.btn.add">+ Add Food Item</button>
+      </div>
+    </header>
+
+    <main class="content-body-float">
+      <!-- Search & Filters Toolbar -->
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.75rem; margin-bottom:1.25rem;">
+        <div class="search-pill-box">
+          <span>🔍</span>
+          <input type="text" id="inv-search-input" placeholder="Search food items by name..." data-i18n-placeholder="inv.searchPlaceholder">
+        </div>
+        <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+          <select class="form-select-bubble" id="category-filter" style="width:auto; padding:0.45rem 1rem; font-size:0.85rem;">
+            <option value="" data-i18n="category.all">All Categories</option>
+            <option value="Poultry" data-i18n="category.poultry">Poultry</option>
+            <option value="Produce" data-i18n="category.produce">Produce</option>
+            <option value="Seafood" data-i18n="category.seafood">Seafood</option>
+            <option value="Dairy" data-i18n="category.dairy">Dairy</option>
+            <option value="Grains" data-i18n="category.grains">Grains</option>
+            <option value="Bakery" data-i18n="category.bakery">Bakery</option>
+            <option value="Other" data-i18n="category.other">Other</option>
+          </select>
+          <select class="form-select-bubble" id="status-filter" style="width:auto; padding:0.45rem 1rem; font-size:0.85rem;">
+            <option value="" data-i18n="status.all">All Statuses</option>
+            <option value="OK" data-i18n="status.ok">OK</option>
+            <option value="NEAR_EXPIRY" data-i18n="status.nearExpiry">Near Expiry</option>
+            <option value="SAME_DAY_EXPIRY" data-i18n="status.sameDayExpiry">Same Day Expiry</option>
+            <option value="EXPIRED" data-i18n="status.expired">Expired</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Inventory Data Card -->
+      <div class="card-glass">
+        <div class="card-body-glass" style="padding:0.75rem 1.25rem 1.25rem 1.25rem;">
+          <div class="table-responsive">
+            <table class="data-table-glass">
+              <thead>
+                <tr>
+                  <th data-i18n="inv.th.item">Food Item</th>
+                  <th data-i18n="inv.th.category">Category</th>
+                  <th data-i18n="inv.th.totalQuantity">Total Quantity</th>
+                  <th data-i18n="inv.th.remainingQuantity">Remaining Quantity</th>
+                  <th data-i18n="inv.th.unitPrice">Price / Unit</th>
+                  <th data-i18n="inv.th.expiry">Expiry Date</th>
+                  <th data-i18n="inv.th.status">Status</th>
+                  <th style="text-align:right;" data-i18n="inv.th.actions">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="inventory-tbody">
+                <!-- Dynamically populated via /api/inventory -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- Add / Edit Item Modal -->
+<div class="modal-glass-backdrop" id="add-item-modal">
+  <div class="modal-glass-dialog">
+    <div class="modal-glass-header">
+      <h3 id="modal-food-title" style="font-size:1.15rem; font-weight:800; color:var(--text-main);" data-i18n="inv.modal.addTitle">+ Add Food Item</h3>
+      <button class="btn-bubble btn-glass-subtle btn-sm-bubble" onclick="Inventory.closeModal()">✕</button>
+    </div>
+    <form id="inventory-form" onsubmit="Inventory.saveItem(event)">
+      <div class="modal-glass-body">
+        <div class="form-group-bubble">
+          <label class="form-label-bubble" data-i18n="inv.modal.name">Food Item Name</label>
+          <input class="form-input-bubble" type="text" id="new-food-name" required placeholder="e.g. Fresh Chicken Breast">
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
+          <div class="form-group-bubble">
+            <label class="form-label-bubble" data-i18n="inv.modal.category">Food Category</label>
+            <select class="form-select-bubble" id="new-food-cat" required>
+              <option value="Poultry" data-i18n="category.poultry">Poultry</option>
+              <option value="Produce" data-i18n="category.produce">Produce</option>
+              <option value="Seafood" data-i18n="category.seafood">Seafood</option>
+              <option value="Dairy" data-i18n="category.dairy">Dairy</option>
+              <option value="Grains" data-i18n="category.grains">Grains</option>
+              <option value="Bakery" data-i18n="category.bakery">Bakery</option>
+              <option value="Other" data-i18n="category.other">Other</option>
+            </select>
+          </div>
+          <div class="form-group-bubble">
+            <label class="form-label-bubble" data-i18n="inv.modal.unit">Measurement Unit</label>
+            <select class="form-select-bubble" id="new-food-unit" required>
+              <option value="kg">kg (Kilogram)</option>
+              <option value="liter">liter (Liter)</option>
+              <option value="pcs">pcs (Pieces)</option>
+              <option value="g">g (Gram)</option>
+              <option value="ml">ml (Milliliter)</option>
+              <option value="loaves">loaves (Loaves)</option>
+              <option value="portions">portions (Portions)</option>
+              <option value="units">units (Units)</option>
+              <option value="cans">cans (Cans)</option>
+              <option value="packs">packs (Packs)</option>
+            </select>
+          </div>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
+          <div class="form-group-bubble">
+            <label class="form-label-bubble" data-i18n="inv.modal.quantity">Quantity in Stock</label>
+            <input class="form-input-bubble" type="number" step="0.01" id="new-food-qty" required placeholder="50.0">
+          </div>
+          <div class="form-group-bubble">
+            <label class="form-label-bubble" data-i18n="inv.modal.price">Price per Unit (MMK)</label>
+            <input class="form-input-bubble" type="number" step="0.01" id="new-food-price" required placeholder="6500">
+          </div>
+        </div>
+        <div class="form-group-bubble">
+          <label class="form-label-bubble" data-i18n="inv.modal.expiry">Expiration Date</label>
+          <input class="form-input-bubble" type="date" id="new-food-expiry" required>
+        </div>
+      </div>
+      <div class="modal-glass-footer">
+        <button type="button" class="btn-bubble btn-glass" onclick="Inventory.closeModal()" data-i18n="action.cancel">Cancel</button>
+        <button type="submit" class="btn-bubble btn-yellow" data-i18n="action.save">Save Food Item</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal for Inventory Item Stock Addition History -->
+<div class="modal-glass-backdrop" id="stock-history-modal">
+  <div class="modal-glass-dialog" style="max-width:540px;">
+    <div class="modal-glass-header">
+      <div>
+        <h3 id="history-modal-title" style="font-size:1.15rem; font-weight:800; color:var(--text-main);" data-i18n="inv.history.modalTitle">📋 Stock Addition History</h3>
+        <div style="font-size:0.8rem; color:var(--text-muted);" id="history-item-id-tag">Item ID #--</div>
+      </div>
+      <button class="btn-bubble btn-glass-subtle btn-sm-bubble" onclick="Inventory.closeHistoryModal()">✕</button>
+    </div>
+    <div class="modal-glass-body" style="padding:1.25rem;">
+      <!-- Product Summary Box -->
+      <div style="background:rgba(0,0,0,0.02); border:1px solid var(--glass-border-subtle); border-radius:12px; padding:1rem; margin-bottom:1.25rem;">
+        <div style="font-size:1.1rem; font-weight:800; color:var(--text-main); margin-bottom:0.6rem;" id="history-product-name">Product Name</div>
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:0.6rem; font-size:0.85rem;">
+          <div>
+            <span style="color:var(--text-muted);" data-i18n="inv.history.totalQty">Total Quantity:</span>
+            <strong style="color:var(--text-main); display:block; font-size:1rem; margin-top:2px;" id="history-total-qty">--</strong>
+          </div>
+          <div>
+            <span style="color:var(--text-muted);" data-i18n="inv.history.currentQty">Remaining Quantity:</span>
+            <strong style="color:var(--accent-yellow-dark); display:block; font-size:1rem; margin-top:2px;" id="history-current-qty">--</strong>
+          </div>
+          <div>
+            <span style="color:var(--text-muted);" data-i18n="inv.history.unitPrice">Price Per Unit:</span>
+            <strong style="color:var(--text-main); display:block; font-size:1rem; margin-top:2px;" id="history-unit-price">--</strong>
+          </div>
+          <div>
+            <span style="color:var(--text-muted);" data-i18n="inv.history.expiryDate">Expiry Date:</span>
+            <strong style="color:var(--text-main); display:block; margin-top:2px;" id="history-expiry-date">--</strong>
+          </div>
+          <div>
+            <span style="color:var(--text-muted);" data-i18n="inv.history.category">Category:</span>
+            <strong style="color:var(--text-main); display:block; margin-top:2px;" id="history-category">--</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- History List Section -->
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
+        <h4 style="font-size:0.95rem; font-weight:700; color:var(--text-main);" data-i18n="inv.history.sectionTitle">Stock Addition History</h4>
+        <span style="font-size:0.75rem; color:var(--text-muted);" id="history-entry-count">0 entries</span>
+      </div>
+
+      <div id="history-list-container" style="max-height:280px; overflow-y:auto; display:flex; flex-direction:column; gap:0.5rem;">
+        <!-- Dynamically populated via /api/inventory/{id}/history -->
+      </div>
+    </div>
+    <div class="modal-glass-footer" style="display:flex; justify-content:flex-end;">
+      <button type="button" class="btn-bubble btn-glass" onclick="Inventory.closeHistoryModal()" data-i18n="action.close">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal for Sales & Donations Summary -->
+<div class="modal-glass-backdrop" id="inventory-summary-modal">
+  <div class="modal-glass-dialog" style="max-width:520px;">
+    <div class="modal-glass-header">
+      <div>
+        <h3 id="summary-modal-title" style="font-size:1.15rem; font-weight:800; color:var(--text-main);" data-i18n="inv.summary.title">📋 Sales & Donations Summary</h3>
+        <div style="font-size:0.78rem; color:var(--text-muted); margin-top:2px;" id="summary-modal-subtitle" data-i18n="inv.summary.subtitle">Cumulative outflow summary from sales and surplus food donations</div>
+      </div>
+      <button class="btn-bubble btn-glass-subtle btn-sm-bubble" onclick="Inventory.closeSummaryModal()">✕</button>
+    </div>
+    <div class="modal-glass-body" id="summary-modal-body" style="padding:1.25rem;">
+      <!-- Populated dynamically via Inventory.openSummaryModal() -->
+    </div>
+    <div class="modal-glass-footer" style="display:flex; justify-content:flex-end;">
+      <button type="button" class="btn-bubble btn-glass" onclick="Inventory.closeSummaryModal()" data-i18n="action.close">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal for Expired Item Disposal Review -->
+<div class="modal-glass-backdrop" id="disposal-modal">
+  <div class="modal-glass-dialog">
+    <div class="modal-glass-header">
+      <h3 style="font-size:1.15rem; font-weight:800; color:var(--text-main);" data-i18n="waste.disposal.modalTitle">⚠️ Expired Item Disposal Review</h3>
+      <button class="btn-bubble btn-glass-subtle btn-sm-bubble" onclick="Inventory.closeDisposalModal()">✕</button>
+    </div>
+    <div class="modal-glass-body">
+      <div style="background:rgba(220,38,38,0.08); border:1px solid rgba(220,38,38,0.25); border-radius:12px; padding:1rem; margin-bottom:1rem;">
+        <div style="font-weight:700; font-size:1.05rem; color:#DC2626;" id="disposal-food-name">Food Item</div>
+        <p style="font-size:0.9rem; color:var(--text-main); margin-top:0.35rem;" id="disposal-prompt-text">
+          Has expired with remaining stock. How would you like to handle it?
+        </p>
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-bottom:1rem;">
+        <div class="form-group-bubble">
+          <label class="form-label-bubble">Discard Quantity</label>
+          <input class="form-input-bubble" type="number" step="0.1" id="disposal-qty" oninput="Inventory.updateDisposalFinancialLoss()" required>
+        </div>
+        <div class="form-group-bubble">
+          <label class="form-label-bubble">Reason</label>
+          <input class="form-input-bubble" type="text" id="disposal-reason" value="EXPIRED" readonly style="background:var(--bg-surface-glass-subtle);">
+        </div>
+      </div>
+
+      <div style="background:var(--bg-surface-glass-subtle); border:1px solid var(--glass-border-subtle); border-radius:10px; padding:0.75rem 1rem; margin-bottom:0.5rem; display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-size:0.85rem; color:var(--text-muted);" data-i18n="waste.disposal.financialLoss">Estimated Financial Loss</span>
+        <strong style="font-size:1.05rem; color:#DC2626;" id="disposal-financial-loss">0 MMK</strong>
+      </div>
+    </div>
+    <div class="modal-glass-footer" style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:0.5rem;">
+      <button type="button" class="btn-bubble btn-glass" onclick="Inventory.reviewLater()" data-i18n="waste.btn.reviewLater">Review Later</button>
+      <div style="display:flex; gap:0.5rem;">
+        <button type="button" class="btn-bubble btn-glass-subtle" onclick="Inventory.confirmAlreadyDisposed()" data-i18n="waste.btn.alreadyDisposed">Already Disposed</button>
+        <button type="button" class="btn-bubble btn-yellow" onclick="Inventory.confirmRecordAsWaste()" data-i18n="waste.btn.recordWaste">Record as Waste</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<button class="fab-btn" onclick="Inventory.openModal()" title="Add Food Item" data-i18n-title="inv.btn.add">+</button>
+
+<nav class="mobile-bottom-dock">
+  <a href="/dashboard.html" class="dock-item">
+    <span class="dock-icon">📊</span>
+    <span data-i18n="dock.home">Home</span>
+  </a>
+  <a href="/inventory.html" class="dock-item active">
+    <span class="dock-icon">📦</span>
+    <span data-i18n="dock.inventory">Inventory</span>
+  </a>
+  <a href="/reports.html" class="dock-item">
+    <span class="dock-icon">📈</span>
+    <span data-i18n="dock.reports">Reports</span>
+  </a>
+</nav>
+
+<script src="/js/theme.js"></script>
+<script src="/js/i18n/en.js"></script>
+<script src="/js/i18n/mm.js"></script>
+<script src="/js/i18n/language.js"></script>
+<script src="/js/api.js"></script>
+<script src="/js/inventory.js?v=2.2"></script>
+</body>
+</html>

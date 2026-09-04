@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>
+    (function() {
+      try {
+        var saved = localStorage.getItem('foodwaste_theme') || 'system';
+        var resolved = saved;
+        if (saved === 'system') {
+          resolved = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+        }
+        document.documentElement.setAttribute('data-theme', resolved);
+        document.documentElement.setAttribute('data-theme-mode', saved);
+      } catch(e) {}
+    })();
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FoodWaste AI - Sales Entry</title>
+  <link rel="stylesheet" href="/css/variables.css">
+  <link rel="stylesheet" href="/css/theme.css?v=1">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="/css/styles.css">
+  <link rel="stylesheet" href="/css/responsive.css?v=1">
+</head>
+<body>
+
+<div class="app-container">
+  <aside class="sidebar-float">
+    <div class="sidebar-header">
+      <div class="brand-bubble-logo"><svg width="48" height="48" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs><linearGradient id="bodyGradient" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#34D399"/><stop offset="100%" stop-color="#059669"/></linearGradient><linearGradient id="plateGradient" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#FBBF24"/><stop offset="100%" stop-color="#D97706"/></linearGradient></defs><ellipse cx="100" cy="173" rx="58" ry="14" fill="url(#plateGradient)"/><ellipse cx="100" cy="171" rx="46" ry="9" fill="#FDE68A" opacity="0.6"/><ellipse cx="75" cy="163" rx="9" ry="6" fill="#059669"/><ellipse cx="125" cy="163" rx="9" ry="6" fill="#059669"/><path d="M 100 48 C 132 58 148 94 142 124 C 137 154 118 168 100 168 C 82 168 63 154 58 124 C 52 94 68 58 100 48 Z" fill="url(#bodyGradient)"/><path d="M 100 60 L 100 150" stroke="#047857" stroke-width="2" stroke-linecap="round" opacity="0.4"/><path d="M 100 85 C 88 92 80 100 78 108" stroke="#047857" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0.35"/><path d="M 100 85 C 112 92 120 100 122 108" stroke="#047857" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0.35"/><ellipse cx="56" cy="120" rx="10" ry="7" fill="#34D399" transform="rotate(-20 56 120)"/><ellipse cx="144" cy="120" rx="10" ry="7" fill="#34D399" transform="rotate(20 144 120)"/><circle cx="84" cy="108" r="11" fill="#FFFFFF"/><circle cx="116" cy="108" r="11" fill="#FFFFFF"/><circle cx="86" cy="110" r="5" fill="#064E3B"/><circle cx="114" cy="110" r="5" fill="#064E3B"/><circle cx="88" cy="108" r="1.6" fill="#FFFFFF"/><circle cx="116" cy="108" r="1.6" fill="#FFFFFF"/><path d="M 86 128 Q 100 140 114 128" stroke="#064E3B" stroke-width="3" stroke-linecap="round" fill="none"/><ellipse cx="70" cy="122" rx="6" ry="4" fill="#FBBF24" opacity="0.5"/><ellipse cx="130" cy="122" rx="6" ry="4" fill="#FBBF24" opacity="0.5"/><line x1="100" y1="48" x2="100" y2="26" stroke="#059669" stroke-width="3" stroke-linecap="round"/><circle cx="100" cy="20" r="8" fill="#FBBF24"/><path d="M 100 14 L 102 19 L 107 20 L 102 21 L 100 26 L 98 21 L 93 20 L 98 19 Z" fill="#FFFFFF"/></svg></div>
+      <div class="brand-title-group">
+        <div class="brand-main-title" data-i18n="brand.name">FoodWaste AI</div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav-scroll">
+      <div class="nav-bubble-section-title" data-i18n="nav.core">Core Operations</div>
+      <a href="/dashboard.html" class="nav-bubble-link">
+        <span class="nav-bubble-icon">📊</span> <span data-i18n="nav.dashboard">Dashboard</span>
+      </a>
+      <a href="/inventory.html" class="nav-bubble-link">
+        <span class="nav-bubble-icon">📦</span> <span data-i18n="nav.inventory">Inventory</span>
+      </a>
+      <a href="/sales.html" class="nav-bubble-link active">
+        <span class="nav-bubble-icon">💰</span> <span data-i18n="nav.sales">Sales Entry</span>
+      </a>
+      <a href="/waste.html" class="nav-bubble-link">
+        <span class="nav-bubble-icon">🗑️</span> <span data-i18n="nav.waste">Waste Records</span>
+      </a>
+
+      <div class="nav-bubble-section-title" data-i18n="nav.ai">AI & Intelligence</div>
+      <a href="/redistribution.html" class="nav-bubble-link">
+        <span class="nav-bubble-icon">🤝</span> <span data-i18n="nav.redistribution">Redistribution</span>
+      </a>
+
+      <div class="nav-section-title" data-i18n="nav.management">Management</div>
+      <a href="/reports.html" class="nav-bubble-link">
+        <span class="nav-bubble-icon">📈</span> <span data-i18n="nav.reports">Reports</span>
+      </a>
+      <a href="/settings.html" class="nav-bubble-link">
+        <span class="nav-bubble-icon">⚙️</span> <span data-i18n="nav.settings">Settings</span>
+      </a>
+    </nav>
+  </aside>
+
+  <div class="main-wrapper-float">
+    <header class="topbar-glass">
+      <div class="topbar-left">
+        <div class="page-title-group">
+          <span class="page-eyebrow" data-i18n="nav.core">CORE OPERATIONS</span>
+          <h1 class="page-headline-glass" data-i18n="sales.headline">Sales Velocity & Customer Orders</h1>
+          <p class="page-description-glass" data-i18n="sales.subtitle">Track customer order velocity and demand patterns.</p>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <div id="language-switcher-container"></div>
+        <button class="btn-bubble btn-yellow btn-sm-bubble" onclick="Sales.openModal()" data-i18n="sales.btn.record">+ Record Sale</button>
+      </div>
+    </header>
+
+    <main class="content-body-float">
+      <section class="kpi-grid">
+        <div class="kpi-bubble-card">
+          <div class="kpi-bubble-top">
+            <span class="kpi-bubble-label" data-i18n="sales.kpi.revenue">Today's Revenue</span>
+            <div class="kpi-bubble-icon kpi-icon-yellow">💰</div>
+          </div>
+          <div>
+            <div class="kpi-bubble-value" id="kpi-sales-revenue">0 MMK</div>
+            <div class="kpi-bubble-sub" id="kpi-sales-sub" style="color:#047857; font-weight:700;" data-i18n="sales.kpi.grossIncome">Gross sales recorded</div>
+          </div>
+        </div>
+
+        <div class="kpi-bubble-card">
+          <div class="kpi-bubble-top">
+            <span class="kpi-bubble-label" data-i18n="sales.kpi.volume">Quantity Sold</span>
+            <div class="kpi-bubble-icon kpi-icon-blue">⚖️</div>
+          </div>
+          <div>
+            <div class="kpi-bubble-value" id="kpi-sales-volume">0.0</div>
+            <div class="kpi-bubble-sub" data-i18n="sales.kpi.dishesSold">Total quantity sold today</div>
+          </div>
+        </div>
+
+        <div class="kpi-bubble-card">
+          <div class="kpi-bubble-top">
+            <span class="kpi-bubble-label" data-i18n="sales.kpi.diners">Total Diners</span>
+            <div class="kpi-bubble-icon kpi-icon-green">👥</div>
+          </div>
+          <div>
+            <div class="kpi-bubble-value" id="kpi-sales-diners">0 Diners</div>
+            <div class="kpi-bubble-sub" data-i18n="sales.kpi.guestsCount">Seated customer volume</div>
+          </div>
+        </div>
+      </section>
+
+      <div class="card-glass">
+        <div class="card-header-glass">
+          <div>
+            <h2 class="card-title-glass" data-i18n="sales.cardTitle">💰 Sales Transactions & Daily Velocity</h2>
+            <div class="card-subtitle-glass" data-i18n="sales.cardSubtitle">Track customer volume and automatically deduct raw ingredients</div>
+          </div>
+          <button class="btn-bubble btn-glass-subtle btn-sm-bubble" onclick="Sales.fetchSales()" data-i18n="action.refresh">🔄 Refresh</button>
+        </div>
+        <div class="card-body-glass" style="padding:0.75rem 1.25rem 1.25rem 1.25rem;">
+          <div class="table-responsive">
+            <table class="data-table-glass">
+              <thead>
+                <tr>
+                  <th data-i18n="sales.th.date">Timestamp</th>
+                  <th data-i18n="sales.th.item">Food Item</th>
+                  <th data-i18n="sales.th.qty">Quantity Sold</th>
+                  <th data-i18n="sales.th.price">Unit Price</th>
+                  <th data-i18n="sales.th.total">Total Amount</th>
+                  <th data-i18n="sales.th.diners">Customer Diners</th>
+                  <th style="text-align:right;" data-i18n="sales.th.actions">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="sales-tbody">
+                <!-- Dynamically populated via /api/sales -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- Modal for Recording Sale -->
+<div class="modal-glass-backdrop" id="record-sale-modal">
+  <div class="modal-glass-dialog">
+    <div class="modal-glass-header">
+      <h3 style="font-size:1.15rem; font-weight:800; color:var(--text-main);" data-i18n="sales.modal.title">+ Record Customer Sale</h3>
+      <button class="btn-bubble btn-glass-subtle btn-sm-bubble" onclick="Sales.closeModal()">✕</button>
+    </div>
+    <form id="sale-form" onsubmit="Sales.saveSale(event)">
+      <div class="modal-glass-body">
+        <div class="form-group-bubble">
+          <label class="form-label-bubble" data-i18n="sales.modal.selectFood">Select Food Item Sold</label>
+          <select class="form-select-bubble" id="sale-food-id" required onchange="Sales.onFoodItemChanged()">
+            <!-- Dynamically populated from /api/inventory -->
+          </select>
+        </div>
+
+        <!-- Available Stock Indicator -->
+        <div id="sale-stock-indicator" style="margin-bottom:0.75rem; padding:0.55rem 0.85rem; background:rgba(254, 240, 138, 0.35); border:1px solid rgba(234, 179, 8, 0.4); border-radius:var(--radius-md); font-size:0.85rem; font-weight:700; color:var(--accent-yellow-dark); display:none;">
+          <span data-i18n="sales.modal.availableStock">Available Stock:</span> <span id="sale-available-stock-text">0.00</span>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1.2fr 1fr; gap:0.75rem;">
+          <div class="form-group-bubble">
+            <label class="form-label-bubble" data-i18n="sales.modal.qtySold">Quantity Sold</label>
+            <div style="position:relative; display:flex; align-items:center;">
+              <input class="form-input-bubble" type="number" step="0.01" min="0.01" id="sale-qty" required placeholder="1.00" oninput="Sales.onQuantityInput()" style="padding-right:3.8rem; width:100%;">
+              <span id="sale-unit-addon" style="position:absolute; right:0.85rem; font-size:0.85rem; font-weight:700; color:var(--text-muted); pointer-events:none;"></span>
+            </div>
+            <div id="sale-qty-error" style="color:#ef4444; font-size:0.78rem; font-weight:700; margin-top:0.35rem; display:none;"></div>
+          </div>
+          <div class="form-group-bubble">
+            <label class="form-label-bubble" data-i18n="sales.modal.diners">Customer Diners Served</label>
+            <input class="form-input-bubble" type="number" id="sale-customers" value="1" min="1" required>
+          </div>
+        </div>
+      </div>
+      <div class="modal-glass-footer">
+        <button type="button" class="btn-bubble btn-glass" onclick="Sales.closeModal()" data-i18n="action.cancel">Cancel</button>
+        <button type="submit" class="btn-bubble btn-yellow" id="sale-submit-btn" data-i18n="action.save">Record Sale & Update Stock</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<button class="fab-btn" onclick="Sales.openModal()" title="Record Sale" data-i18n-title="sales.btn.record">+</button>
+
+<nav class="mobile-bottom-dock">
+  <a href="/dashboard.html" class="dock-item">
+    <span class="dock-icon">📊</span>
+    <span data-i18n="dock.home">Home</span>
+  </a>
+  <a href="/inventory.html" class="dock-item">
+    <span class="dock-icon">📦</span>
+    <span data-i18n="dock.inventory">Inventory</span>
+  </a>
+  <a href="/sales.html" class="dock-item active">
+    <span class="dock-icon">💰</span>
+    <span data-i18n="dock.sales">Sales</span>
+  </a>
+  <a href="/waste.html" class="dock-item">
+    <span class="dock-icon">🗑️</span>
+    <span data-i18n="dock.waste">Waste</span>
+  </a>
+  <a href="/reports.html" class="dock-item">
+    <span class="dock-icon">📈</span>
+    <span data-i18n="dock.reports">Reports</span>
+  </a>
+</nav>
+
+<script src="/js/theme.js"></script>
+<script src="/js/i18n/en.js"></script>
+<script src="/js/i18n/mm.js"></script>
+<script src="/js/i18n/language.js"></script>
+<script src="/js/api.js"></script>
+<script src="/js/sales.js"></script>
+</body>
+</html>

@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FoodWaste AI - Dashboard</title>
+  <script>
+    (function() {
+      try {
+        var saved = localStorage.getItem('foodwaste_theme') || 'system';
+        var resolved = saved;
+        if (saved === 'system') {
+          resolved = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+        }
+        document.documentElement.setAttribute('data-theme', resolved);
+        document.documentElement.setAttribute('data-theme-mode', saved);
+      } catch(e) {}
+    })();
+  </script>
+  <link rel="stylesheet" href="/css/variables.css">
+  <link rel="stylesheet" href="/css/theme.css?v=1">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="/css/styles.css">
+  <link rel="stylesheet" href="/css/responsive.css?v=1">
+</head>
+<body>
+
+<div class="app-container">
+  <!-- Desktop Floating Glass Sidebar -->
+  <aside class="sidebar-float">
+    <div class="sidebar-header">
+      <div class="brand-bubble-logo"><svg width="48" height="48" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs><linearGradient id="bodyGradient" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#34D399"/><stop offset="100%" stop-color="#059669"/></linearGradient><linearGradient id="plateGradient" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#FBBF24"/><stop offset="100%" stop-color="#D97706"/></linearGradient></defs><ellipse cx="100" cy="173" rx="58" ry="14" fill="url(#plateGradient)"/><ellipse cx="100" cy="171" rx="46" ry="9" fill="#FDE68A" opacity="0.6"/><ellipse cx="75" cy="163" rx="9" ry="6" fill="#059669"/><ellipse cx="125" cy="163" rx="9" ry="6" fill="#059669"/><path d="M 100 48 C 132 58 148 94 142 124 C 137 154 118 168 100 168 C 82 168 63 154 58 124 C 52 94 68 58 100 48 Z" fill="url(#bodyGradient)"/><path d="M 100 60 L 100 150" stroke="#047857" stroke-width="2" stroke-linecap="round" opacity="0.4"/><path d="M 100 85 C 88 92 80 100 78 108" stroke="#047857" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0.35"/><path d="M 100 85 C 112 92 120 100 122 108" stroke="#047857" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0.35"/><ellipse cx="56" cy="120" rx="10" ry="7" fill="#34D399" transform="rotate(-20 56 120)"/><ellipse cx="144" cy="120" rx="10" ry="7" fill="#34D399" transform="rotate(20 144 120)"/><circle cx="84" cy="108" r="11" fill="#FFFFFF"/><circle cx="116" cy="108" r="11" fill="#FFFFFF"/><circle cx="86" cy="110" r="5" fill="#064E3B"/><circle cx="114" cy="110" r="5" fill="#064E3B"/><circle cx="88" cy="108" r="1.6" fill="#FFFFFF"/><circle cx="116" cy="108" r="1.6" fill="#FFFFFF"/><path d="M 86 128 Q 100 140 114 128" stroke="#064E3B" stroke-width="3" stroke-linecap="round" fill="none"/><ellipse cx="70" cy="122" rx="6" ry="4" fill="#FBBF24" opacity="0.5"/><ellipse cx="130" cy="122" rx="6" ry="4" fill="#FBBF24" opacity="0.5"/><line x1="100" y1="48" x2="100" y2="26" stroke="#059669" stroke-width="3" stroke-linecap="round"/><circle cx="100" cy="20" r="8" fill="#FBBF24"/><path d="M 100 14 L 102 19 L 107 20 L 102 21 L 100 26 L 98 21 L 93 20 L 98 19 Z" fill="#FFFFFF"/></svg></div>
+      <div class="brand-title-group">
+        <div class="brand-main-title" data-i18n="brand.name">FoodWaste AI</div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav-scroll">
+      <div class="nav-bubble-section-title" data-i18n="nav.core">Core Operations</div>
+      <a href="/dashboard.html" class="nav-bubble-link active">
+        <span class="nav-bubble-icon">📊</span> <span data-i18n="nav.dashboard">Dashboard</span>
+      </a>
+      <a href="/inventory.html" class="nav-bubble-link">
+        <span class="nav-bubble-icon">📦</span> <span data-i18n="nav.inventory">Inventory</span>
+      </a>
+      <a href="/sales.html" class="nav-bubble-link">
+        <span class="nav-bubble-icon">💰</span> <span data-i18n="nav.sales">Sales Entry</span>
+      </a>
+      <a href="/waste.html" class="nav-bubble-link">
+        <span class="nav-bubble-icon">🗑️</span> <span data-i18n="nav.waste">Waste Records</span>
+      </a>
+
+      <div class="nav-bubble-section-title" data-i18n="nav.ai">AI & Intelligence</div>
+      <a href="/redistribution.html" class="nav-bubble-link">
+        <span class="nav-bubble-icon">🤝</span> <span data-i18n="nav.redistribution">Redistribution</span>
+      </a>
+
+      <div class="nav-bubble-section-title" data-i18n="nav.management">Management</div>
+      <a href="/reports.html" class="nav-bubble-link">
+        <span class="nav-bubble-icon">📈</span> <span data-i18n="nav.reports">Reports</span>
+      </a>
+      <a href="/settings.html" class="nav-bubble-link">
+        <span class="nav-bubble-icon">⚙️</span> <span data-i18n="nav.settings">Settings</span>
+      </a>
+    </nav>
+  </aside>
+
+  <!-- Main Floating Canvas -->
+  <div class="main-wrapper-float">
+    <!-- Floating Glass Topbar -->
+    <header class="topbar-glass">
+      <div class="topbar-left">
+        <div class="page-title-group">
+          <span class="page-eyebrow" data-i18n="nav.core">CORE OPERATIONS</span>
+          <h1 class="page-headline-glass" data-i18n="nav.dashboard">Dashboard</h1>
+          <p class="page-description-glass" data-i18n="dash.subtitle">Real-time kitchen food waste metrics, AI predictions, and operational directives.</p>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <div id="language-switcher-container"></div>
+        <button type="button" class="btn-bubble btn-primary btn-sm-bubble" onclick="Dashboard.runEvaluation()" id="dash-btn-evaluate" data-i18n="pred.btn.evaluate">+ Run Evaluation</button>
+      </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="content-body-float">
+      <!-- KPI Bubble Cards in 1 Balanced Row on Desktop -->
+      <section class="kpi-grid" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));">
+        <!-- 1. Confirmed Food Waste -->
+        <div class="kpi-bubble-card" id="kpi-waste-card">
+          <div class="kpi-bubble-top">
+            <span class="kpi-bubble-label" data-i18n="dash.kpi.todayWaste">Confirmed Food Waste</span>
+            <div class="kpi-bubble-icon kpi-icon-blue">🗑️</div>
+          </div>
+          <div>
+            <div class="kpi-bubble-value" id="kpi-today-waste">0.0</div>
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:0.5rem; flex-wrap:wrap; margin-top:0.25rem;">
+              <div class="kpi-bubble-sub" id="kpi-today-sub">Today: 2026-08-29</div>
+              <button type="button" class="btn-kpi-details" id="btn-waste-details" data-action="open-waste-details" onclick="if(window.Dashboard)window.Dashboard.openWasteModal();" data-i18n="dash.kpi.viewDetails" aria-haspopup="dialog" aria-controls="waste-details-modal">View Details &rarr;</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. 7-Day Predicted Waste Forecast -->
+        <div class="kpi-bubble-card" id="kpi-predicted-card">
+          <div class="kpi-bubble-top">
+            <span class="kpi-bubble-label" data-i18n="pred.kpi.weeklyPredictedWaste">7-Day Predicted Waste</span>
+            <div class="kpi-bubble-icon kpi-icon-yellow">🔮</div>
+          </div>
+          <div>
+            <div class="kpi-bubble-value" id="kpi-predicted-tomorrow">0.0</div>
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:0.5rem; flex-wrap:wrap; margin-top:0.25rem;">
+              <div class="kpi-bubble-sub" id="kpi-pred-sub" data-i18n="dash.kpi.noPred">No prediction available</div>
+              <button type="button" class="btn-kpi-details" id="btn-pred-details" data-action="open-prediction-details" onclick="if(window.Dashboard)window.Dashboard.openDetailsModal();" data-i18n="dash.kpi.viewDetails" aria-haspopup="dialog" aria-controls="prediction-details-modal">View Details &rarr;</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. Confirmed Financial Loss -->
+        <div class="kpi-bubble-card">
+          <div class="kpi-bubble-top">
+            <span class="kpi-bubble-label" data-i18n="dash.kpi.moneyLost">Confirmed Financial Loss</span>
+            <div class="kpi-bubble-icon kpi-icon-red">💸</div>
+          </div>
+          <div>
+            <div class="kpi-bubble-value" id="kpi-money-lost">0 MMK</div>
+            <div class="kpi-bubble-sub" id="kpi-money-sub" data-i18n="dash.kpi.financialLoss">Total confirmed financial loss</div>
+          </div>
+        </div>
+      </section>
+
+
+      <!-- Needs Attention: Expired Item Disposal Alert -->
+      <div id="dash-attention-card" class="card-glass" style="display:none; margin-bottom:1.5rem; border-color:rgba(220,38,38,0.3); background:rgba(220,38,38,0.06);">
+        <div style="padding:1rem 1.25rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.75rem;">
+          <div style="display:flex; align-items:center; gap:0.75rem;">
+            <div style="width:40px; height:40px; border-radius:12px; background:rgba(220,38,38,0.15); display:flex; align-items:center; justify-content:center; font-size:1.3rem;">
+              ⚠️
+            </div>
+            <div>
+              <div style="display:flex; align-items:center; gap:0.5rem;">
+                <strong style="font-size:1rem; color:var(--text-main);" data-i18n="dash.attention.title">Needs Attention</strong>
+                <span class="badge-bubble" style="background:rgba(220,38,38,0.2); color:#DC2626; font-size:0.72rem; font-weight:700;" id="dash-attention-badge">1 expired item</span>
+              </div>
+              <div style="font-size:0.82rem; color:var(--text-muted); margin-top:0.15rem;" id="dash-attention-detail">
+                <!-- Populated dynamically via dashboard.js -->
+              </div>
+            </div>
+          </div>
+          <a href="/inventory.html?expiredReview=true" class="btn-bubble btn-yellow btn-sm-bubble" style="font-weight:700; text-decoration:none;" data-i18n="dash.attention.review">
+            Review Disposal →
+          </a>
+        </div>
+      </div>
+
+      <!-- High Risk Kitchen Items Card -->
+      <div class="card-glass">
+        <div class="card-header-glass">
+          <div>
+            <h2 class="card-title-glass" data-i18n="dash.highRisk.title">🔥 High Risk Kitchen Items</h2>
+            <div class="card-subtitle-glass" data-i18n="dash.highRisk.subtitle">High-risk kitchen inventory and expiry alerts</div>
+          </div>
+          <a href="/inventory.html" class="btn-bubble btn-glass-subtle btn-sm-bubble" data-i18n="nav.inventory">View All</a>
+        </div>
+        <div class="card-body-glass" style="padding: 0.5rem 1rem;">
+          <div class="table-responsive">
+            <table class="data-table-glass" style="font-size: 0.85rem;">
+              <thead>
+                <tr>
+                  <th data-i18n="inv.th.item">Item</th>
+                  <th data-i18n="pred.kpi.risk">Risk %</th>
+                  <th style="text-align:right;" data-i18n="inv.th.status">Level</th>
+                </tr>
+              </thead>
+              <tbody id="high-risk-tbody">
+                <!-- Populated dynamically by dashboard.js from live API -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI Recommendations Cards -->
+      <div class="card-glass" style="margin-top: 1.25rem;">
+        <div class="card-header-glass">
+          <div>
+            <h2 class="card-title-glass" data-i18n="dash.rec.title">⚡ Priority Action Directives</h2>
+            <div class="card-subtitle-glass" data-i18n="dash.rec.subtitle">Grounded in inventory metrics and expected demand</div>
+          </div>
+          <span class="btn-bubble btn-yellow btn-sm-bubble" data-i18n="dash.rec.openActionCenter">Open Action Center</span>
+        </div>
+        <div class="card-body-glass">
+          <div class="recommendations-grid" id="dashboard-rec-container">
+            <!-- Dynamically populated by dashboard.js from live API -->
+          </div>
+        </div>
+        <div class="card-footer-glass">
+          <span style="font-size:0.875rem; color:var(--text-body); font-weight:600;">
+            ✨ <span data-i18n="dash.savingsBanner">Total projected cost savings by applying recommendations:</span> <strong id="dashboard-savings-val" style="color:var(--accent-gold-dark);">0 MMK</strong>
+          </span>
+          <span class="btn-bubble btn-glass btn-sm-bubble" data-i18n="dash.rec.reviewRules">Review All Rules</span>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- Mobile Bottom Navigation Dock (iPhone Style) -->
+<nav class="mobile-bottom-dock">
+  <a href="/dashboard.html" class="dock-item active">
+    <span class="dock-icon">📊</span>
+    <span data-i18n="dock.home">Home</span>
+  </a>
+  <a href="/inventory.html" class="dock-item">
+    <span class="dock-icon">📦</span>
+    <span data-i18n="dock.inventory">Inventory</span>
+  </a>
+  <button type="button" class="dock-item" onclick="toggleMobileMore()">
+    <span class="dock-icon">☰</span>
+    <span data-i18n="dock.more">More</span>
+  </button>
+</nav>
+
+<!-- Mobile More Drawer -->
+<div id="mobile-more-drawer" class="mobile-more-drawer" onclick="if(event.target===this)closeMobileMore()">
+  <div class="mobile-more-content">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.25rem;">
+      <h3 style="font-size:1.1rem; font-weight:800; color:var(--text-main);" data-i18n="more.title">More Operations</h3>
+      <button type="button" class="btn-bubble btn-glass-subtle btn-sm-bubble" onclick="closeMobileMore()">✕</button>
+    </div>
+    <div class="mobile-more-grid">
+      <a href="/sales.html" class="mobile-more-card">
+        <span class="mobile-more-icon">💰</span>
+        <span data-i18n="nav.sales">Sales</span>
+      </a>
+      <a href="/waste.html" class="mobile-more-card">
+        <span class="mobile-more-icon">🗑️</span>
+        <span data-i18n="nav.waste">Waste</span>
+      </a>
+      <a href="/redistribution.html" class="mobile-more-card">
+        <span class="mobile-more-icon">🤝</span>
+        <span data-i18n="nav.redistribution">Redistribution</span>
+      </a>
+      <a href="/reports.html" class="mobile-more-card">
+        <span class="mobile-more-icon">📈</span>
+        <span data-i18n="nav.reports">Reports</span>
+      </a>
+      <a href="/settings.html" class="mobile-more-card">
+        <span class="mobile-more-icon">⚙️</span>
+        <span data-i18n="nav.settings">Settings</span>
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Tomorrow's Predicted Waste Glassmorphism Modal -->
+<div class="modal-glass-backdrop" id="prediction-details-modal" role="dialog" aria-modal="true" aria-labelledby="pred-modal-title">
+  <div class="modal-glass-dialog" style="max-width: 640px; max-height: 88vh;">
+    <div class="modal-glass-header">
+      <div style="display:flex; align-items:center; gap:0.5rem;">
+        <span style="font-size:1.3rem;">🔮</span>
+        <h3 id="pred-modal-title" style="font-size:1.15rem; font-weight:800; color:var(--text-main); margin:0;" data-i18n="pred.modal.title">7-Day Predicted Waste Forecast</h3>
+      </div>
+      <button type="button" class="btn-bubble btn-glass-subtle btn-sm-bubble" data-action="close-prediction-details" onclick="if(window.Dashboard)window.Dashboard.closeDetailsModal();" aria-label="Close" style="width:32px; height:32px; padding:0; display:flex; align-items:center; justify-content:center; font-size:1.2rem;">&times;</button>
+    </div>
+
+    <div class="modal-glass-body" style="padding:1.25rem; overflow-y:auto; max-height:calc(88vh - 130px); overflow-x:hidden;">
+      <!-- Summary Bar: Nearest Expiry Date & Grouped Total Predicted Waste -->
+      <div style="background:var(--bg-surface-glass-card); border:1px solid var(--glass-border); border-radius:var(--radius-md); padding:0.85rem 1rem; margin-bottom:1rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.75rem;">
+        <div>
+          <div style="font-size:0.75rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em;" data-i18n="pred.modal.predictionDate">Forecast Period (7 Days)</div>
+          <div id="pred-modal-expiry-date" style="font-size:1.05rem; font-weight:800; color:var(--accent-yellow-dark); margin-top:2px;">--</div>
+          <div id="pred-modal-time" style="font-size:0.72rem; color:var(--text-muted); margin-top:2px;">--</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:0.75rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em;" data-i18n="pred.modal.totalLabel">7-Day Total Predicted Waste</div>
+          <div id="pred-modal-total-waste" style="font-size:1.15rem; font-weight:800; color:var(--accent-yellow-dark); margin-top:2px;">0</div>
+        </div>
+      </div>
+
+      <!-- Contributing Products 7-Day Forecast Section -->
+      <div style="font-size:0.8rem; font-weight:700; color:var(--text-muted); margin-bottom:0.5rem; text-transform:uppercase; letter-spacing:0.04em;" data-i18n="pred.modal.contributingItems">7-Day Daily Forecast Breakdown</div>
+
+      <div id="pred-modal-items-list" style="display:flex; flex-direction:column; gap:0.65rem;">
+        <!-- Dynamically populated via Dashboard.renderDetailsModalContent() -->
+      </div>
+    </div>
+
+    <div class="modal-glass-footer" style="display:flex; justify-content:space-between; align-items:center;">
+      <span style="font-size:0.75rem; color:var(--text-muted);" id="pred-modal-engine-text">AI Expert Engine</span>
+      <button type="button" class="btn-bubble btn-glass btn-sm-bubble" data-action="close-prediction-details" onclick="if(window.Dashboard)window.Dashboard.closeDetailsModal();" data-i18n="action.close">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirmed Food Waste Glassmorphism Modal -->
+<div class="modal-glass-backdrop" id="waste-details-modal" role="dialog" aria-modal="true" aria-labelledby="waste-modal-title">
+  <div class="modal-glass-dialog" style="max-width: 640px; max-height: 88vh;">
+    <div class="modal-glass-header">
+      <div style="display:flex; align-items:center; gap:0.5rem;">
+        <span style="font-size:1.3rem;">🗑️</span>
+        <h3 id="waste-modal-title" style="font-size:1.15rem; font-weight:800; color:var(--text-main); margin:0;" data-i18n="dash.wasteModal.title">Confirmed Food Waste Details</h3>
+      </div>
+      <button type="button" class="btn-bubble btn-glass-subtle btn-sm-bubble" data-action="close-waste-details" onclick="if(window.Dashboard)window.Dashboard.closeWasteModal();" aria-label="Close" style="width:32px; height:32px; padding:0; display:flex; align-items:center; justify-content:center; font-size:1.2rem;">&times;</button>
+    </div>
+
+    <div class="modal-glass-body" style="padding:1.25rem; overflow-y:auto; max-height:calc(88vh - 130px); overflow-x:hidden;">
+      <!-- Summary Bar: Date & Grouped Total Confirmed Waste -->
+      <div style="background:var(--bg-surface-glass-card); border:1px solid var(--glass-border); border-radius:var(--radius-md); padding:0.85rem 1rem; margin-bottom:1rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.75rem;">
+        <div>
+          <div style="font-size:0.75rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em;" data-i18n="dash.wasteModal.dateLabel">Record Date</div>
+          <div id="waste-modal-date" style="font-size:1.05rem; font-weight:800; color:var(--accent-primary, #3B82F6); margin-top:2px;">--</div>
+          <div id="waste-modal-count" style="font-size:0.72rem; color:var(--text-muted); margin-top:2px;">0 incidents</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:0.75rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em;" data-i18n="dash.wasteModal.totalLabel">Grouped Waste Total</div>
+          <div id="waste-modal-total-waste" style="font-size:1.15rem; font-weight:800; color:var(--accent-primary, #3B82F6); margin-top:2px;">0.0</div>
+        </div>
+      </div>
+
+      <!-- Contributing Confirmed Waste Records Section -->
+      <div style="font-size:0.8rem; font-weight:700; color:var(--text-muted); margin-bottom:0.5rem; text-transform:uppercase; letter-spacing:0.04em;" data-i18n="dash.wasteModal.contributingRecords">Contributing Waste Records</div>
+
+      <div id="waste-modal-items-list" style="display:flex; flex-direction:column; gap:0.65rem;">
+        <!-- Dynamically populated via Dashboard.renderWasteModalContent() -->
+      </div>
+    </div>
+
+    <div class="modal-glass-footer" style="display:flex; justify-content:space-between; align-items:center;">
+      <span style="font-size:0.75rem; color:var(--text-muted);" id="waste-modal-loss-text">Total Loss: 0 MMK</span>
+      <button type="button" class="btn-bubble btn-glass btn-sm-bubble" data-action="close-waste-details" onclick="if(window.Dashboard)window.Dashboard.closeWasteModal();" data-i18n="action.close">Close</button>
+    </div>
+  </div>
+</div>
+
+<script src="/js/theme.js"></script>
+<script src="/js/i18n/en.js?v=2"></script>
+<script src="/js/i18n/mm.js?v=2"></script>
+<script src="/js/i18n/language.js?v=2"></script>
+<script src="/js/api.js?v=2"></script>
+<script src="/js/dashboard.js?v=2"></script>
+</body>
+</html>
