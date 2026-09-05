@@ -546,17 +546,13 @@ window.I18N_EN = {
 
   // Settings Page (settings.html)
   "settings.headline": "Settings & Preferences",
-  "settings.subtitle": "Configure application theme, language, system diagnostics, and account.",
+  "settings.subtitle": "Configure application theme, language, and account.",
   "settings.appearance.title": "🎨 Appearance & Theme",
   "settings.appearance.subtitle": "Choose your preferred visual theme across FoodWaste AI",
   "settings.language.title": "🌐 Language Preference",
   "settings.language.subtitle": "Select application language for menus, AI reasoning, and reports",
   "settings.account.title": "👤 Current Account",
   "settings.account.subtitle": "Active user credentials and role session",
-  "settings.system.title": "ℹ️ System Status & Diagnostics",
-  "settings.system.subtitle": "Database connection, AI services, and rules engine health",
-  "settings.testDiagnostics": "Test System Diagnostics",
-  "settings.btn.testDiagnostics": "Test System Diagnostics",
   "settings.mysqlTitle": "🗄️ Aiven Cloud MySQL Settings",
   "settings.mysqlSubtitle": "Managed cloud database credentials (injected via environment variables)",
   "settings.mysql.title": "🗄️ Aiven Cloud MySQL Settings",

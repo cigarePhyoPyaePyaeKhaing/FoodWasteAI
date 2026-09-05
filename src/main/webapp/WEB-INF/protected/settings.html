@@ -70,12 +70,12 @@
         <div class="page-title-group">
           <span class="page-eyebrow" data-i18n="nav.management">MANAGEMENT</span>
           <h1 class="page-headline-glass" data-i18n="settings.headline">Settings & Preferences</h1>
-          <p class="page-description-glass" data-i18n="settings.subtitle">Configure application theme, language, and system diagnostics.</p>
+          <p class="page-description-glass" data-i18n="settings.subtitle">Configure application theme, language, and account.</p>
         </div>
       </div>
       <div class="topbar-right">
         <div id="language-switcher-container"></div>
-        <button class="btn-bubble btn-yellow btn-sm-bubble" onclick="checkHealth()" data-i18n="settings.btn.testDiagnostics">Test System Diagnostics</button>
+
       </div>
     </header>
 
@@ -106,37 +106,6 @@
         </div>
       </div>
 
-      <!-- 3. System Status & Diagnostics Card -->
-      <div class="card-glass">
-        <div class="card-header-glass">
-          <div>
-            <h2 class="card-title-glass" data-i18n="settings.system.title">ℹ️ System Status & Diagnostics</h2>
-            <div class="card-subtitle-glass" data-i18n="settings.system.subtitle">Database connection, AI services, and rules engine health</div>
-          </div>
-          <span class="badge-bubble badge-optimization">v1.0.0 Production</span>
-        </div>
-        <div class="card-body-glass">
-          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:1rem; margin-bottom:0.75rem;">
-            <div class="form-group-bubble">
-              <label class="form-label-bubble">App Environment</label>
-              <input class="form-input-bubble" type="text" value="Production (SSL Enabled)" readonly>
-            </div>
-            <div class="form-group-bubble">
-              <label class="form-label-bubble">Cloud Database</label>
-              <input class="form-input-bubble" type="text" value="Aiven Cloud MySQL (Port 3306)" readonly>
-            </div>
-            <div class="form-group-bubble">
-              <label class="form-label-bubble">AI Reasoning Engine</label>
-              <input class="form-input-bubble" type="text" value="Declarative Expert Rules Engine" readonly>
-            </div>
-            <div class="form-group-bubble">
-              <label class="form-label-bubble">AI Prediction Horizon</label>
-              <input class="form-input-bubble" type="text" value="7-Day Multi-Horizon Forecast" readonly>
-            </div>
-          </div>
-          <div id="diagnostic-json-box" style="display:none; margin-top:1rem; padding:1rem; background:rgba(255,255,255,0.7); border-radius:var(--radius-md); border:1px solid var(--glass-border); font-family:monospace; font-size:0.85rem;"></div>
-        </div>
-      </div>
     </main>
   </div>
 </div>
@@ -161,18 +130,6 @@
 <script src="/js/i18n/mm.js"></script>
 <script src="/js/i18n/language.js"></script>
 <script src="/js/api.js"></script>
-<script>
-  async function checkHealth() {
-    const box = document.getElementById('diagnostic-json-box');
-    box.style.display = 'block';
-    box.textContent = 'Querying /api/health...';
-    try {
-      const res = await API.get('/api/health');
-      box.textContent = JSON.stringify(res, null, 2);
-    } catch (err) {
-      box.textContent = 'Diagnostics output: ' + err.message;
-    }
-  }
-</script>
+
 </body>
 </html>

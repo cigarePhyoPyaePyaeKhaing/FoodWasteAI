@@ -531,17 +531,13 @@ window.I18N_MM = {
 
   // Settings Page (settings.html)
   "settings.headline": "ဆက်တင်များနှင့် ဦးစားပေးရွေးချယ်မှုများ",
-  "settings.subtitle": "အသွင်အပြင်၊ ဘာသာစကား၊ စနစ်စစ်ဆေးချက်များနှင့် အကောင့်ဆက်တင်များ",
+  "settings.subtitle": "အသွင်အပြင်၊ ဘာသာစကားနှင့် အကောင့်ဆက်တင်များ",
   "settings.appearance.title": "🎨 အသွင်အပြင်နှင့် အရောင်စနစ်",
   "settings.appearance.subtitle": "FoodWaste AI တွင် အသုံးပြုလိုသော အသွင်အပြင်ကို ရွေးချယ်ပါ",
   "settings.language.title": "🌐 ဘာသာစကား ရွေးချယ်မှု",
   "settings.language.subtitle": "မီနူးများ၊ AI သုံးသပ်ချက်များနှင့် အစီရင်ခံစာများအတွက် ဘာသာစကား ရွေးချယ်ပါ",
   "settings.account.title": "👤 လက်ရှိ အကောင့်",
   "settings.account.subtitle": "လက်ရှိ အသုံးပြုနေသော အကောင့်နှင့် လုပ်ပိုင်ခွင့် အဆင့်",
-  "settings.system.title": "ℹ️ စနစ် အခြေအနေနှင့် စစ်ဆေးချက်များ",
-  "settings.system.subtitle": "ဒေတာဘေ့စ် ချိတ်ဆက်မှု၊ AI ဝန်ဆောင်မှုများနှင့် စည်းမျဉ်း အင်ဂျင် အခြေအနေ",
-  "settings.testDiagnostics": "စနစ်လည်ပတ်မှု စစ်ဆေးမည်",
-  "settings.btn.testDiagnostics": "စနစ်လည်ပတ်မှု စစ်ဆေးမည်",
   "settings.mysqlTitle": "🗄️ Aiven Cloud MySQL ဆက်တင်များ",
   "settings.mysqlSubtitle": "Cloud ဒေတာဘေ့စ် ချိတ်ဆက်မှု အချက်အလက်များ (Environment Variables မှတစ်ဆင့် ထည့်သွင်းထားသည်)",
   "settings.mysql.title": "🗄️ Aiven Cloud MySQL ဆက်တင်များ",
