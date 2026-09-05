@@ -41,13 +41,13 @@ body {
 }
 
 [data-theme="dark"] body {
-  background-color: #CBD5E1;
+  background-color: #0F172A;
   background-image:
-    radial-gradient(circle at 10% 10%, rgba(52, 211, 153, 0.16) 0%, transparent 40%),
-    radial-gradient(circle at 90% 20%, rgba(251, 191, 36, 0.12) 0%, transparent 45%),
-    radial-gradient(circle at 50% 100%, rgba(59, 130, 246, 0.10) 0%, transparent 50%),
-    radial-gradient(circle at 15% 15%, rgba(255, 255, 255, 0.30) 0%, transparent 45%),
-    linear-gradient(135deg, #CBD5E1 0%, #E2E8F0 100%);
+    radial-gradient(circle at 10% 10%, rgba(96, 165, 250, 0.08) 0%, transparent 40%),
+    radial-gradient(circle at 90% 20%, rgba(251, 191, 36, 0.05) 0%, transparent 45%),
+    radial-gradient(circle at 50% 100%, rgba(52, 211, 153, 0.06) 0%, transparent 50%),
+    radial-gradient(circle at 15% 15%, rgba(255, 255, 255, 0.03) 0%, transparent 45%),
+    linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
 }
 
 /* --- Base Layout Wrapper --- */
@@ -192,10 +192,10 @@ body {
 }
 
 [data-theme="dark"] .nav-bubble-link.active {
-  background: rgba(59, 130, 246, 0.18);
-  color: #0F172A;
+  background: rgba(96, 165, 250, 0.18);
+  color: #93C5FD;
   font-weight: 700;
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
+  box-shadow: 0 2px 8px rgba(96, 165, 250, 0.20);
 }
 
 .nav-bubble-icon {
@@ -448,7 +448,7 @@ body {
 }
 
 [data-theme="dark"] .page-eyebrow {
-  color: #1E40AF;
+  color: #60A5FA;
 }
 
 .page-headline-glass {
@@ -762,9 +762,9 @@ body {
 }
 
 [data-theme="dark"] .dock-item.active {
-  color: #2563EB;
-  background: rgba(59, 130, 246, 0.16);
-  box-shadow: 0 0 12px rgba(59, 130, 246, 0.20);
+  color: #93C5FD;
+  background: rgba(96, 165, 250, 0.16);
+  box-shadow: 0 0 12px rgba(96, 165, 250, 0.20);
 }
 
 .dock-item .dock-icon {
