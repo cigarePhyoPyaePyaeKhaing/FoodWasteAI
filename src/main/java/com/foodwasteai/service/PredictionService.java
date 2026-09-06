@@ -34,6 +34,7 @@ public class PredictionService {
     private final WasteRecordDao wasteDao;
     private final PredictionDao predictionDao;
     private final WasteService wasteService;
+    private java.time.Clock clock = java.time.Clock.system(com.foodwasteai.util.ExpiryStatusResolver.ZONE_YANGON);
 
     public PredictionService() {
         this.prologService = new PrologService();
@@ -65,6 +66,12 @@ public class PredictionService {
         this.wasteService = wasteService != null ? wasteService : new WasteService(wasteDao, foodItemService);
     }
 
+    public PredictionService(PrologService prologService, FoodItemService foodItemService,
+                             SalesDao salesDao, WasteRecordDao wasteDao, PredictionDao predictionDao,
+                             WasteService wasteService, java.time.Clock clock) {
+        this(prologService, foodItemService, salesDao, wasteDao, predictionDao, wasteService);
+        this.clock = Objects.requireNonNull(clock).withZone(com.foodwasteai.util.ExpiryStatusResolver.ZONE_YANGON);
+    }
     /**
      * Assesses a food item by passing raw metrics to Prolog.
      */
@@ -97,7 +104,7 @@ public class PredictionService {
 
     /**
      * Single Source of Truth for daily demand calculation across all services.
-     * Uses real historical daily sales if available, or a consistent canonical baseline (40% of stock).
+     * Uses real historical daily sales if available, or a consistent canonical baseline (85% of stock).
      */
     public double calculateExpectedDailyDemand(FoodItem item) {
         if (item == null) return 0.0;
@@ -125,25 +132,11 @@ public class PredictionService {
         if (item == null) return Optional.empty();
         double stock = item.getQuantity() != null ? Math.max(0.0, item.getQuantity().doubleValue()) : 0.0;
         String unit = item.getUnit() != null && !item.getUnit().trim().isEmpty() ? item.getUnit().trim() : "kg";
-        int expiryDays = com.foodwasteai.util.ExpiryStatusResolver.calculateDaysRemaining(item.getExpiryDate());
+        int expiryDays = com.foodwasteai.util.ExpiryStatusResolver.calculateDaysRemaining(item.getExpiryDate(), LocalDate.now(clock));
 
         double expectedDemand = calculateExpectedDailyDemand(item);
 
-        double histWasteRate;
-        if (item.getId() != null) {
-            try {
-                BigDecimal rate = wasteDao.calculateHistoricalWasteRate(item.getId(), 14);
-                if (rate != null && rate.compareTo(BigDecimal.ZERO) > 0) {
-                    histWasteRate = rate.doubleValue();
-                } else {
-                    histWasteRate = getCategoryDefaultWasteRate(item.getCategory(), expiryDays);
-                }
-            } catch (Exception e) {
-                histWasteRate = getCategoryDefaultWasteRate(item.getCategory(), expiryDays);
-            }
-        } else {
-            histWasteRate = getCategoryDefaultWasteRate(item.getCategory(), expiryDays);
-        }
+        double histWasteRate = stock > 0 ? calculateConfirmedHistoricalWasteRate(item.getId()) : 0.0;
 
         double currentProduction = expectedDemand * 1.1;
 
@@ -154,7 +147,7 @@ public class PredictionService {
         assessment.setCategory(item.getCategory());
         assessment.setUnit(unit);
         assessment.setExpiryDate(item.getExpiryDate());
-        int curDays = com.foodwasteai.util.ExpiryStatusResolver.calculateDaysRemaining(item.getExpiryDate());
+        int curDays = com.foodwasteai.util.ExpiryStatusResolver.calculateDaysRemaining(item.getExpiryDate(), LocalDate.now(clock));
         assessment.setCurrentDaysRemaining(curDays);
         assessment.setExpiryDaysRemaining(curDays);
 
@@ -162,6 +155,12 @@ public class PredictionService {
         assessment.setExpectedDemand(expectedDemand);
         assessment.setProjectedSurplus(surplus);
         assessment.setSuggestedDonationQuantity(surplus);
+
+        String reasoning = String.join(" | ", assessment.getReasons());
+        assessment.setReasonEn(reasoning);
+        assessment.setReasonMy(TranslationService.getInstance().translateToMyanmar(reasoning));
+        assessment.setReason(reasoning);
+        assessment.setReasoning(reasoning);
 
         return Optional.of(assessment);
     }
@@ -173,7 +172,7 @@ public class PredictionService {
     public Map<String, Object> assessInventory(List<FoodItem> items) throws SQLException {
         if (items == null) items = Collections.emptyList();
 
-        LocalDate today = com.foodwasteai.util.ExpiryStatusResolver.getToday();
+        LocalDate today = LocalDate.now(clock);
         LocalDate forecastStartDate = today.plusDays(1);
         LocalDate forecastEndDate = today.plusDays(7);
 
@@ -246,21 +245,7 @@ public class PredictionService {
                     continue;
                 }
 
-                double histWasteRate;
-                if (item.getId() != null) {
-                    try {
-                        BigDecimal rate = wasteDao.calculateHistoricalWasteRate(item.getId(), 14);
-                        if (rate != null && rate.compareTo(BigDecimal.ZERO) > 0) {
-                            histWasteRate = rate.doubleValue();
-                        } else {
-                            histWasteRate = getCategoryDefaultWasteRate(item.getCategory(), Math.max(0, expiryDays));
-                        }
-                    } catch (Exception e) {
-                        histWasteRate = getCategoryDefaultWasteRate(item.getCategory(), Math.max(0, expiryDays));
-                    }
-                } else {
-                    histWasteRate = getCategoryDefaultWasteRate(item.getCategory(), Math.max(0, expiryDays));
-                }
+                double histWasteRate = calculateConfirmedHistoricalWasteRate(item.getId());
 
                 double currentProduction = dailyDemand * 1.1;
 
@@ -425,7 +410,12 @@ public class PredictionService {
         report.put("predictionDate", forecastStartDate.toString());
         report.put("predictionTime", predictionTime);
         report.put("engine", PrologService.isPrologAvailable() ? "SWI-Prolog Expert Engine" : "SWI-Prolog Rules Knowledge Base");
-        report.put("items", forecastDays.isEmpty() ? Collections.emptyList() : forecastDays.get(0).get("items"));
+        // Dashboard current risk must never inherit a future forecast assessment.
+        List<PrologAssessment> currentAssessments = new ArrayList<>();
+        for (FoodItem item : activeItems) {
+            assessFoodItem(item).ifPresent(currentAssessments::add);
+        }
+        report.put("items", currentAssessments);
         report.put("todayActualWaste", todayActualWaste);
 
         Map<String, Object> tomorrowPred = calculateTomorrowPrediction(items);
@@ -450,7 +440,7 @@ public class PredictionService {
      */
     public Map<String, Object> calculateTodayActualWaste(List<FoodItem> items) {
         Map<String, Object> result = new LinkedHashMap<>();
-        LocalDate today = com.foodwasteai.util.ExpiryStatusResolver.getToday();
+        LocalDate today = LocalDate.now(clock);
         String todayStr = today.toString();
 
         result.put("date", todayStr);
@@ -540,7 +530,7 @@ public class PredictionService {
      */
     public Map<String, Object> calculateTomorrowPrediction(List<FoodItem> items) {
         Map<String, Object> result = new LinkedHashMap<>();
-        LocalDate today = com.foodwasteai.util.ExpiryStatusResolver.getToday();
+        LocalDate today = LocalDate.now(clock);
         LocalDate tomorrow = today.plusDays(1);
 
         String tomorrowStr = tomorrow.toString();
@@ -678,7 +668,7 @@ public class PredictionService {
             return Collections.emptyList();
         }
 
-        LocalDate today = com.foodwasteai.util.ExpiryStatusResolver.getToday();
+        LocalDate today = LocalDate.now(clock);
         LocalDate tomorrow = today.plusDays(1);
 
         // Filter strictly for active items with remainingQuantity > 0 and expiryDate == tomorrow
@@ -781,8 +771,13 @@ public class PredictionService {
         List<FoodItem> items = foodItemService.getAllFoodItems();
         Map<String, Object> report = assessInventory(items);
 
+        // Persist tomorrow's forecast under tomorrow's prediction date, while the
+        // response's top-level items remain current Dashboard assessments.
         @SuppressWarnings("unchecked")
-        List<PrologAssessment> assessments = (List<PrologAssessment>) report.get("items");
+        List<Map<String, Object>> days = (List<Map<String, Object>>) report.get("days");
+        @SuppressWarnings("unchecked")
+        List<PrologAssessment> assessments = days.isEmpty() ? Collections.emptyList()
+                : (List<PrologAssessment>) days.get(0).get("items");
         Double avgRisk = (Double) report.get("overallRiskScore");
         Double expectedTotalWasteKg = (Double) report.get("expectedTotalWasteKg");
         Double estimatedMoneyLost = ((Number) report.get("estimatedMoneyLost")).doubleValue();
@@ -799,7 +794,7 @@ public class PredictionService {
         if (DatabaseConfig.isAvailable() && assessments != null && !assessments.isEmpty()) {
             try {
                 Prediction pred = new Prediction();
-                pred.setPredictionDate(com.foodwasteai.util.ExpiryStatusResolver.getToday().plusDays(1));
+                pred.setPredictionDate(LocalDate.now(clock).plusDays(1));
                 pred.setOverallRiskScore(BigDecimal.valueOf(avgRisk).setScale(2, RoundingMode.HALF_UP));
                 pred.setExpectedTotalWasteKg(BigDecimal.valueOf(expectedTotalWasteKg).setScale(2, RoundingMode.HALF_UP));
                 pred.setEstimatedMoneyLost(BigDecimal.valueOf(estimatedMoneyLost).setScale(2, RoundingMode.HALF_UP));
@@ -928,27 +923,14 @@ public class PredictionService {
         return Collections.emptyList();
     }
 
-    private double getCategoryDefaultWasteRate(String category, int expiryDays) {
-        if (expiryDays > 14) {
-            return 0.02; // Long shelf-life / frozen / stable storage baseline
-        }
-        if (category == null) return 0.05;
-        switch (category.toLowerCase()) {
-            case "poultry":
-            case "meat":
-                return 0.22;
-            case "produce":
-            case "salad":
-                return 0.18;
-            case "seafood":
-                return 0.12;
-            case "bakery":
-                return 0.15;
-            case "dairy":
-                return 0.08;
-            case "grains":
-            default:
-                return 0.02;
+    /** Confirmed per-item history only. Zero waste is a valid measured rate. */
+    private double calculateConfirmedHistoricalWasteRate(Long itemId) {
+        if (itemId == null) return 0.0;
+        try {
+            BigDecimal rate = wasteDao.calculateHistoricalWasteRate(itemId, 14);
+            return rate != null ? rate.doubleValue() : 0.0;
+        } catch (SQLException e) {
+            throw new IllegalStateException("Cannot assess waste risk without confirmed waste history for item " + itemId, e);
         }
     }
 

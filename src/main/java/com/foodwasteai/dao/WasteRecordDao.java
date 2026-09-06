@@ -93,8 +93,8 @@ public class WasteRecordDao extends BaseDao {
      */
     public BigDecimal calculateHistoricalWasteRate(Long foodItemId, int pastDays) throws SQLException {
         String sql = "SELECT " +
-                     "  (SELECT IFNULL(SUM(quantity_wasted), 0) FROM waste_records WHERE food_item_id = ? AND waste_date >= DATE_SUB(NOW(), INTERVAL ? DAY)) AS total_waste, " +
-                     "  (SELECT IFNULL(SUM(quantity_sold), 0) FROM sales WHERE food_item_id = ? AND sale_date >= DATE_SUB(NOW(), INTERVAL ? DAY)) AS total_sold";
+                     "  (SELECT IFNULL(SUM(quantity_wasted), 0) FROM waste_records WHERE food_item_id = ? AND waste_date >= DATE_SUB(NOW(), INTERVAL ? DAY) AND waste_date <= NOW()) AS total_waste, " +
+                     "  (SELECT IFNULL(SUM(quantity_sold), 0) FROM sales WHERE food_item_id = ? AND sale_date >= DATE_SUB(NOW(), INTERVAL ? DAY) AND sale_date <= NOW()) AS total_sold";
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setLong(1, foodItemId);

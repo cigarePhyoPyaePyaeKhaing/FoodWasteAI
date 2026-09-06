@@ -88,7 +88,7 @@ public class SalesDao extends BaseDao {
 
     public BigDecimal getHistoricalAverageDailySales(Long foodItemId, int pastDays) throws SQLException {
         String sql = "SELECT IFNULL(SUM(quantity_sold) / ?, 0) AS avg_daily_demand " +
-                     "FROM sales WHERE food_item_id = ? AND sale_date >= DATE_SUB(NOW(), INTERVAL ? DAY)";
+                     "FROM sales WHERE food_item_id = ? AND sale_date >= DATE_SUB(NOW(), INTERVAL ? DAY) AND sale_date <= NOW()";
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, pastDays > 0 ? pastDays : 7);
