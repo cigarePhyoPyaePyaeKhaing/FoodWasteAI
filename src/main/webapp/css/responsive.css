@@ -250,3 +250,14 @@
   .topbar-glass .topbar-right>.btn-bubble{max-width:100%;white-space:normal;line-height:1.5;}
   .topbar-glass .page-headline-glass{overflow-wrap:anywhere;}
 }
+
+.forecast-item-heading{display:flex;align-items:center;flex-wrap:wrap;gap:8px;}
+.forecast-item-heading h3{flex:1 1 180px;margin:0;}
+.forecast-zero-badge{border:1px solid var(--glass-border);border-radius:999px;padding:4px 9px;font-size:.75rem;color:var(--text-muted);}
+.forecast-summary-meta{font-size:.8rem;color:var(--text-muted);margin-top:4px;}
+.forecast-facts .forecast-quantity{color:var(--accent-yellow-dark);}
+.forecast-explanation{line-height:1.65;color:var(--text-main);}
+#prediction-details-modal .modal-glass-footer{gap:12px;}
+#pred-modal-engine-text{overflow-wrap:anywhere;line-height:1.5;}
+#prediction-details-modal .modal-glass-footer > .btn-bubble{flex-shrink:0;white-space:nowrap;}
+.forecast-item,.forecast-item h3,.forecast-item h4{color:var(--text-main);}

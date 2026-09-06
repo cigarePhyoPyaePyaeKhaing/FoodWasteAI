@@ -317,8 +317,8 @@ public class SevenDayForecastRegressionTest {
         String mmContent = Files.readString(new File("src/main/webapp/js/i18n/mm.js").toPath());
 
         // Verify pred.modal.title is updated to 7-Day Forecast
-        assertTrue(enContent.contains("\"pred.modal.title\": \"7-Day Predicted Waste Forecast\""));
-        assertTrue(mmContent.contains("\"pred.modal.title\": \"၇ ရက်စာ ခန့်မှန်းအလေအလွင့် ဆန်းစစ်ချက်\""));
+        assertTrue(enContent.contains("\"pred.modal.title\": \"7-Day Predicted Waste Details\""));
+        assertTrue(mmContent.contains("\"pred.modal.title\": \"၇ ရက်စာ ခန့်မှန်း အလေအလွင့် အသေးစိတ်\""));
 
         // Verify pred.modal.predictionDate is updated to Forecast Period (7 Days)
         assertTrue(enContent.contains("\"pred.modal.predictionDate\": \"Forecast Period (7 Days)\""));

@@ -596,6 +596,9 @@ public class TranslationService {
         if (lower.contains("halt production and dispose") || lower.contains("halt production")) {
             return "ထုတ်လုပ်မှု ရပ်ဆိုင်းပြီး သက်တမ်းကုန်ပစ္စည်းများကို ဘေးကင်းစွာ စွန့်ပစ်ပါ";
         }
+        if (lower.contains("prioritize remaining stock in specials and reduce batch prep")) {
+            return "လက်ကျန်ပစ္စည်းကို အထူးဟင်းလျာများတွင် ဦးစားပေးအသုံးပြုပြီး အသစ်ပြင်ဆင်ချက်ပြုတ်မည့် ပမာဏကို လျှော့ချပါ။";
+        }
         if (lower.contains("reduce production or redistribute immediately")) {
             return "ထုတ်လုပ်မှု လျှော့ချပါ သို့မဟုတ် ချက်ချင်း ပြန်လည်လှူဒါန်းပါ";
         }

@@ -258,7 +258,7 @@
     <div class="modal-glass-header">
       <div style="display:flex; align-items:center; gap:0.5rem;">
         <span style="font-size:1.3rem;">🔮</span>
-        <h3 id="pred-modal-title" style="font-size:1.15rem; font-weight:800; color:var(--text-main); margin:0;" data-i18n="pred.modal.title">7-Day Predicted Waste Forecast</h3>
+        <h3 id="pred-modal-title" style="font-size:1.15rem; font-weight:800; color:var(--text-main); margin:0;" data-i18n="pred.modal.title">7-Day Predicted Waste Details</h3>
       </div>
       <button type="button" class="btn-bubble btn-glass-subtle btn-sm-bubble" data-action="close-prediction-details" aria-label="Close" style="width:32px; height:32px; padding:0; display:flex; align-items:center; justify-content:center; font-size:1.2rem;">&times;</button>
     </div>
@@ -270,6 +270,8 @@
           <div style="font-size:0.75rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em;" data-i18n="pred.modal.predictionDate">Forecast Period (7 Days)</div>
           <div id="pred-modal-expiry-date" style="font-size:1.05rem; font-weight:800; color:var(--accent-yellow-dark); margin-top:2px;">--</div>
           <div id="pred-modal-time" style="font-size:0.72rem; color:var(--text-muted); margin-top:2px;">--</div>
+          <div id="pred-modal-count" class="forecast-summary-meta"></div>
+          <div id="pred-modal-days" class="forecast-summary-meta"></div>
         </div>
         <div style="text-align:right;">
           <div style="font-size:0.75rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em;" data-i18n="pred.modal.totalLabel">7-Day Total Predicted Waste</div>

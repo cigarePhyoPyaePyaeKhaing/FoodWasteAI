@@ -628,43 +628,55 @@ const Dashboard = {
     if (!list) return;
     const messages = {
       ERROR: t('Unable to load the 7-day forecast. Please try again.','၇ ရက်စာ ခန့်မှန်းချက် မရယူနိုင်ပါ။ ပြန်လည်ကြိုးစားပါ။'),
-      NO_FORECAST: t('No 7-day evaluation has been generated yet. Run the evaluation first.','၇ ရက်စာ ခန့်မှန်းချက် မတွက်ချက်ရသေးပါ။ ဦးစွာ တွက်ချက်ပါ။'),
+      NO_FORECAST: t('No 7-day evaluation has been generated yet. Run the evaluation first.','၇ ရက်စာ ခန့်မှန်းချက်ကို မတွက်ချက်ရသေးပါ။ အရင်ဆုံး ၇ ရက်စာ ဆန်းစစ်မှုကို လုပ်ဆောင်ပါ။'),
       NO_INVENTORY: t('No active inventory is available for the 7-day forecast.','၇ ရက်စာ ခန့်မှန်းရန် လက်ကျန်ပစ္စည်း မရှိပါ။'),
       ZERO_FORECAST: t('No food waste is currently predicted for the next 7 days.','လာမည့် ၇ ရက်အတွင်း အလေအလွင့် ဖြစ်မည်ဟု မခန့်မှန်းထားပါ။'),
-      PARTIAL: t('Some forecast details are unavailable.','ခန့်မှန်းချက် အသေးစိတ်အချို့ မရရှိနိုင်ပါ။')
+      PARTIAL: t('Some forecast details could not be loaded.','ခန့်မှန်းချက် အသေးစိတ်အချို့ မရရှိနိုင်ပါ။')
     };
     const state = this.data.forecastError ? 'ERROR' : !pred ? 'NO_FORECAST' : pred.forecastStatus || 'PARTIAL';
     const text = (id,value) => {const el=document.getElementById(id); if(el)el.textContent=value;};
     text('pred-modal-expiry-date', pred ? `${pred.forecastStartDate} → ${pred.forecastEndDate}` : '—');
-    text('pred-modal-time', t('Current inventory; no new stock modeled','လက်ရှိလက်ကျန်အပေါ် အခြေခံသည်။ ထပ်မံဝယ်ယူမှု မပါဝင်ပါ။'));
+    text('pred-modal-time', `${t('Generated','တွက်ချက်ချိန်')}: ${pred?.generatedAt ? API.formatTimestamp(pred.generatedAt).text : '—'}`);
+    text('pred-modal-count', `${t('Food Items Evaluated','တွက်ချက်ထားသော ပစ္စည်းအရေအတွက်')}: ${pred?.evaluatedItemCount ?? '—'}`);
+    text('pred-modal-days', `${t('Forecast Days','ခန့်မှန်းရက်အရေအတွက်')}: ${pred?.forecastDayCount ?? '—'}`);
     text('pred-modal-total-waste',['ERROR','NO_FORECAST','PARTIAL'].includes(state) ? '—' : pred?.weeklySummary?.quantities?.join(' • ') || '0');
-    text('pred-modal-engine-text','');
+    text('pred-modal-engine-text',t('Forecast based on current inventory, demand, expiry, and waste history.','လက်ရှိ ကုန်ပစ္စည်းလက်ကျန်၊ ဝယ်လိုအား၊ သက်တမ်းနှင့် အလေအလွင့်မှတ်တမ်းများအပေါ် အခြေခံထားသော ခန့်မှန်းချက်။'));
     if (['ERROR','NO_FORECAST','NO_INVENTORY'].includes(state)) {list.innerHTML=`<p role="status">${messages[state]}</p>`;return;}
+    const businessText = value => !value || /Prolog|Expert Engine|predicate|rule trace|SQLException|com\.foodwasteai/i.test(value) ? t('Details unavailable.','အသေးစိတ် မရရှိနိုင်ပါ။') : value;
     const items = Array.isArray(pred.forecastItems) ? pred.forecastItems : [];
     list.innerHTML = (messages[state] ? `<p role="status">${messages[state]}</p>` : '') + items.map(item => {
-      const qty = v => `${Number(v || 0).toFixed(1)} ${esc(item.unit)}`;
+      const qty = v => typeof v === 'number' && Number.isFinite(v) ? `${v.toFixed(1)} ${esc(item.unit)}` : '—';
       const risk = v => typeof I18n !== 'undefined' ? I18n.translateRisk(v) : v;
       const days = Array.isArray(item.dailyForecast) ? item.dailyForecast : [];
       return `<article class="forecast-item">
-        <h3>${esc(item.name)}</h3><p>${esc(item.category)} · ${esc(item.unit)}</p>
+        <div class="forecast-item-heading"><h3>${esc(item.name)}</h3>
+          <span class="badge-bubble ${item.riskLevel==='HIGH'?'badge-risk-high':item.riskLevel==='MEDIUM'?'badge-risk-medium':'badge-risk-low'}">${esc(risk(item.riskLevel))} · ${esc(item.riskScore)}%</span>
+          ${item.sevenDayPredictedWaste===0?`<span class="forecast-zero-badge">${t('0 Predicted Waste','ခန့်မှန်းအလေအလွင့် ၀')}</span>`:''}
+        </div><p>${esc(typeof I18n!=='undefined'?I18n.translateFoodCategory(item.category):item.category)} · ${esc(item.unit)}</p>
         <div class="forecast-facts">
           <div>${t('Current Stock','လက်ရှိလက်ကျန်')}<strong>${qty(item.currentStock)}</strong></div>
           <div>${t('Expiry Date','သက်တမ်းကုန်ရက်')}<strong>${esc(item.expiryDate)} (${item.currentDaysRemaining} ${t('days','ရက်')})</strong></div>
           <div>${t('Current Risk','လက်ရှိအန္တရာယ်')}<strong>${esc(risk(item.riskLevel))} (${item.riskScore}%)</strong></div>
           <div>${t('Expected Daily Demand','နေ့စဉ်ခန့်မှန်းဝယ်လိုအား')}<strong>${qty(item.expectedDailyDemand)} / ${t('day','ရက်')}</strong></div>
-          <div>${t('7-Day Predicted Waste','၇ ရက်စာ ခန့်မှန်းအလေအလွင့်')}<strong>${qty(item.sevenDayPredictedWaste)}</strong></div>
+          <div>${t('7-Day Predicted Waste','၇ ရက်စာ ခန့်မှန်းအလေအလွင့်')}<strong class="forecast-quantity">${qty(item.sevenDayPredictedWaste)}</strong></div>
           <div>${t('Projected Surplus','ခန့်မှန်းပိုလျှံပမာဏ')}<strong>${qty(item.projectedSurplus)}</strong></div>
         </div>
-        <details><summary>${t('Daily Forecast','နေ့စဉ်ခန့်မှန်းချက်')}</summary>
+        <div class="forecast-facts">
+          <div>${t('Estimated Potential Loss','ခန့်မှန်း ဆုံးရှုံးနိုင်သည့်တန်ဖိုး')}<strong>${item.estimatedPotentialLoss==null?'—':Number(item.estimatedPotentialLoss).toLocaleString(undefined,{maximumFractionDigits:2})+' MMK'}</strong></div>
+          <div>${t('Redistribution Status','ပြန်လည်ဖြန့်ဝေမှု အခြေအနေ')}<strong>${esc(mm?item.redistributionStatusLabelMy||'—':item.redistributionStatusLabelEn||'—')}</strong></div>
+        </div>
+        <p class="forecast-explanation"><strong>${t('Reason','အကြောင်းရင်း')}:</strong> ${esc(businessText(mm?item.reasonMy:item.reason))}</p>
+        <p class="forecast-explanation"><strong>${t('Recommended Action','အကြံပြုလုပ်ဆောင်ချက်')}:</strong> ${esc(businessText(mm?item.recommendedActionMy:item.recommendedAction))}</p>
+        <details><summary>${t('Daily Forecast','နေ့စဉ် ခန့်မှန်းချက်')}</summary>
           ${days.length ? days.map(day=>`<section class="forecast-day"><h4>${esc(day.date)}</h4><div class="forecast-facts">
             <div>${t('Opening Stock','နေ့အစလက်ကျန်')}<strong>${qty(day.projectedOpeningStock)}</strong></div>
             <div>${t('Expected Demand','ခန့်မှန်းဝယ်လိုအား')}<strong>${qty(day.expectedDemand)}</strong></div>
             <div>${t('Days to Expiry','သက်တမ်းကျန်ရက်')}<strong>${day.daysToExpiry}</strong></div>
-            <div>${t('Risk','အန္တရာယ်')}<strong>${esc(risk(day.riskLevel))} (${day.riskScore}%)</strong></div>
+            <div>${t('Daily Forecast Risk','နေ့စဉ်ခန့်မှန်း အန္တရာယ်')}<strong>${esc(risk(day.riskLevel))} (${day.riskScore}%)</strong></div>
             <div>${t('Predicted Sales','ခန့်မှန်းအရောင်း')}<strong>${qty(day.predictedSales)}</strong></div>
             <div>${t('Predicted Waste','ခန့်မှန်းအလေအလွင့်')}<strong>${qty(day.predictedWaste)}</strong></div>
             <div>${t('Closing Stock','နေ့ဆုံးလက်ကျန်')}<strong>${qty(day.projectedClosingStock)}</strong></div>
-          </div><p>${esc(mm ? day.reasonMy || day.reason : day.reason)}</p></section>`).join('') : `<p>${messages.PARTIAL}</p>`}
+          </div><p>${esc(businessText(mm ? day.reasonMy || day.reason : day.reason))}</p></section>`).join('') : `<p>${messages.PARTIAL}</p>`}
           <p>${t('No replenishment is modeled. Once depleted, later days remain at zero.','ထပ်မံဝယ်ယူမှု မပါဝင်ပါ။ လက်ကျန်ကုန်သွားပါက နောက်ရက်များတွင် သုညဖြစ်နေမည်။')}</p>
         </details></article>`;
     }).join('');

@@ -384,6 +384,9 @@ public class PredictionService {
         Map<String, Object> todayActualWaste = calculateTodayActualWaste(items);
 
         Map<String, Object> report = new LinkedHashMap<>();
+        report.put("generatedAt", clock.instant().toString());
+        report.put("evaluatedItemCount", activeItems.size());
+        report.put("forecastDayCount", 7);
         report.put("forecastStartDate", forecastStartDate.toString());
         report.put("forecastEndDate", forecastEndDate.toString());
         report.put("activeInventoryCount", activeItems.size());
@@ -423,6 +426,14 @@ public class PredictionService {
             detail.put("expiryDate", current.getExpiryDate()); detail.put("currentDaysRemaining", current.getCurrentDaysRemaining());
             detail.put("riskLevel", current.getRiskLevel()); detail.put("riskScore", current.getRiskScore());
             detail.put("expectedDailyDemand", current.getExpectedDemand());
+            detail.put("historicalWasteRate", current.getHistoricalWasteRate());
+            detail.put("currentRiskLevel", current.getRiskLevel());
+            detail.put("currentRiskScore", current.getRiskScore());
+            detail.put("reason", current.getReasonEn());
+            detail.put("reasonMy", current.getReasonMy());
+            detail.put("recommendedActionMy", translator.translateToMyanmar(current.getRecommendedAction()));
+            detail.put("redistributionStatusLabelEn", current.getRedistributionStatusLabelEn());
+            detail.put("redistributionStatusLabelMy", current.getRedistributionStatusLabelMy());
             detail.put("projectedSurplus", current.getProjectedSurplus());
             detail.put("suggestedDonationQuantity", current.isRedistributionEligible() ? current.getSuggestedDonationQuantity() : 0);
             detail.put("redistributionStatus", current.getRedistributionStatus());
@@ -446,6 +457,9 @@ public class PredictionService {
                     savings += row.getPredictedWasteQuantity() * price * ("HIGH".equals(row.getRiskLevel()) ? 0.70 : "MEDIUM".equals(row.getRiskLevel()) ? 0.50 : 0);
                 }
             }
+            BigDecimal itemPrice = activeItems.stream().filter(i -> Objects.equals(i.getId(), current.getFoodItemId()))
+                .findFirst().map(FoodItem::getPricePerUnit).orElse(null);
+            detail.put("estimatedPotentialLoss", itemPrice == null ? null : itemPrice.multiply(BigDecimal.valueOf(totalWaste)).setScale(2, RoundingMode.HALF_UP));
             detail.put("sevenDayPredictedWaste",totalWaste); detail.put("potentialSavings",Math.round(savings));
             detail.put("dailyForecast",daily); forecastItems.add(detail);
         }

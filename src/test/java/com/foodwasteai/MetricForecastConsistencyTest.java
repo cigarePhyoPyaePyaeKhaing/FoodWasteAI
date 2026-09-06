@@ -87,6 +87,35 @@ class MetricForecastConsistencyTest {
         java.nio.file.Files.createDirectories(java.nio.file.Path.of("target"));
         java.nio.file.Files.writeString(java.nio.file.Path.of("target/consistency-forecast-fixture.json"),JsonAccess.serialize(report));
     }
+    @Test void detailMetadataAndMoneyComeFromCurrentFactsAndForecast() throws Exception {
+        var report=forecast().assessInventory(List.of(item(1,"kg",70,1,2000),item(2,"liter",10,1,2000),item(3,"kg",20,10,2000)));
+        assertEquals("2026-09-06T18:00:00Z",report.get("generatedAt"));
+        assertEquals(3,report.get("evaluatedItemCount"));assertEquals(7,report.get("forecastDayCount"));
+        var details=(List<Map<String,Object>>)report.get("forecastItems");
+        double totalLoss=0;
+        for(var detail:details) {
+            assertEquals(detail.get("riskLevel"),detail.get("currentRiskLevel"));
+            assertEquals(detail.get("riskScore"),detail.get("currentRiskScore"));
+            assertEquals(0.0,detail.get("historicalWasteRate"));
+            assertNotNull(detail.get("reason"));assertNotNull(detail.get("recommendedAction"));
+            assertTrue(detail.get("reasonMy").toString().matches("(?s).*[\u1000-\u109f].*"));
+            assertTrue(detail.get("recommendedActionMy").toString().matches("(?s).*[\u1000-\u109f].*"));
+            double loss=((Number)detail.get("estimatedPotentialLoss")).doubleValue();totalLoss+=loss;
+            assertEquals(((Number)detail.get("sevenDayPredictedWaste")).doubleValue()*2000,loss,0.0051);
+        }
+        assertEquals(((Number)report.get("estimatedMoneyLost")).longValue(),Math.round(totalLoss));
+        assertEquals(70.0,details.get(0).get("currentStock"));
+        assertEquals(LocalDate.of(2026,9,8),details.get(0).get("expiryDate"));
+        assertEquals(100.0/7,((Number)details.get(0).get("expectedDailyDemand")).doubleValue());
+    }
+    @Test void currentAndDailyRiskAreSeparateAndMissingPriceIsNotInvented() throws Exception {
+        var food=item(3,"kg",20,4,2000);food.setPricePerUnit(null);
+        var report=forecast().assessInventory(List.of(food));
+        var detail=((List<Map<String,Object>>)report.get("forecastItems")).get(0);
+        var day=((List<Map<String,Object>>)detail.get("dailyForecast")).get(0);
+        assertEquals("MEDIUM",detail.get("currentRiskLevel"));assertEquals(50.0,detail.get("currentRiskScore"));
+        assertEquals("HIGH",day.get("riskLevel"));assertNull(detail.get("estimatedPotentialLoss"));
+    }
     @Test void emptyAndZeroForecastAreDistinct() throws Exception {
         assertEquals("NO_INVENTORY",forecast().assessInventory(List.of()).get("forecastStatus"));
         assertEquals("ZERO_FORECAST",forecast().assessInventory(List.of(item(2,"liter",10,1,2000))).get("forecastStatus"));

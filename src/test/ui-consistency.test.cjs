@@ -40,6 +40,15 @@ assert.ok((await page.locator('#dashboard-rec-container').textContent()).include
 await page.evaluate(()=>{let n=0;const original=Dashboard.openDetailsModal;Dashboard.openDetailsModal=function(){window.openCount=++n;return original.call(this);};});
 await page.locator('#btn-pred-details').click();assert.equal(await page.evaluate(()=>window.openCount),1);
 await page.waitForSelector('#prediction-details-modal.active');assert.equal(await page.locator('.forecast-item').count(),3);
+assert.ok((await page.locator('#pred-modal-time').textContent()).includes('2026-09-07 00:30'));
+assert.ok((await page.locator('#pred-modal-count').textContent()).includes('3'));
+assert.ok((await page.locator('#pred-modal-days').textContent()).includes('7'));
+const zeroCard=page.locator('.forecast-item').filter({hasText:'Generic batch 2'});
+assert.equal(await zeroCard.locator('.forecast-zero-badge').textContent(),'0 Predicted Waste');
+assert.ok((await zeroCard.textContent()).includes('No Surplus'));
+assert.ok((await page.locator('.forecast-item').first().textContent()).includes('Estimated Potential Loss'));
+assert.ok((await page.locator('.forecast-item').first().textContent()).includes('Recommended Action'));
+assert.ok(!/SWI-Prolog|Prolog|Expert Engine|predicate|rule trace/.test(await page.locator('#prediction-details-modal').textContent()));
 assert.equal(await page.locator('#pred-modal-total-waste').textContent(),forecast.weeklySummary.quantities.join(' • '));
 fs.mkdirSync('target/ui-consistency',{recursive:true});
 for(const [size,width,height] of [['desktop',1440,1000],['tablet',768,1024],['mobile',390,844]]) {
@@ -47,7 +56,14 @@ await page.setViewportSize({width,height});
 for(const lang of ['en','mm']) {
 await page.evaluate(lang=>{I18n.setLanguage(lang);Dashboard.data.predictionData.forecastItems[0].name='Generic long inventory name — အစားအစာအမည်ရှည် စမ်းသပ်ချက်';Dashboard.renderDetailsModalContent();},lang);
 await page.locator('.forecast-item details').first().evaluate(el=>el.open=true);
-await page.screenshot({path:`target/ui-consistency/forecast-${size}-${lang}.png`});
+for(const theme of ['light','dark']) {
+ await page.evaluate(theme=>ThemeManager.applyTheme(theme,true),theme);
+ await page.waitForTimeout(350); // Let the existing theme color transition settle for visual QA.
+ await page.locator('.forecast-item details').first().evaluate(el=>el.open=true);
+ await page.screenshot({path:`target/ui-consistency/forecast-${size}-${lang}-${theme}.png`});
+ assert.ok(!/undefined|SWI-Prolog|Expert Engine/.test(await page.locator('#prediction-details-modal').textContent()));
+}
+await page.evaluate(()=>ThemeManager.applyTheme('light',true));
 const geometry=await page.locator('#prediction-details-modal .modal-glass-dialog').evaluate(el=>{const r=el.getBoundingClientRect();return {left:r.left,right:r.right,top:r.top,bottom:r.bottom,viewport:innerWidth,height:innerHeight};});
 assert.ok(geometry.left>=-1&&geometry.right<=width+1,JSON.stringify(geometry));
 assert.ok(geometry.top>=-1&&geometry.bottom<=height+1,JSON.stringify(geometry));
@@ -55,7 +71,9 @@ const overflow=await page.locator('.forecast-item').first().evaluate(el=>el.scro
 }
 }
 await page.evaluate(()=>I18n.setLanguage('en'));
-for(const [state,text] of [['NO_INVENTORY','No active inventory'],['NO_FORECAST','No 7-day evaluation'],['ZERO_FORECAST','No food waste is currently predicted'],['ERROR','Unable to load the 7-day forecast'],['PARTIAL','Some forecast details are unavailable']]) {
+await page.evaluate(()=>{const item=Dashboard.data.predictionData.forecastItems[0];item.reason='SWI-Prolog Expert Engine';item.recommendedAction='predicate rule trace';Dashboard.renderDetailsModalContent();});
+assert.ok(!/SWI-Prolog|Expert Engine|predicate|rule trace/.test(await page.locator('#prediction-details-modal').textContent()));
+for(const [state,text] of [['NO_INVENTORY','No active inventory'],['NO_FORECAST','No 7-day evaluation'],['ZERO_FORECAST','No food waste is currently predicted'],['ERROR','Unable to load the 7-day forecast'],['PARTIAL','Some forecast details could not be loaded']]) {
 await page.evaluate(({state,forecast})=>{Dashboard.data.forecastError=state==='ERROR';Dashboard.data.predictionData=state==='NO_FORECAST'?null:{...forecast,forecastStatus:state};Dashboard.renderDetailsModalContent();},{state,forecast});
 assert.ok((await page.locator('#pred-modal-items-list').textContent()).includes(text),state);
 }
@@ -88,7 +106,7 @@ for(const [name,table] of [['inventory','inventory'],['sales','sales'],['waste',
  await page.goto(`http://foodwaste.test/${name}.html`);await page.locator(`#${table}-tbody`).getByText(/Unable to load/).waitFor();
 }
 assert.deepEqual(errors,[]);
-console.log('PASS: all seven pages load without JS errors; timezone, status KPIs, milk badge/CTA, count history, single-click details, five forecast states, API failure, six responsive/language combinations.');
-fs.writeFileSync('target/ui-consistency/results.json',JSON.stringify({passed:true,screenshots:6,viewports:['1440x1000','768x1024','390x844'],languages:['en','mm'],browser:'Chrome',browserTimezone:'America/Los_Angeles',pageErrors:errors},null,2));
+console.log('PASS: all seven pages load without JS errors; timezone, status KPIs, milk badge/CTA, count history, single-click details, five forecast states, API failure, twelve responsive/language/theme combinations.');
+fs.writeFileSync('target/ui-consistency/results.json',JSON.stringify({passed:true,screenshots:12,viewports:['1440x1000','768x1024','390x844'],languages:['en','mm'],browser:'Chrome',browserTimezone:'America/Los_Angeles',pageErrors:errors},null,2));
 }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});
