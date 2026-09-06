@@ -8,7 +8,7 @@ const Redistribution = {
     notEligible: [],
     expiredBlocked: []
   },
-  stats: {},
+  stats: null,
   loading: false,
   submitting: false,
   lastSubmitTime: 0,
@@ -76,10 +76,11 @@ const Redistribution = {
     try {
       const res = await API.get('/api/redistribution/candidates');
       if (res && res.data) {
-        this.candidatesData = res.data;
+        this.candidatesData = res.data;this.candidatesError=false;
       }
     } catch (err) {
       console.warn('Error fetching redistribution candidates:', err);
+      this.candidatesData={priorityCandidates:[],redistributionCandidates:[],notEligible:[],expiredBlocked:[]};this.candidatesError=true;
     } finally {
       this.renderCandidates();
     }
@@ -108,6 +109,7 @@ const Redistribution = {
       this.foodItems = [];
     } finally {
       this.populateFoodSelect();
+      this.renderRecipientsTable();
     }
   },
 
@@ -116,9 +118,10 @@ const Redistribution = {
     this.renderLoading();
     try {
       const res = await API.get('/api/redistribution');
+      this.dispatchError=false;
       this.dispatches = (res && Array.isArray(res.data)) ? res.data : [];
     } catch (err) {
-      console.warn('Error fetching dispatches:', err);
+      console.warn('Error fetching dispatches:', err);this.dispatchError=true;
       this.dispatches = [];
     } finally {
       this.loading = false;
@@ -134,7 +137,7 @@ const Redistribution = {
         this.stats = res.data;
       }
     } catch (err) {
-      console.warn('Error fetching redistribution stats:', err);
+      console.warn('Error fetching redistribution stats:', err);this.stats=null;
     } finally {
       this.updateKpis();
     }
@@ -159,6 +162,8 @@ const Redistribution = {
   },
 
   populateFoodSelect(selectedFoodId = null) {
+    const eligible=this.foodItems.some(f=>Number(f.quantity)>0 && ['PRIORITY_DONATION','DONATION_RECOMMENDED'].includes(f.redistributionStatus));
+    const schedule=document.getElementById('redist-schedule-btn');if(schedule)schedule.disabled=!eligible;
     const select = document.getElementById('redist-food-id');
     if (!select) return;
 
@@ -171,7 +176,7 @@ const Redistribution = {
     const availableItems = this.foodItems.filter(f => {
       const stock = Number(f.remainingQuantity !== undefined ? f.remainingQuantity : (f.quantity || 0));
       const days = Number(f.daysRemaining !== undefined ? f.daysRemaining : (f.expiryDays !== undefined ? f.expiryDays : 999));
-      return stock > 0 && days >= 0 && f.status !== 'EXPIRED';
+      return stock > 0 && ['PRIORITY_DONATION','DONATION_RECOMMENDED'].includes(f.redistributionStatus);
     });
 
     if (availableItems.length === 0) {
@@ -208,7 +213,7 @@ const Redistribution = {
           <td><code>${this.escapeHtml(r.phone || 'N/A')}</code></td>
           <td style="font-size:0.85rem; color:var(--text-muted);">${this.escapeHtml(r.address || '')}</td>
           <td style="text-align:right;">
-            <button class="btn-bubble btn-yellow btn-sm-bubble" onclick="Redistribution.openModal(null, null, ${r.id})">+ Dispatch</button>
+            ${this.foodItems.some(f => Number(f.quantity) > 0 && ['PRIORITY_DONATION','DONATION_RECOMMENDED'].includes(f.redistributionStatus)) ? `<button class="btn-bubble btn-yellow btn-sm-bubble" onclick="Redistribution.openModal(null, null, ${r.id})">${typeof I18n !== 'undefined' && I18n.isMyanmar() ? 'ပို့ဆောင်ရန်' : '+ Dispatch'}</button>` : ''}
           </td>
         </tr>
       `;
@@ -228,19 +233,12 @@ const Redistribution = {
     `;
   },
 
-  formatDateTime(isoStr) {
-    if (!isoStr) return { date: '-', time: '' };
-    const clean = isoStr.replace('T', ' ').trim();
-    const parts = clean.split(' ');
-    const date = parts[0] || '-';
-    let time = parts[1] ? parts[1].substring(0, 5) : '';
-    return { date, time };
-  },
+  formatDateTime(isoStr) { return API.formatTimestamp(isoStr, true); },
 
   formatReason(notes) {
     const isMm = typeof I18n !== 'undefined' && I18n.isMyanmar();
     if (!notes || notes.trim() === '' || notes === '-') {
-      return isMm ? 'သက်တမ်းမကုန်မီ ပိုလျှံလှူဒါန်းမှု' : 'Redistributed before expiry';
+      return isMm ? 'ပိုလျှံပစ္စည်း ပို့ဆောင်မှု' : 'Surplus dispatch';
     }
     const clean = notes.trim();
     if (isMm && typeof I18n.translateWasteSource === 'function') {
@@ -259,14 +257,15 @@ const Redistribution = {
     }
 
     const isMm = typeof I18n !== 'undefined' && I18n.isMyanmar();
+    if(this.dispatchError) {tbody.innerHTML=`<tr><td colspan="7">${isMm?'ပို့ဆောင်မှုစာရင်း မရယူနိုင်ပါ။':'Unable to load dispatch history. Please try again.'}</td></tr>`;return;}
 
     if (!this.dispatches || this.dispatches.length === 0) {
       tbody.innerHTML = `
         <tr>
           <td colspan="7" style="text-align:center; padding:3rem; color:var(--text-muted);">
             <div style="font-size:2rem; margin-bottom:0.5rem;">🤝</div>
-            <div style="font-weight:700; color:var(--text-main); font-size:1.05rem;" data-i18n="redist.empty.title">${isMm ? 'ပိုလျှံသော အစားအစာ မရှိသေးပါ' : 'No surplus available'}</div>
-            <div style="font-size:0.85rem; margin-top:0.25rem;">${isMm ? '"+ ပိုလျှံစာရင်း အသစ်ထည့်မည်" သို့မဟုတ် AI အကြံပြုချက်များမှတစ်ဆင့် ဆောင်ရွက်ပါ။' : 'Click "+ Schedule Surplus Dispatch" or trigger via AI Recommendation Directives.'}</div>
+            <div style="font-weight:700; color:var(--text-main); font-size:1.05rem;" data-i18n="redist.empty.title">${isMm ? 'ပိုလျှံသော အစားအစာ မရှိသေးပါ' : 'No redistribution dispatches recorded'}</div>
+            <div style="font-size:0.85rem; margin-top:0.25rem;">${isMm ? '"+ ပိုလျှံစာရင်း အသစ်ထည့်မည်" သို့မဟုတ် AI အကြံပြုချက်များမှတစ်ဆင့် ဆောင်ရွက်ပါ။' : 'Click "+ Schedule Surplus Dispatch" to schedule an eligible surplus item.'}</div>
           </td>
         </tr>
       `;
@@ -282,7 +281,7 @@ const Redistribution = {
       } else if (d.status === 'CANCELLED') {
         badgeClass = 'badge-urgent';
         statusLabel = 'CANCELLED';
-      } else if (d.status === 'CONFIRMED' || d.status === 'PENDING') {
+      } else if (d.status === 'PENDING') {
         badgeClass = 'badge-important';
         statusLabel = 'PENDING';
       }
@@ -301,7 +300,7 @@ const Redistribution = {
         actionBtns = `<span class="badge-bubble badge-risk-low redist-status-icon-badge" title="${isMm ? 'ပို့ဆောင်လှူဒါန်းပြီး' : 'Delivered & Rescued'}">✓</span>`;
       } else if (d.status === 'CANCELLED') {
         actionBtns = `<span class="badge-bubble badge-urgent redist-status-icon-badge" title="${isMm ? 'ပယ်ဖျက်ပြီး' : 'Cancelled'}">✕</span>`;
-      } else {
+      } else if (d.status === 'PENDING' || d.status === 'CONFIRMED') {
         actionBtns = `
           <div class="redist-action-btn-group">
             <button class="btn-bubble btn-glass-subtle redist-mini-btn" style="color:#ef4444;" onclick="Redistribution.updateStatus(${d.id}, 'CANCELLED')" title="${isMm ? 'ပယ်ဖျက်မည်' : 'Cancel'}">✕</button>
@@ -351,6 +350,7 @@ const Redistribution = {
     const notEligibleContainer = document.getElementById('not-eligible-container');
 
     const isMm = typeof I18n !== 'undefined' && I18n.isMyanmar();
+    if(this.candidatesError) {for(const el of [priorityContainer,redistContainer,notEligibleContainer]) if(el)el.textContent=isMm?'ပြန်လည်ဖြန့်ဝေရန် အကြံပြုချက် မရယူနိုင်ပါ။':'Unable to load redistribution eligibility. Please try again.';return;}
     const data = this.candidatesData || {};
     const priority = data.priorityCandidates || [];
     const candidates = data.redistributionCandidates || [];
@@ -488,33 +488,14 @@ const Redistribution = {
       partnersEl.textContent = `${recipientCount} ${recipientCount === 1 ? 'Partner' : 'Partners'}`;
     }
 
-    const activeDispatches = (this.dispatches || []).filter(d => d.status !== 'CANCELLED');
-
-    if (rescuedEl) {
-      if (typeof I18n !== 'undefined' && typeof I18n.formatUnitAggregate === 'function') {
-        rescuedEl.textContent = I18n.formatUnitAggregate(activeDispatches, d => d.quantity, d => d.unit, '');
-      } else {
-        const totalQty = activeDispatches.reduce((sum, d) => sum + Number(d.quantity || 0), 0);
-        rescuedEl.textContent = totalQty.toFixed(1);
-      }
-    }
-
-    if (moneyEl) {
-      const money = (this.stats && this.stats.estimatedMoneySaved) ? Number(this.stats.estimatedMoneySaved) : 0;
-      moneyEl.textContent = money.toLocaleString() + ' MMK';
-    }
-
-    if (impactEl) {
-      if (typeof I18n !== 'undefined' && typeof I18n.formatUnitAggregate === 'function') {
-        impactEl.textContent = I18n.formatUnitAggregate(activeDispatches, d => d.quantity, d => d.unit, '');
-      } else {
-        const totalQty = activeDispatches.reduce((sum, d) => sum + Number(d.quantity || 0), 0);
-        impactEl.textContent = totalQty.toFixed(1);
-      }
-    }
+    if (rescuedEl) rescuedEl.textContent = this.stats ? ((this.stats.completedQuantities || []).join(' • ') || '0') : '—';
+    if (moneyEl) moneyEl.textContent = this.stats ? Number(this.stats.confirmedValueSaved || 0).toLocaleString() + ' MMK' : '—';
+    if (impactEl) impactEl.textContent = this.stats ? `${(this.stats.pendingQuantities || []).join(' • ') || '0'} · ${this.stats.pendingDispatchesCount || 0} ${typeof I18n !== 'undefined' && I18n.isMyanmar() ? 'ပို့ဆောင်ရန် ကျန်' : 'pending dispatch(es)'}` : '—';
   },
 
   openModal(preselectedFoodId = null, prefilledQty = null, preselectedRecipientId = null) {
+    const eligible=this.foodItems.filter(f=>Number(f.quantity)>0 && ['PRIORITY_DONATION','DONATION_RECOMMENDED'].includes(f.redistributionStatus));
+    if(!eligible.length || (preselectedFoodId && !eligible.some(f=>Number(f.id)===Number(preselectedFoodId)))) {API.showToast(typeof I18n!=='undefined'&&I18n.isMyanmar()?'ပို့ဆောင်ရန် သင့်လျော်သော ပိုလျှံပစ္စည်း မရှိပါ။':'No eligible surplus item is available for dispatch.','warning');return;}
     this.currentSubmissionToken = 'redist_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
     this.submitting = false;
     this.populateFoodSelect(preselectedFoodId);
@@ -647,7 +628,7 @@ const Redistribution = {
 
     try {
       await API.post('/api/redistribution', payload);
-      API.showToast(`Redistribution request created for ${quantity} surplus!`, 'success');
+      API.showToast(isMm ? 'ပြန်လည်ဖြန့်ဝေရန် ပို့ဆောင်မှု စီစဉ်ပြီးပါပြီ။' : 'Redistribution dispatch scheduled.', 'success');
       this.closeModal();
       await this.fetchDispatches();
       await this.fetchStats();
@@ -670,11 +651,12 @@ const Redistribution = {
   },
 
   async updateStatus(id, newStatus) {
+    if (!['PENDING','CONFIRMED'].includes(this.dispatches.find(d => d.id === id)?.status)) return;
     try {
       await API.put(`/api/redistribution/${id}`, { status: newStatus });
       const item = this.dispatches.find(d => d.id === id);
       if (item) item.status = newStatus;
-      API.showToast(`Redistribution record updated to ${newStatus}!`, 'success');
+      API.showToast(typeof I18n !== 'undefined' && I18n.isMyanmar() ? (newStatus === 'COMPLETED' ? 'ပို့ဆောင်မှု ပြီးစီးကြောင်း မှတ်တမ်းတင်ပြီးပါပြီ။' : 'ပို့ဆောင်မှု ပယ်ဖျက်ပြီးပါပြီ။') : (newStatus === 'COMPLETED' ? 'Redistribution dispatch completed.' : 'Redistribution dispatch cancelled.'), 'success');
       this.render();
       await this.fetchStats();
     } catch (err) {

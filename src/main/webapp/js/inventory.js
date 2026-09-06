@@ -65,10 +65,12 @@ const Inventory = {
     this.renderLoading();
     try {
       const res = await API.get('/api/inventory');
+      this.loadError=false;
       this.items = (res && res.data) ? res.data : [];
     } catch (err) {
+      this.loadError=true;
       console.warn('API fetch fallback:', err);
-      API.showToast('Using local inventory view', 'info');
+      API.showToast(typeof I18n !== 'undefined' && I18n.isMyanmar() ? 'စာရင်း မရယူနိုင်ပါ။ ပြန်လည်ကြိုးစားပါ။' : 'Unable to load inventory records. Please try again.', 'error');
     } finally {
       this.loading = false;
       this.render();
@@ -109,6 +111,7 @@ const Inventory = {
     }
 
     const isMm = typeof I18n !== 'undefined' && I18n.getLanguage() === 'mm';
+    if(this.loadError) {tbody.innerHTML=`<tr><td colspan="8">${isMm?'စာရင်း မရယူနိုင်ပါ။ ပြန်လည်ကြိုးစားပါ။':'Unable to load inventory records. Please try again.'}</td></tr>`;return;}
     const query = (document.getElementById('inv-search-input')?.value || '').toLowerCase();
     const cat = document.getElementById('category-filter')?.value || '';
     const status = document.getElementById('status-filter')?.value || '';
@@ -160,15 +163,18 @@ const Inventory = {
       } else if (days <= 3 && days > 0 && remainingStock > 0) {
         badgeClass = 'badge-risk-medium';
         statusText = isMm ? 'သက်တမ်းကုန်ရန်နီး' : 'Near Expiry';
-        secondaryBadge = `<span class="badge-bubble" style="background:rgba(220,38,38,0.12); color:#DC2626; font-size:0.68rem; margin-top:0.2rem; display:inline-block;">${isMm ? 'ဦးစားပေး လှူဒါန်းရန်' : 'Priority Redistribution'}</span>`;
-      } else if (days <= 7 && days > 3 && remainingStock > 0) {
-        badgeClass = 'badge-risk-medium';
-        secondaryBadge = `<span class="badge-bubble" style="background:rgba(14,165,233,0.12); color:#0284C7; font-size:0.68rem; margin-top:0.2rem; display:inline-block;">${isMm ? 'ပြန်လည်လှူဒါန်းရန် စဉ်းစားပါ' : 'Consider Redistribution'}</span>`;
+
       }
 
       const catText = typeof I18n !== 'undefined' ? I18n.translateFoodCategory(item.category) : item.category;
       const editBtnText = typeof I18n !== 'undefined' ? I18n.t('action.edit') : 'Edit';
 
+      if (remainingStock > 0 && ['PRIORITY_DONATION','DONATION_RECOMMENDED'].includes(item.redistributionStatus)) {
+        const label = item.redistributionStatus === 'PRIORITY_DONATION'
+          ? (isMm ? 'ဦးစားပေး လှူဒါန်းရန်' : 'Priority Donation')
+          : (isMm ? 'လှူဒါန်းသင့်သည်' : 'Donation Recommended');
+        secondaryBadge = `<span class="badge-bubble badge-risk-medium">${label}</span>`;
+      }
       const priceFmt = Number(item.pricePerUnit || 0).toLocaleString() + ' MMK';
       const totalQtyFmt = totalStock.toFixed(2) + ' ' + (item.unit || 'kg');
       const remainingQtyFmt = remainingStock.toFixed(2) + ' ' + (item.unit || 'kg');
@@ -415,7 +421,7 @@ const Inventory = {
       this.renderHistoryList(transactions, item.unit || 'kg', isMm);
     } catch (err) {
       console.warn('Failed to fetch stock history:', err);
-      this.renderHistoryList([], item.unit || 'kg', isMm);
+      if (listContainer) listContainer.textContent = isMm ? 'မှတ်တမ်း မရယူနိုင်ပါ။ ပြန်လည်ကြိုးစားပါ။' : 'Unable to load inventory history. Please try again.';
     }
   },
 
@@ -429,14 +435,10 @@ const Inventory = {
     const countTag = document.getElementById('history-entry-count');
     if (!listContainer) return;
 
-    // Filter for stock additions / purchases / manual counts
-    const stockIns = transactions.filter(t => {
-      const type = (t.transactionType || '').toUpperCase();
-      return type === 'PURCHASE' || type === 'STOCK_IN' || type === 'MANUAL_COUNT';
-    });
+    const stockIns = transactions;
 
     if (countTag) {
-      countTag.textContent = isMm ? `${stockIns.length} ကြိမ် ထည့်သွင်းထားသည်` : `${stockIns.length} stock addition event${stockIns.length !== 1 ? 's' : ''}`;
+      countTag.textContent = isMm ? `မှတ်တမ်း ${stockIns.length} ခု` : `${stockIns.length} inventory event${stockIns.length !== 1 ? 's' : ''}`;
     }
 
     if (stockIns.length === 0) {
@@ -444,10 +446,10 @@ const Inventory = {
         <div style="text-align:center; padding:2rem 1rem; color:var(--text-muted); background:rgba(0,0,0,0.02); border-radius:10px; border:1px dashed var(--glass-border-subtle);">
           <div style="font-size:1.6rem; margin-bottom:0.4rem;">📜</div>
           <div style="font-weight:600; font-size:0.9rem; color:var(--text-main);">
-            ${isMm ? 'ဤကုန်ပစ္စည်းအတွက် သိုလှောင်မှု ထပ်တိုးမှတ်တမ်း မရှိသေးပါ' : 'No stock addition history is available for this earlier record.'}
+            ${isMm ? 'ဤကုန်ပစ္စည်းအတွက် သိုလှောင်မှု ထပ်တိုးမှတ်တမ်း မရှိသေးပါ' : 'No inventory history is available for this earlier record.'}
           </div>
           <div style="font-size:0.78rem; margin-top:0.25rem;">
-            ${isMm ? 'စနစ်စတင်ချိန်မှ မှတ်တမ်းတင်ထားသော အချက်အလက်များသာ ပေါ်ပါမည်' : 'Historical stock-in transactions are tracked for additions made in the system.'}
+            ${isMm ? 'စနစ်စတင်ချိန်မှ မှတ်တမ်းတင်ထားသော အချက်အလက်များသာ ပေါ်ပါမည်' : 'Recorded stock movements and physical counts appear here.'}
           </div>
         </div>
       `;
@@ -456,13 +458,17 @@ const Inventory = {
 
     listContainer.innerHTML = stockIns.map((tx, idx) => {
       const isInitial = idx === stockIns.length - 1 || (tx.notes && tx.notes.toLowerCase().includes('initial'));
-      const title = isInitial 
-        ? (isMm ? 'စတင် သိုလှောင်မှု' : 'Initial Stock')
-        : (isMm ? 'သိုလှောင်မှု ထပ်တိုး' : 'Stock Addition');
-
+      const type = tx.transactionType;
+      const snapshot = type === 'MANUAL_COUNT';
+      const addition = ['PURCHASE','STOCK_IN'].includes(type);
+      const title = snapshot ? (isMm ? 'လက်တွေ့ရေတွက်ထားသော လက်ကျန်' : 'Physical Stock Count')
+        : addition ? (isMm ? 'ဝင်ကုန်' : 'Stock In')
+        : type === 'USAGE' ? (isMm ? 'အရောင်းအသုံးပြုမှု' : 'Sales / Usage')
+        : type === 'WASTE_ADJUSTMENT' ? (isMm ? 'အတည်ပြု အလေအလွင့်' : 'Confirmed Waste')
+        : (isMm ? 'ပြန်လည်ဖြန့်ဝေမှု' : 'Redistribution');
       const qty = Number(tx.quantity || 0).toFixed(2);
       const unit = tx.unit || defaultUnit;
-      let dateStr = tx.createdAt ? tx.createdAt.replace('T', ' ').substring(0, 16) : 'N/A';
+      let dateStr = tx.createdAt ? API.formatTimestamp(tx.createdAt).text : 'N/A';
 
       return `
         <div style="background:rgba(255,255,255,0.7); border:1px solid var(--glass-border-subtle); border-radius:10px; padding:0.75rem 1rem; display:flex; justify-content:space-between; align-items:center;">
@@ -478,7 +484,7 @@ const Inventory = {
           </div>
           <div style="text-align:right;">
             <span style="font-size:1.05rem; font-weight:800; color:#16A34A; background:rgba(22,163,74,0.1); padding:0.25rem 0.6rem; border-radius:var(--radius-pill);">
-              +${qty} ${unit}
+              ${snapshot ? '= ' : addition ? '+ ' : '− '}${qty} ${this.escapeHtml(unit)}
             </span>
           </div>
         </div>

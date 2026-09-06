@@ -10,6 +10,14 @@ import java.util.List;
  * Serves as the single authoritative source of truth for risk score, predicted waste quantity, and units.
  */
 public class PrologAssessment implements Serializable {
+    private double projectedOpeningStock, projectedClosingStock, predictedSalesQuantity;
+    public double getProjectedOpeningStock() { return projectedOpeningStock; }
+    public void setProjectedOpeningStock(double v) { projectedOpeningStock=v; }
+    public double getProjectedClosingStock() { return projectedClosingStock; }
+    public void setProjectedClosingStock(double v) { projectedClosingStock=v; }
+    public double getPredictedSalesQuantity() { return predictedSalesQuantity; }
+    public void setPredictedSalesQuantity(double v) { predictedSalesQuantity=v; }
+
     private static final long serialVersionUID = 1L;
 
     private Long foodItemId;

@@ -72,11 +72,11 @@ public class SalesDao extends BaseDao {
         String sql = "SELECT s.id, s.food_item_id, f.name AS food_name, f.unit AS food_unit, s.quantity_sold, s.unit_price, " +
                      "s.total_amount, s.customer_count, s.sale_date, s.created_at " +
                      "FROM sales s JOIN food_items f ON s.food_item_id = f.id " +
-                     "WHERE DATE(s.sale_date) BETWEEN ? AND ? ORDER BY s.sale_date DESC";
+                     "WHERE s.sale_date >= ? AND s.sale_date < ? ORDER BY s.sale_date DESC";
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setDate(1, Date.valueOf(start));
-            stmt.setDate(2, Date.valueOf(end));
+            stmt.setObject(1, start.atStartOfDay(com.foodwasteai.util.ExpiryStatusResolver.ZONE_YANGON).withZoneSameInstant(java.time.ZoneOffset.UTC).toLocalDateTime());
+            stmt.setObject(2, end.plusDays(1).atStartOfDay(com.foodwasteai.util.ExpiryStatusResolver.ZONE_YANGON).withZoneSameInstant(java.time.ZoneOffset.UTC).toLocalDateTime());
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
                     list.add(mapResultSetToSale(rs));
@@ -198,7 +198,7 @@ public class SalesDao extends BaseDao {
                 sale.setTotalAmount(sale.getUnitPrice().multiply(requestedQty).setScale(2, java.math.RoundingMode.HALF_UP));
             }
             if (sale.getSaleDate() == null) {
-                sale.setSaleDate(LocalDateTime.now());
+                sale.setSaleDate(LocalDateTime.now(java.time.ZoneOffset.UTC));
             }
 
             // 5. Insert sales record
@@ -208,7 +208,7 @@ public class SalesDao extends BaseDao {
                 insertStmt.setBigDecimal(3, sale.getUnitPrice());
                 insertStmt.setBigDecimal(4, sale.getTotalAmount());
                 insertStmt.setInt(5, sale.getCustomerCount() != null ? sale.getCustomerCount() : 1);
-                insertStmt.setTimestamp(6, Timestamp.valueOf(sale.getSaleDate()));
+                insertStmt.setObject(6, sale.getSaleDate());
 
                 int affected = insertStmt.executeUpdate();
                 if (affected > 0) {
@@ -292,11 +292,11 @@ public class SalesDao extends BaseDao {
         sale.setTotalAmount(rs.getBigDecimal("total_amount"));
         sale.setCustomerCount(rs.getInt("customer_count"));
 
-        Timestamp saleDate = rs.getTimestamp("sale_date");
-        if (saleDate != null) sale.setSaleDate(saleDate.toLocalDateTime());
+        java.time.LocalDateTime saleDate = rs.getObject("sale_date", java.time.LocalDateTime.class);
+        if (saleDate != null) sale.setSaleDate(saleDate);
 
-        Timestamp created = rs.getTimestamp("created_at");
-        if (created != null) sale.setCreatedAt(created.toLocalDateTime());
+        java.time.LocalDateTime created = rs.getObject("created_at", java.time.LocalDateTime.class);
+        if (created != null) sale.setCreatedAt(created);
 
         return sale;
     }

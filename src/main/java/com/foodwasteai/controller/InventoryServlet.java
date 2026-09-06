@@ -26,6 +26,21 @@ public class InventoryServlet extends BaseServlet {
     private static final long serialVersionUID = 1L;
     private final FoodItemService foodItemService = new FoodItemService();
 
+    private final com.foodwasteai.service.PredictionService predictionService = new com.foodwasteai.service.PredictionService();
+
+    private void attachRedistributionStatus(FoodItem item) {
+        if (item.getQuantity() == null || item.getQuantity().signum() <= 0) {
+            item.setRedistributionStatus("OUT_OF_STOCK"); return;
+        }
+        try {
+            predictionService.assessFoodItem(item)
+                .ifPresent(a -> item.setRedistributionStatus(a.getRedistributionStatus()));
+        } catch (Exception e) {
+            logger.warn("Inventory eligibility unavailable for item {}", item.getId());
+            item.setRedistributionStatus("REASONING_UNAVAILABLE");
+        }
+    }
+
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         try {
@@ -58,6 +73,7 @@ public class InventoryServlet extends BaseServlet {
             if (id != null) {
                 Optional<FoodItem> itemOpt = foodItemService.getFoodItemById(id);
                 if (itemOpt.isPresent()) {
+                    attachRedistributionStatus(itemOpt.get());
                     sendSuccess(resp, itemOpt.get());
                 } else {
                     sendNotFound(resp, "Food item #" + id + " not found");
@@ -94,6 +110,7 @@ public class InventoryServlet extends BaseServlet {
                         .collect(Collectors.toList());
             }
 
+            items.forEach(this::attachRedistributionStatus);
             sendSuccess(resp, items);
         } catch (Exception e) {
             logger.error("Error in InventoryServlet GET: {}", e.getMessage(), e);

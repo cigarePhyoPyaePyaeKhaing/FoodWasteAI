@@ -7,37 +7,15 @@ const Reports = {
   // ─── Date helpers ───────────────────────────────────────────────────────────
 
   _toISO(date) {
-    // Returns yyyy-MM-dd string for the given Date object (local time)
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, '0');
-    const d = String(date.getDate()).padStart(2, '0');
-    return `${y}-${m}-${d}`;
+    return date.toISOString().slice(0,10);
   },
-
   _dateRangeFor(period) {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const endDate = this._toISO(today);
-
-    if (period === 'today') {
-      return { startDate: endDate, endDate };
-    }
-
-    if (period === 'week') {
-      // Monday of the current week
-      const day = today.getDay(); // 0 = Sunday, 1 = Monday …
-      const diff = (day === 0) ? -6 : 1 - day; // go back to Monday
-      const monday = new Date(today);
-      monday.setDate(today.getDate() + diff);
-      return { startDate: this._toISO(monday), endDate };
-    }
-
-    if (period === 'month') {
-      const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-      return { startDate: this._toISO(firstOfMonth), endDate };
-    }
-
-    return null; // 'custom' — caller supplies dates
+    const endDate=API.formatTimestamp(new Date().toISOString()).date;
+    const today=new Date(endDate+'T00:00:00Z');
+    if(period==='today') return {startDate:endDate,endDate};
+    if(period==='week') {const day=today.getUTCDay();today.setUTCDate(today.getUTCDate()+(day===0?-6:1-day));return {startDate:this._toISO(today),endDate};}
+    if(period==='month') return {startDate:endDate.slice(0,8)+'01',endDate};
+    return null;
   },
 
   // ─── Button state ───────────────────────────────────────────────────────────
@@ -125,9 +103,10 @@ const Reports = {
       } else {
         res = await API.get('/api/waste');
       }
+      this.wasteError=false;
       this.wasteRecords = (res && Array.isArray(res.data)) ? res.data : [];
     } catch (err) {
-      console.warn('Error fetching waste for reports:', err);
+      console.warn('Error fetching waste for reports:', err);this.wasteError=true;
       this.wasteRecords = [];
     }
   },
@@ -135,9 +114,10 @@ const Reports = {
   async fetchRedistStats() {
     try {
       const res = await API.get('/api/redistribution/stats');
+      this.statsError=false;
       this.redistStats = (res && res.data) ? res.data : {};
     } catch (err) {
-      console.warn('Error fetching redistribution stats for reports:', err);
+      console.warn('Error fetching redistribution stats for reports:', err);this.statsError=true;
       this.redistStats = {};
     }
   },
@@ -172,21 +152,18 @@ const Reports = {
     }
 
     if (savedEl) {
-      if (this.redistStats && this.redistStats.rescuedDispatches && Array.isArray(this.redistStats.rescuedDispatches) && typeof I18n !== 'undefined') {
-        savedEl.textContent = I18n.formatUnitAggregate(this.redistStats.rescuedDispatches, d => d.quantity, d => d.unit, '');
-      } else if (savedKg > 0) {
-        savedEl.textContent = savedKg.toFixed(1) + ' kg';
-      } else {
-        savedEl.textContent = '0.0';
-      }
+      savedEl.textContent = this.statsError ? '—' : (this.redistStats.completedQuantities || []).join(' • ') || '0';
     }
 
     if (lossEl)     lossEl.textContent     = totalLoss.toLocaleString() + ' MMK';
+
+    if(this.wasteError) {if(wasteEl)wasteEl.textContent='—';if(lossEl)lossEl.textContent='—';}
 
     // ── Category matrix ────────────────────────────────────────────────────────
     const tbody = document.getElementById('reports-matrix-tbody');
     if (!tbody) return;
 
+    if(this.wasteError) {tbody.innerHTML=`<tr><td colspan="5">${typeof I18n!=='undefined'&&I18n.isMyanmar()?'အစီရင်ခံစာ မရယူနိုင်ပါ။ ပြန်လည်ကြိုးစားပါ။':'Unable to load report data. Please try again.'}</td></tr>`;return;}
     if (this.wasteRecords.length === 0) {
       tbody.innerHTML = `
         <tr>
@@ -204,10 +181,11 @@ const Reports = {
     const totalByUnit = {};  // sums quantityWasted per unit, e.g. { kg: 32.0, liter: 37.0 }
 
     for (const r of this.wasteRecords) {
-      const cat  = r.foodItemName || ('Food Item #' + r.foodItemId);
+      const name = r.foodItemName || ('Food Item #' + r.foodItemId);
+      const cat = `${r.foodItemId}:${r.unit}`;
       const unit = r.unit || 'units';
       if (!categoryMap[cat]) {
-        categoryMap[cat] = { qty: 0, loss: 0, reason: r.reason || 'SPOILED', unit };
+        categoryMap[cat] = { name, qty: 0, loss: 0, reason: r.reason || 'SPOILED', unit };
       }
       categoryMap[cat].qty  += Number(r.quantityWasted || 0);
       categoryMap[cat].loss += Number(r.monetaryLoss   || 0);
@@ -225,7 +203,7 @@ const Reports = {
       const reasonText = typeof I18n !== 'undefined' ? I18n.translateWasteReason(item.reason) : item.reason;
       return `
         <tr>
-          <td><strong>${cat}</strong></td>
+          <td><strong>${item.name}</strong></td>
           <td>${item.qty.toFixed(1)} ${item.unit}</td>
           <td><strong style="color:var(--risk-high-text);">${item.loss.toLocaleString()} MMK</strong></td>
           <td>${sharePct}% <span style="font-size:0.72rem; color:var(--text-muted); font-weight:500;">(of ${item.unit})</span></td>
@@ -272,7 +250,7 @@ const Reports = {
     // ── Today's date for filename & timestamp ────────────────────────────────
     const now       = new Date();
     const todayISO  = this._toISO(now);
-    const timestamp = now.toLocaleString();
+    const timestamp = API.formatTimestamp(now.toISOString()).text;
 
     // ── Read live KPI card values from DOM ───────────────────────────────────
     const kpiWaste    = (document.getElementById('report-kpi-waste')    || {}).textContent || '0.0';
@@ -292,7 +270,7 @@ const Reports = {
     rows.push([csvCell('KPI Summary')]);
     rows.push([csvCell('Metric'), csvCell('Value')]);
     rows.push([csvCell('Total Food Waste'),       csvCell(kpiWaste)]);
-    rows.push([csvCell('Food Saved via AI'),      csvCell(kpiSaved)]);
+    rows.push([csvCell('Completed Food Redistribution (All Recorded History)'),      csvCell(kpiSaved)]);
     rows.push([csvCell('Financial Waste Loss'),   csvCell(kpiLoss)]);
     rows.push([]);  // blank separator
 
@@ -306,6 +284,7 @@ const Reports = {
       csvCell('Primary Waste Reason')
     ]);
 
+    if(this.wasteError || this.statsError) {API.showToast('Unable to export unavailable report data. Please reload the report.', 'error');return;}
     if (this.wasteRecords.length === 0) {
       rows.push([csvCell('No waste logs recorded for this period')]);
     } else {
@@ -313,10 +292,11 @@ const Reports = {
       const totalByUnit  = {};  // sums quantityWasted per unit
 
       for (const r of this.wasteRecords) {
-        const cat  = r.foodItemName || ('Food Item #' + r.foodItemId);
+        const name = r.foodItemName || ('Food Item #' + r.foodItemId);
+      const cat = `${r.foodItemId}:${r.unit}`;
         const unit = r.unit || 'units';
         if (!categoryMap[cat]) {
-          categoryMap[cat] = { qty: 0, loss: 0, reason: r.reason || 'SPOILED', unit };
+          categoryMap[cat] = { name, qty: 0, loss: 0, reason: r.reason || 'SPOILED', unit };
         }
         categoryMap[cat].qty  += Number(r.quantityWasted || 0);
         categoryMap[cat].loss += Number(r.monetaryLoss   || 0);
@@ -332,7 +312,7 @@ const Reports = {
         const sharePct  = unitTotal > 0 ? ((item.qty / unitTotal) * 100).toFixed(1) : '0.0';
         const reason    = typeof I18n !== 'undefined' ? I18n.translateWasteReason(item.reason) : item.reason;
         rows.push([
-          csvCell(cat),
+          csvCell(item.name),
           csvCell(`${item.qty.toFixed(1)} ${item.unit}`),
           csvCell(item.loss.toLocaleString()),
           csvCell(`${sharePct}% (of ${item.unit})`),

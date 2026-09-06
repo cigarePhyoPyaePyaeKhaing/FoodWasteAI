@@ -280,9 +280,8 @@ public class SevenDayForecastRegressionTest {
         Map<String, Object> day3 = days.get(2);
         @SuppressWarnings("unchecked")
         List<PrologAssessment> day3Items = (List<PrologAssessment>) day3.get("items");
-        assertEquals(1, day3Items.size());
-        assertEquals(0, day3Items.get(0).getExpiryDays());
-        assertTrue(day3Items.get(0).getStock() <= day2Items.get(0).getStock(), "Stock must not increase on Day 3");
+        assertTrue(day3Items.isEmpty(), "Canonical demand and waste deplete this fixture by day 2; do not invent day-3 stock");
+        assertEquals(0.0, day2Items.get(0).getProjectedClosingStock(), 0.000001);
 
         // Day 4+: Already expired on prior date, stock = 0, no active items
         Map<String, Object> day4 = days.get(3);

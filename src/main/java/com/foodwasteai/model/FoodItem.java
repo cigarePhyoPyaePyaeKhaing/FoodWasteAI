@@ -9,6 +9,10 @@ import java.time.LocalDateTime;
  * Food item model for inventory tracking.
  */
 public class FoodItem implements Serializable {
+    private String redistributionStatus;
+    public String getRedistributionStatus() { return redistributionStatus; }
+    public void setRedistributionStatus(String value) { redistributionStatus = value; }
+
     private static final long serialVersionUID = 1L;
 
     private Long id;

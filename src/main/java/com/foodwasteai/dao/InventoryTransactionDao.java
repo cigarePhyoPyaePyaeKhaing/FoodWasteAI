@@ -99,8 +99,8 @@ public class InventoryTransactionDao extends BaseDao {
         if (!rs.wasNull()) tx.setCreatedBy(createdBy);
         tx.setCreatedByName(rs.getString("user_name"));
 
-        Timestamp created = rs.getTimestamp("created_at");
-        if (created != null) tx.setCreatedAt(created.toLocalDateTime());
+        java.time.LocalDateTime created = rs.getObject("created_at", java.time.LocalDateTime.class);
+        if (created != null) tx.setCreatedAt(created);
 
         return tx;
     }

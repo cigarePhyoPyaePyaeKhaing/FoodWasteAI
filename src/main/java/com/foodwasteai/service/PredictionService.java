@@ -197,6 +197,7 @@ public class PredictionService {
 
         TranslationService translator = TranslationService.getInstance();
 
+        Map<FoodItem, Double> closingStocks = new IdentityHashMap<>();
         for (int dayIndex = 1; dayIndex <= 7; dayIndex++) {
             LocalDate forecastDate = today.plusDays(dayIndex);
             String dateStr = forecastDate.toString();
@@ -213,29 +214,15 @@ public class PredictionService {
             for (FoodItem item : activeItems) {
                 double initialStock = item.getQuantity() != null ? Math.max(0.0, item.getQuantity().doubleValue()) : 0.0;
                 String unit = item.getUnit() != null && !item.getUnit().trim().isEmpty() ? item.getUnit().trim() : "kg";
-                double pricePerUnit = item.getPricePerUnit() != null ? item.getPricePerUnit().doubleValue() : 2000.0;
+                double pricePerUnit = item.getPricePerUnit() != null ? item.getPricePerUnit().doubleValue() : 0.0;
 
-                double dailyDemand;
-                if (item.getId() != null) {
-                    try {
-                        BigDecimal avgSales = salesDao.getHistoricalAverageDailySales(item.getId(), 7);
-                        if (avgSales != null && avgSales.compareTo(BigDecimal.ZERO) > 0) {
-                            dailyDemand = avgSales.doubleValue();
-                        } else {
-                            dailyDemand = Math.max(0.5, initialStock * 0.15);
-                        }
-                    } catch (Exception e) {
-                        dailyDemand = Math.max(0.5, initialStock * 0.15);
-                    }
-                } else {
-                    dailyDemand = Math.max(0.5, initialStock * 0.15);
-                }
+                double dailyDemand = calculateExpectedDailyDemand(item);
 
                 int expiryDays = (int) ChronoUnit.DAYS.between(forecastDate, item.getExpiryDate());
 
                 // Projected stock progression across the 7-day horizon:
                 // Prior days consume projected daily demand; expired food is discarded
-                double projectedStock = Math.max(0.0, initialStock - (dayIndex - 1) * dailyDemand);
+                double projectedStock = closingStocks.getOrDefault(item, initialStock);
                 if (item.getExpiryDate().isBefore(forecastDate)) {
                     projectedStock = 0.0; // Already reached expiration and disposed on earlier date
                 }
@@ -256,6 +243,16 @@ public class PredictionService {
                 } else {
                     a = prologService.assessFoodItem(item.getName(), unit, projectedStock, dailyDemand, expiryDays, histWasteRate, currentProduction);
                 }
+
+                // No replenishment is modeled. Sales and waste cannot consume the same stock.
+                double predictedSales = Math.min(projectedStock, Math.max(0, dailyDemand));
+                double predictedWaste = expiryDays <= 0 ? Math.max(0, projectedStock-predictedSales) : Math.min(a.getPredictedWasteQuantity(), Math.max(0, projectedStock-predictedSales));
+                double closingStock = Math.max(0, projectedStock-predictedSales-predictedWaste);
+                closingStocks.put(item, closingStock);
+                a.setProjectedOpeningStock(projectedStock);
+                a.setPredictedSalesQuantity(predictedSales);
+                a.setPredictedWasteQuantity(predictedWaste);
+                a.setProjectedClosingStock(closingStock);
 
                 a.setFoodItemId(item.getId());
                 a.setCategory(item.getCategory());
@@ -347,7 +344,7 @@ public class PredictionService {
             dayMap.put("dayIndex", dayIndex);
             dayMap.put("riskScore", dayRiskScore);
             dayMap.put("riskLevel", dayRiskLevel);
-            dayMap.put("predictedWaste", dayUnitBreakdown.values().stream().mapToDouble(Double::doubleValue).sum());
+            dayMap.put("predictedWaste", new LinkedHashMap<>(dayUnitBreakdown));
             dayMap.put("predictedWasteByUnit", dayUnitBreakdown);
             dayMap.put("unitBreakdown", dayUnitBreakdown);
             dayMap.put("quantities", dayQuantities);
@@ -372,7 +369,7 @@ public class PredictionService {
         weeklySummary.put("highestRiskScore", validHighestRiskScore);
         weeklySummary.put("highestRiskDate", highestRiskDay);
         weeklySummary.put("highestRiskDay", highestRiskDay);
-        weeklySummary.put("predictedWaste", weeklyUnitBreakdown.values().stream().mapToDouble(Double::doubleValue).sum());
+        weeklySummary.put("predictedWaste", new LinkedHashMap<>(weeklyUnitBreakdown));
         weeklySummary.put("predictedWasteByUnit", weeklyUnitBreakdown);
         weeklySummary.put("unitBreakdown", weeklyUnitBreakdown);
         weeklySummary.put("quantities", weeklyQuantities);
@@ -416,9 +413,50 @@ public class PredictionService {
             assessFoodItem(item).ifPresent(currentAssessments::add);
         }
         report.put("items", currentAssessments);
+        List<Map<String, Object>> forecastItems = new ArrayList<>();
+        for (PrologAssessment current : currentAssessments) {
+            Map<String, Object> detail = new LinkedHashMap<>();
+            detail.put("foodItemId", current.getFoodItemId());
+            detail.put("forecastStartDate",forecastStartDate.toString()); detail.put("forecastEndDate",forecastEndDate.toString());
+            detail.put("name", current.getFoodName()); detail.put("category", current.getCategory());
+            detail.put("unit", current.getUnit()); detail.put("currentStock", current.getStock());
+            detail.put("expiryDate", current.getExpiryDate()); detail.put("currentDaysRemaining", current.getCurrentDaysRemaining());
+            detail.put("riskLevel", current.getRiskLevel()); detail.put("riskScore", current.getRiskScore());
+            detail.put("expectedDailyDemand", current.getExpectedDemand());
+            detail.put("projectedSurplus", current.getProjectedSurplus());
+            detail.put("suggestedDonationQuantity", current.isRedistributionEligible() ? current.getSuggestedDonationQuantity() : 0);
+            detail.put("redistributionStatus", current.getRedistributionStatus());
+            detail.put("recommendedAction", current.getRecommendedAction());
+            List<Map<String,Object>> daily = new ArrayList<>();
+            double totalWaste = 0, savings = 0;
+            for (Map<String,Object> day : forecastDays) {
+                @SuppressWarnings("unchecked") List<PrologAssessment> rows = (List<PrologAssessment>)day.get("items");
+                for (PrologAssessment row : rows) {
+                    if (!Objects.equals(current.getFoodItemId(), row.getFoodItemId()) || !Objects.equals(current.getFoodName(), row.getFoodName())) continue;
+                    Map<String,Object> entry = new LinkedHashMap<>();
+                    entry.put("date",day.get("date")); entry.put("projectedOpeningStock",row.getProjectedOpeningStock());
+                    entry.put("expectedDemand",row.getExpectedDemand()); entry.put("predictedSales",row.getPredictedSalesQuantity());
+                    entry.put("daysToExpiry",row.getExpiryDays()); entry.put("riskLevel",row.getRiskLevel()); entry.put("riskScore",row.getRiskScore());
+                    entry.put("predictedWaste",row.getPredictedWasteQuantity()); entry.put("projectedClosingStock",row.getProjectedClosingStock());
+                    entry.put("reason",row.getReasonEn()); entry.put("reasonMy",row.getReasonMy());
+                    entry.put("recommendedAction",row.getRecommendedAction()); daily.add(entry);
+                    totalWaste += row.getPredictedWasteQuantity();
+                    double price = activeItems.stream().filter(i -> Objects.equals(i.getId(),current.getFoodItemId())).findFirst()
+                        .map(i -> i.getPricePerUnit() == null ? 0.0 : i.getPricePerUnit().doubleValue()).orElse(0.0);
+                    savings += row.getPredictedWasteQuantity() * price * ("HIGH".equals(row.getRiskLevel()) ? 0.70 : "MEDIUM".equals(row.getRiskLevel()) ? 0.50 : 0);
+                }
+            }
+            detail.put("sevenDayPredictedWaste",totalWaste); detail.put("potentialSavings",Math.round(savings));
+            detail.put("dailyForecast",daily); forecastItems.add(detail);
+        }
+        report.put("forecastItems",forecastItems);
+        report.put("forecastStatus", activeItems.isEmpty() ? "NO_INVENTORY" : weeklyUnitBreakdown.isEmpty() ? "ZERO_FORECAST" : "READY");
+        report.put("forecastContractVersion",2);
+        if (currentAssessments.stream().anyMatch(a -> "REASONING_UNAVAILABLE".equals(a.getRedistributionStatus()))) report.put("forecastStatus", "PARTIAL");
+
         report.put("todayActualWaste", todayActualWaste);
 
-        Map<String, Object> tomorrowPred = calculateTomorrowPrediction(items);
+        Map<String, Object> tomorrowPred = summarizeTomorrow(forecastDays);
         report.put("tomorrowPrediction", tomorrowPred);
         report.put("tomorrowDate", forecastStartDate.toString());
         report.put("nearestExpiryDate", tomorrowPred.get("nearestExpiryDate"));
@@ -529,131 +567,25 @@ public class PredictionService {
      * expiring exactly TOMORROW (current_date + 1 day).
      */
     public Map<String, Object> calculateTomorrowPrediction(List<FoodItem> items) {
-        Map<String, Object> result = new LinkedHashMap<>();
-        LocalDate today = LocalDate.now(clock);
-        LocalDate tomorrow = today.plusDays(1);
+        try {
+            return (Map<String,Object>) assessInventory(items).get("tomorrowPrediction");
+        } catch (SQLException e) { throw new IllegalStateException("Forecast unavailable",e); }
+    }
 
-        String tomorrowStr = tomorrow.toString();
-        String tomorrowFormatted = tomorrow.format(DateTimeFormatter.ofPattern("MMM d", Locale.US));
-
-        result.put("predictionDate", tomorrowStr);
-        result.put("tomorrowDate", tomorrowStr);
-
-        if (items == null || items.isEmpty()) {
-            result.put("nearestExpiryDate", null);
-            result.put("nearestExpiryFormatted", null);
-            result.put("nearestExpiryDaysRemaining", null);
-            result.put("unitBreakdown", Collections.emptyMap());
-            result.put("quantities", Collections.emptyList());
-            result.put("formattedTotalWaste", "0.0");
-            result.put("items", Collections.emptyList());
-            return result;
-        }
-
-        // 1. Filter strictly for active products with quantity > 0 and expiryDate == tomorrow (current_date + 1 day)
-        // Exclude zero-stock, expired (< today), items expiring today (== today), and items expiring after tomorrow (> tomorrow)
-        List<FoodItem> selectedProducts = items.stream()
-                .filter(Objects::nonNull)
-                .filter(i -> i.getQuantity() != null && i.getQuantity().compareTo(BigDecimal.ZERO) > 0)
-                .filter(i -> i.getExpiryDate() != null && i.getExpiryDate().isEqual(tomorrow))
-                .toList();
-
-        if (selectedProducts.isEmpty()) {
-            result.put("nearestExpiryDate", null);
-            result.put("nearestExpiryFormatted", null);
-            result.put("nearestExpiryDaysRemaining", null);
-            result.put("unitBreakdown", Collections.emptyMap());
-            result.put("quantities", Collections.emptyList());
-            result.put("formattedTotalWaste", "0.0");
-            result.put("items", Collections.emptyList());
-            return result;
-        }
-
-        result.put("nearestExpiryDate", tomorrowStr);
-        result.put("nearestExpiryFormatted", tomorrowFormatted);
-        result.put("nearestExpiryDaysRemaining", 1L);
-
-        // 2. Deduplicate selected products by normalized product name
-        // (trim leading/trailing whitespace, compare case-insensitively e.g. "cheese", "Cheese", " CHEESE ")
-        Map<String, FoodItem> canonicalProducts = new LinkedHashMap<>();
-        for (FoodItem product : selectedProducts) {
-            if (product == null) continue;
-            String rawName = product.getName() != null ? product.getName() : "Item";
-            String normKey = normalizeProductName(rawName);
-            if (normKey.isEmpty()) {
-                normKey = "item_" + (product.getId() != null ? product.getId() : UUID.randomUUID().toString());
-            }
-
-            if (!canonicalProducts.containsKey(normKey)) {
-                canonicalProducts.put(normKey, product);
-            } else {
-                FoodItem existing = canonicalProducts.get(normKey);
-                // Deterministic canonical choice:
-                // Prefer entry with valid positive quantity; if quantities equal, prefer lowest ID
-                BigDecimal exQty = existing.getQuantity() != null ? existing.getQuantity() : BigDecimal.ZERO;
-                BigDecimal newQty = product.getQuantity() != null ? product.getQuantity() : BigDecimal.ZERO;
-                boolean replace = false;
-                if (newQty.compareTo(exQty) > 0) {
-                    replace = true;
-                } else if (newQty.compareTo(exQty) == 0) {
-                    long exId = existing.getId() != null ? existing.getId() : Long.MAX_VALUE;
-                    long newId = product.getId() != null ? product.getId() : Long.MAX_VALUE;
-                    if (newId < exId) {
-                        replace = true;
-                    }
-                }
-                if (replace) {
-                    canonicalProducts.put(normKey, product);
-                }
-            }
-        }
-        List<FoodItem> deduplicatedSelected = new ArrayList<>(canonicalProducts.values());
-
-        // 3. Run authoritative backend AI/Prolog prediction logic for ONLY tomorrow's selected products
-        List<PrologAssessment> tomorrowAssessments = new ArrayList<>();
-        Map<String, Double> tomorrowUnitTotals = new LinkedHashMap<>();
-
-        TranslationService translator = TranslationService.getInstance();
-        for (FoodItem product : deduplicatedSelected) {
-            Optional<PrologAssessment> opt = assessFoodItem(product);
-            if (opt.isPresent()) {
-                PrologAssessment a = opt.get();
-                // Ensure bilingual reasoning is populated
-                String reasoningEn = (a.getReasons() != null && !a.getReasons().isEmpty())
-                        ? String.join(" | ", a.getReasons())
-                        : (a.getReason() != null ? a.getReason() : "Prolog risk reasoning");
-                String reasoningMy = translator.translateToMyanmar(reasoningEn);
-                a.setReasonEn(reasoningEn);
-                a.setReasonMy(reasoningMy);
-                a.setReason(reasoningEn);
-                a.setReasoning(reasoningEn);
-                a.setExpiryDate(product.getExpiryDate());
-
-                tomorrowAssessments.add(a);
-
-                // 4. Calculate predicted waste quantity per product & group safely by unit
-                double waste = a.getPredictedWasteQuantity();
-                String unit = a.getUnit() != null && !a.getUnit().trim().isEmpty() ? a.getUnit().trim() : "units";
-                tomorrowUnitTotals.put(unit, tomorrowUnitTotals.getOrDefault(unit, 0.0) + waste);
-            }
-        }
-
-        // 5. Format displayed quantities by unit (preserving units, never combining incompatible units)
-        List<String> quantities = new ArrayList<>();
-        for (Map.Entry<String, Double> entry : tomorrowUnitTotals.entrySet()) {
-            String u = entry.getKey();
-            double val = Math.round(entry.getValue() * 10.0) / 10.0;
-            String valStr = String.format(Locale.US, "%.1f", val);
-            quantities.add(valStr + " " + u);
-        }
-
-        String formattedTotal = quantities.isEmpty() ? "0.0" : String.join("\n", quantities);
-
-        result.put("unitBreakdown", tomorrowUnitTotals);
-        result.put("quantities", quantities);
-        result.put("formattedTotalWaste", formattedTotal);
-        result.put("items", tomorrowAssessments);
-
+    /** Expiring-tomorrow subset of the same day-one projection, preserving batch identity. */
+    private Map<String,Object> summarizeTomorrow(List<Map<String,Object>> forecastDays) {
+        LocalDate tomorrow = LocalDate.now(clock).plusDays(1);
+        List<PrologAssessment> rows = (List<PrologAssessment>) forecastDays.get(0).get("items");
+        List<PrologAssessment> selected = rows.stream().filter(a -> tomorrow.equals(a.getExpiryDate())).toList();
+        Map<String,Double> units = new LinkedHashMap<>();
+        for (PrologAssessment row : selected) units.merge(row.getUnit(),row.getPredictedWasteQuantity(),Double::sum);
+        Map<String,Object> result = new LinkedHashMap<>();
+        result.put("predictionDate",tomorrow.toString()); result.put("tomorrowDate",tomorrow.toString());
+        result.put("nearestExpiryDate",selected.isEmpty() ? null : tomorrow.toString());
+        result.put("nearestExpiryFormatted",selected.isEmpty() ? null : tomorrow.format(DateTimeFormatter.ofPattern("MMM d",Locale.US)));
+        result.put("nearestExpiryDaysRemaining",selected.isEmpty() ? null : 1L);
+        result.put("items",selected); result.put("unitBreakdown",units);
+        result.put("quantities",formatUnitBreakdownList(units)); result.put("formattedTotalWaste",formatUnitBreakdownString(units));
         return result;
     }
 
@@ -682,75 +614,26 @@ public class PredictionService {
             return Collections.emptyList();
         }
 
-        List<Map<String, Object>> results = new ArrayList<>();
-        for (FoodItem batch : tomorrowCandidates) {
-            Optional<PrologAssessment> opt = assessFoodItem(batch);
-            if (opt.isPresent()) {
-                PrologAssessment a = opt.get();
-                double stock = batch.getQuantity().doubleValue();
-                double expectedDemand = a.getExpectedDemand();
-
-                // 1. Predicted Sales: from real historical sales demand, bounded by available remaining stock
-                double predictedSales = Math.min(stock, Math.max(0.0, expectedDemand));
-                double remainingAfterSales = Math.max(0.0, stock - predictedSales);
-
-                // 2. Predicted Waste: from existing Prolog rule, bounded by remaining unsold stock
-                double rawWaste = Math.max(0.0, a.getPredictedWasteQuantity());
-                double predictedWaste = Math.min(remainingAfterSales, rawWaste);
-                double remainingAfterWaste = Math.max(0.0, remainingAfterSales - predictedWaste);
-
-                // 3. Predicted Redistribution: from projected surplus and charity donation eligibility, bounded by remaining stock
-                double surplus = Math.max(0.0, a.getProjectedSurplus());
-                double predictedRedist = 0.0;
-                if (surplus > 0 && remainingAfterWaste > 0) {
-                    predictedRedist = Math.min(remainingAfterWaste, surplus);
-                }
-
-                // Strict conservation check: Sales + Waste + Redistribution <= stock
-                double totalAllocated = predictedSales + predictedWaste + predictedRedist;
-                if (totalAllocated > stock && stock > 0) {
-                    predictedRedist = Math.max(0.0, stock - predictedSales - predictedWaste);
-                    totalAllocated = predictedSales + predictedWaste + predictedRedist;
-                }
-
-                // 100% Composition: Each bar represents its share of predicted outcomes for this item
-                double salesRate = 0.0;
-                double wasteRate = 0.0;
-                double redistRate = 0.0;
-                if (totalAllocated > 0) {
-                    salesRate = Math.round((predictedSales / totalAllocated) * 1000.0) / 10.0;
-                    wasteRate = Math.round((predictedWaste / totalAllocated) * 1000.0) / 10.0;
-                    redistRate = Math.round((100.0 - salesRate - wasteRate) * 10.0) / 10.0;
-                }
-
-                Map<String, Object> batchMap = new LinkedHashMap<>();
-                batchMap.put("foodItemId", batch.getId());
-                batchMap.put("name", batch.getName());
-                batchMap.put("category", batch.getCategory());
-                batchMap.put("remainingQuantity", stock);
-                batchMap.put("quantity", stock);
-                batchMap.put("unit", a.getUnit());
-                batchMap.put("expiryDate", batch.getExpiryDate().toString());
-                int curBatchDays = com.foodwasteai.util.ExpiryStatusResolver.calculateDaysRemaining(batch.getExpiryDate(), today);
-                batchMap.put("currentDaysRemaining", curBatchDays);
-                batchMap.put("expiryDaysRemaining", curBatchDays);
-                batchMap.put("expectedDemand", expectedDemand);
-                batchMap.put("predictedSalesQuantity", predictedSales);
-                batchMap.put("predictedSalesRate", salesRate);
-                batchMap.put("predictedWasteQuantity", predictedWaste);
-                batchMap.put("predictedWasteRate", wasteRate);
-                batchMap.put("predictedRedistributionQuantity", predictedRedist);
-                batchMap.put("predictedRedistributionRate", redistRate);
-                batchMap.put("riskScore", a.getRiskScore());
-                batchMap.put("riskLevel", a.getRiskLevel());
-                batchMap.put("reasonEn", a.getReasonEn());
-                batchMap.put("reasonMy", a.getReasonMy());
-
-                results.add(batchMap);
+        try {
+            Map<String,Object> report = assessInventory(tomorrowCandidates);
+            @SuppressWarnings("unchecked") List<Map<String,Object>> details=(List<Map<String,Object>>)report.get("forecastItems");
+            List<Map<String,Object>> result=new ArrayList<>();
+            for (Map<String,Object> detail:details) {
+                @SuppressWarnings("unchecked") List<Map<String,Object>> daily=(List<Map<String,Object>>)detail.get("dailyForecast");
+                if(daily.isEmpty()) continue;
+                Map<String,Object> row=new LinkedHashMap<>(detail), first=daily.get(0);
+                double stock=((Number)detail.get("currentStock")).doubleValue();
+                double sold=((Number)first.get("predictedSales")).doubleValue(), waste=((Number)first.get("predictedWaste")).doubleValue();
+                row.put("remainingQuantity",stock); row.put("quantity",stock); row.put("expectedDemand",detail.get("expectedDailyDemand"));
+                row.put("expiryDaysRemaining",detail.get("currentDaysRemaining"));
+                row.put("predictedSalesQuantity",sold); row.put("predictedWasteQuantity",waste);
+                row.put("predictedRedistributionQuantity",0.0);
+                row.put("predictedSalesRate",stock>0 ? 100*sold/stock:0); row.put("predictedWasteRate",stock>0?100*waste/stock:0);
+                row.put("predictedRedistributionRate",0.0); row.put("reasonEn",first.get("reason")); row.put("reasonMy",first.get("reasonMy"));
+                result.add(row);
             }
-        }
-
-        return results;
+            return result;
+        } catch(SQLException e) { throw new IllegalStateException("Forecast unavailable",e); }
     }
 
     /**
@@ -849,12 +732,7 @@ public class PredictionService {
      * If no prediction exists yet or DB is not available, executes a fresh 7-day evaluation.
      */
     public Map<String, Object> getLatestPredictionReport() throws SQLException {
-        List<FoodItem> currentInventory = Collections.emptyList();
-        try {
-            currentInventory = foodItemService.getAllFoodItems();
-        } catch (Exception e) {
-            logger.warn("Could not fetch inventory for latest report: {}", e.getMessage());
-        }
+        List<FoodItem> currentInventory = foodItemService.getAllFoodItems();
 
         Map<String, Object> freshForecast = assessInventory(currentInventory);
 

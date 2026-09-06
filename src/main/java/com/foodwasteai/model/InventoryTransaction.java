@@ -12,9 +12,11 @@ public class InventoryTransaction implements Serializable {
 
     public enum Type {
         PURCHASE,
+        STOCK_IN,
         USAGE,
         WASTE_ADJUSTMENT,
         REDISTRIBUTION,
+        // Absolute physical stock snapshot. Never add this quantity to purchases.
         MANUAL_COUNT
     }
 

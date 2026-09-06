@@ -100,7 +100,8 @@ public abstract class BaseServlet extends HttpServlet {
     }
 
     protected void sendServerError(HttpServletResponse response, String message) throws IOException {
-        sendError(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, message);
+        logger.error("Request failed: {}", message);
+        sendError(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Unable to complete this action. Please try again.");
     }
 
     protected <T> T parseJsonBody(HttpServletRequest request, Class<T> clazz) throws IOException, JsonSyntaxException {

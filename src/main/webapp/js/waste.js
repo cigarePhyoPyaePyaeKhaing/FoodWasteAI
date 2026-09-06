@@ -145,10 +145,12 @@ const Waste = {
     this.renderLoading();
     try {
       const res = await API.get('/api/waste');
+      this.loadError=false;
       this.records = (res && res.data) ? res.data : [];
     } catch (err) {
+      this.loadError=true;
       console.warn('API fetch waste error:', err);
-      API.showToast('Using local waste view', 'info');
+      API.showToast(typeof I18n !== 'undefined' && I18n.isMyanmar() ? 'စာရင်း မရယူနိုင်ပါ။ ပြန်လည်ကြိုးစားပါ။' : 'Unable to load waste records. Please try again.', 'error');
     } finally {
       this.loading = false;
       this.render();
@@ -166,14 +168,7 @@ const Waste = {
       .replace(/'/g, '&#39;');
   },
 
-  formatDateTime(isoStr) {
-    if (!isoStr) return { date: '-', time: '' };
-    const clean = isoStr.replace('T', ' ').trim();
-    const parts = clean.split(' ');
-    const date = parts[0] || '-';
-    let time = parts[1] ? parts[1].substring(0, 5) : '';
-    return { date, time };
-  },
+  formatDateTime(isoStr) { return API.formatTimestamp(isoStr, false); },
 
   getReasonBadgeInfo(reason) {
     const r = (reason || '').toUpperCase().trim();
@@ -221,6 +216,7 @@ const Waste = {
     }
 
     const isMm = typeof I18n !== 'undefined' && I18n.getLanguage() === 'mm';
+    if(this.loadError) {tbody.innerHTML=`<tr><td colspan="8">${isMm?'စာရင်း မရယူနိုင်ပါ။ ပြန်လည်ကြိုးစားပါ။':'Unable to load waste records. Please try again.'}</td></tr>`;return;}
 
     if (this.records.length === 0) {
       tbody.innerHTML = `
@@ -281,6 +277,7 @@ const Waste = {
   },
 
   updateKpis() {
+    if(this.loadError) {document.querySelectorAll('[id^="kpi-waste-"]').forEach(el=>el.textContent='—');return;}
     const totalLoss = this.records.reduce((sum, r) => sum + Number(r.monetaryLoss || 0), 0);
     const totalWasteUnits = this.records.reduce((sum, r) => sum + Number(r.quantityWasted || 0), 0);
     const co2Kg = totalWasteUnits * 2.5;
@@ -420,7 +417,7 @@ const Waste = {
 
     try {
       await API.post('/api/waste', payload);
-      API.showToast(isMm ? `${quantityWasted.toFixed(2)} ${unit} အလေအလွင့် စာရင်းသွင်းပြီး ကုန်ပစ္စည်းလက်ကျန်ကို ချိန်ညှိပြီးပါပြီ!` : `Logged ${quantityWasted.toFixed(2)} ${unit} waste and adjusted stock!`, 'warning');
+      API.showToast(isMm ? `${quantityWasted.toFixed(2)} ${unit} အလေအလွင့် စာရင်းသွင်းပြီး ကုန်ပစ္စည်းလက်ကျန်ကို ချိန်ညှိပြီးပါပြီ!` : `Waste record saved and inventory updated (${quantityWasted.toFixed(2)} ${unit}).`, 'success');
       this.closeModal();
       await Promise.all([
         this.fetchWaste(),

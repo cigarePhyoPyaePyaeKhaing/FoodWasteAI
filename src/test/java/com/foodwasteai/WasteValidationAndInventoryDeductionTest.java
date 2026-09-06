@@ -302,10 +302,10 @@ public class WasteValidationAndInventoryDeductionTest {
         );
         Long itemId = item.getId();
 
-        LocalDateTime beforeRecord = LocalDateTime.now().minusSeconds(1);
+        LocalDateTime beforeRecord = LocalDateTime.now(java.time.ZoneOffset.UTC).minusSeconds(1);
         WasteRecord waste = new WasteRecord(itemId, new BigDecimal("4.00"), WasteRecord.Reason.EXPIRED, null, null, "Explicit user confirmation");
         WasteRecord recorded = wasteService.recordWaste(waste, 1L);
-        LocalDateTime afterRecord = LocalDateTime.now().plusSeconds(1);
+        LocalDateTime afterRecord = LocalDateTime.now(java.time.ZoneOffset.UTC).plusSeconds(1);
 
         assertNotNull(recorded.getId());
         assertEquals(0, new BigDecimal("4.00").compareTo(recorded.getQuantityWasted()));

@@ -4,6 +4,21 @@
  */
 const API = {
   baseUrl: '',
+  // Event timestamps are UTC; pickupTime is a scheduled Yangon wall time.
+  formatTimestamp(value, scheduled = false) {
+    if (!value) return {date: '-', time: '', text: '-'};
+    let iso = String(value).replace(' ', 'T');
+    if (!/(Z|[+-]\d{2}:\d{2})$/.test(iso)) iso += scheduled ? '+06:30' : 'Z';
+    const date = new Date(iso);
+    if (Number.isNaN(date.getTime())) return {date: '-', time: '', text: '-'};
+    const parts = Object.fromEntries(new Intl.DateTimeFormat('en-GB', {timeZone:'Asia/Yangon', year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(date).map(p=>[p.type,p.value]));
+    const day = `${parts.year}-${parts.month}-${parts.day}`, time = `${parts.hour}:${parts.minute}`;
+    return {date:day,time,text:`${day} ${time} (Yangon)`};
+  },
+  userMessage(message) {
+    return /SQLException|stack trace|SWI-Prolog|Prolog|predicate|Exception|com\.foodwasteai/i.test(String(message))
+      ? (typeof I18n !== 'undefined' && I18n.isMyanmar() ? 'လုပ်ဆောင်ချက် မအောင်မြင်ပါ။ ပြန်လည်ကြိုးစားပါ။' : 'Unable to complete this action. Please try again.') : message;
+  },
 
   async request(endpoint, options = {}) {
     const defaultHeaders = {
@@ -37,6 +52,7 @@ const API = {
         throw err;
       }
 
+      if (!data || data.success === false) throw new Error(data?.message || "Unable to complete the request. Please try again.");
       return data;
     } catch (err) {
       console.error(`API Error [${endpoint}]:`, err);
@@ -72,6 +88,7 @@ const API = {
       document.body.appendChild(container);
     }
 
+    message = this.userMessage(message);
     let displayMessage = message;
     if (typeof I18n !== 'undefined' && I18n.isMyanmar()) {
       if (type === 'error') {

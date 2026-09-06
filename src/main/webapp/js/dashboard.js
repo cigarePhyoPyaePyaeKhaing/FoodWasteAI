@@ -7,11 +7,11 @@ const Dashboard = {
   data: {
     kpis: {
       todayWaste: '0.0',
-      todayWasteSub: 'Today: 2026-08-29',
+      todayWasteSub: 'All recorded confirmed waste',
       predictedTomorrow: '0.0',
       predictedTrend: 'No prediction available',
       moneyLost: '0 MMK',
-      moneyLostSub: "Today's financial spoilage",
+      moneyLostSub: 'All recorded confirmed financial loss',
       carbonImpact: '0.0 kg CO₂e',
       carbonSub: 'Diverted food waste tracking'
     },
@@ -26,37 +26,13 @@ const Dashboard = {
   },
 
   getTodayDateString() {
-    const now = new Date();
-    const y = now.getFullYear();
-    const m = String(now.getMonth() + 1).padStart(2, '0');
-    const d = String(now.getDate()).padStart(2, '0');
-    return `${y}-${m}-${d}`;
+    return API.formatTimestamp(new Date().toISOString()).date;
   },
 
   async init() {
     this.renderKPIs();
     this.renderHighRiskList();
     this.renderRecommendations();
-
-    // Direct button listener for prediction details
-    const btnPred = document.getElementById('btn-pred-details');
-    if (btnPred) {
-      btnPred.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        this.openDetailsModal();
-      });
-    }
-
-    // Direct button listener for confirmed waste details
-    const btnWaste = document.getElementById('btn-waste-details');
-    if (btnWaste) {
-      btnWaste.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        this.openWasteModal();
-      });
-    }
 
     // Document-level event delegation (handles dynamic re-rendering)
     document.addEventListener('click', (e) => {
@@ -111,6 +87,7 @@ const Dashboard = {
 
   processPredictionData(d) {
     if (!d) return;
+    this.data.forecastError = false;
     this.data.predictionData = d;
     const isMm = typeof I18n !== 'undefined' && I18n.getLanguage() === 'mm';
 
@@ -162,6 +139,7 @@ const Dashboard = {
       reasonMy: item.reasonMy || item.reasoningTextMy || item.reason
     }));
 
+    this.data.forecastError = false;
     this.data.predictionData = d;
     this.generateDynamicRecommendations(d);
 
@@ -172,114 +150,26 @@ const Dashboard = {
   },
 
   async fetchLiveDashboardData() {
-    try {
-      // 1. Fetch live prediction & risk analysis
-      const predRes = await API.get('/api/prediction');
-      if (predRes && predRes.data) {
-        this.processPredictionData(predRes.data);
-      }
-
-      // 2. Fetch live waste records for authoritative waste totals & financial loss
-      const wasteRes = await API.get('/api/waste');
-      if (wasteRes && wasteRes.data && Array.isArray(wasteRes.data)) {
-        const wasteLogs = wasteRes.data;
-        this.data.wasteLogs = wasteLogs;
-
-        const localTodayStr = this.getTodayDateString();
-        this.data.todayLogs = wasteLogs.filter(w => {
-          if (!w.wasteDate) return false;
-          const dStr = String(w.wasteDate).replace('T', ' ').split(' ')[0];
-          return dStr === localTodayStr;
-        });
-
-        if (wasteLogs.length > 0) {
-          const totalLoss = wasteLogs.reduce((acc, curr) => acc + (Number(curr.monetaryLoss || curr.financialLoss) || 0), 0);
-          const totalWasteQty = wasteLogs.reduce((acc, curr) => acc + (Number(curr.quantityWasted || curr.quantity) || 0), 0);
-          const carbonKg = (totalWasteQty * 2.5).toFixed(1);
-
-          // Group by unit safely (never combine incompatible units)
-          const unitMap = {};
-          wasteLogs.forEach(w => {
-            const u = w.unit || 'kg';
-            const q = Number(w.quantityWasted !== undefined ? w.quantityWasted : w.quantity) || 0;
-            unitMap[u] = (unitMap[u] || 0) + q;
-          });
-          const actualQuantities = Object.entries(unitMap).map(([u, val]) => `${(Math.round(val * 10) / 10).toFixed(1)} ${u}`);
-          this.data.todayQuantities = actualQuantities;
-
-          if (actualQuantities.length > 0) {
-            this.data.kpis.todayWaste = actualQuantities.join(' • ');
-          } else if (typeof I18n !== 'undefined' && typeof I18n.formatUnitAggregate === 'function') {
-            this.data.kpis.todayWaste = I18n.formatUnitAggregate(wasteLogs, w => (w.quantityWasted !== undefined ? w.quantityWasted : w.quantity), w => w.unit, '');
-          } else {
-            this.data.kpis.todayWaste = totalWasteQty.toFixed(1);
-          }
-
-          this.data.kpis.todayWasteSub = `${wasteLogs.length} confirmed incident(s)`;
-          this.data.kpis.moneyLost = `${totalLoss.toLocaleString()} MMK`;
-          this.data.kpis.moneyLostSub = "Total confirmed financial loss";
-          this.data.kpis.carbonImpact = `${carbonKg} kg CO₂e`;
-          this.data.kpis.carbonSub = "Authoritative environmental impact";
-        } else if (this.data.todayActualWaste && this.data.todayActualWaste.items && this.data.todayActualWaste.items.length > 0) {
-          // Fallback to todayActualWaste from prediction report if wasteLogs empty
-          const taw = this.data.todayActualWaste;
-          this.data.todayQuantities = taw.quantities || [];
-          this.data.kpis.todayWaste = (taw.quantities && taw.quantities.length > 0) ? taw.quantities.join(' • ') : (taw.formattedTotalWaste || '0.0');
-          this.data.kpis.todayWasteSub = `${taw.items.length} confirmed item(s)`;
-          this.data.kpis.moneyLost = taw.formattedLoss || '0 MMK';
-          this.data.kpis.moneyLostSub = "Total confirmed financial loss";
-          this.data.kpis.carbonImpact = taw.formattedCarbon || '0.0 kg CO₂e';
-          this.data.kpis.carbonSub = "Authoritative environmental impact";
-        } else {
-          this.data.todayQuantities = [];
-          this.data.kpis.todayWaste = '0.0';
-          this.data.kpis.todayWasteSub = 'No waste logged';
-          this.data.kpis.moneyLost = '0 MMK';
-          this.data.kpis.carbonImpact = '0.0 kg CO₂e';
-        }
-      }
-
-      // 2b. Fetch inventory items for dynamic calculation denominators
-      try {
-        const invRes = await API.get('/api/inventory');
-        if (invRes && Array.isArray(invRes.data)) {
-          this.data.inventoryItems = invRes.data;
-        }
-      } catch (err) {
-        console.debug('Inventory fetch complete:', err);
-      }
-
-      // 2c. Fetch fresh tomorrow prediction batches from current inventory
-      try {
-        const tomRes = await API.get('/api/prediction?tomorrow=true');
-        if (tomRes && Array.isArray(tomRes.data)) {
-          this.data.tomorrowBatches = tomRes.data;
-        } else {
-          this.data.tomorrowBatches = [];
-        }
-      } catch (err) {
-        console.debug('Tomorrow prediction batches fetch complete:', err);
-      }
-
-      // 3. Fetch live recommendations
-      await this.fetchRecommendations();
-
-      // 4. Fetch expired items requiring disposal review
-      try {
-        const expiredRes = await API.get('/api/inventory?expiredReview=true');
-        const expiredItems = (expiredRes && Array.isArray(expiredRes.data)) ? expiredRes.data : [];
-        this.renderAttentionBanner(expiredItems);
-      } catch (err) {
-        console.debug('Attention items check complete:', err);
-      }
-
-    } catch (e) {
-      console.debug('Live data initialization complete:', e);
-    } finally {
-      this.renderKPIs();
-      this.renderHighRiskList();
-      this.renderRecommendations();
+    const results = await Promise.allSettled([
+      API.get('/api/prediction'), API.get('/api/waste'), API.get('/api/inventory?expiredReview=true')
+    ]);
+    const [forecast,waste,expired] = results;
+    this.data.forecastError = forecast.status === 'rejected';
+    if (!this.data.forecastError && forecast.value?.data) this.processPredictionData(forecast.value.data);
+    else {this.data.predictionData=null;this.data.highRiskFoods=[];this.data.recommendations=[];}
+    this.data.wasteError = waste.status === 'rejected' || !Array.isArray(waste.value?.data);
+    if (!this.data.wasteError) {
+      const records=waste.value.data, units={};
+      this.data.wasteLogs=records;
+      this.data.todayLogs=records.filter(w=>API.formatTimestamp(w.wasteDate).date===this.getTodayDateString());
+      for(const row of records) {const unit=row.unit||'units';units[unit]=(units[unit]||0)+Number(row.quantityWasted||0);}
+      this.data.todayQuantities=Object.entries(units).map(([unit,qty])=>`${qty.toFixed(1)} ${unit}`);
+      this.data.kpis.todayWaste=this.data.todayQuantities.join(' • ')||'0';
+      this.data.kpis.moneyLost=`${records.reduce((sum,row)=>sum+Number(row.monetaryLoss||0),0).toLocaleString()} MMK`;
+      this.data.kpis.moneyLostSub='All recorded confirmed financial loss';
     }
+    if(expired.status==='fulfilled') this.renderAttentionBanner(expired.value?.data||[]);
+    this.renderKPIs();this.renderHighRiskList();this.renderRecommendations();
   },
 
   renderAttentionBanner(expiredItems) {
@@ -359,17 +249,13 @@ const Dashboard = {
 
     const localToday = this.getTodayDateString();
     if (elTodaySub) {
-      elTodaySub.textContent = isMm ? `ယနေ့: ${localToday}` : `Today: ${localToday}`;
+      elTodaySub.textContent = isMm ? 'မှတ်တမ်းတင်ထားသော အတည်ပြုအလေအလွင့်အားလုံး' : 'All recorded confirmed waste';
     }
 
-    if (elPredSub) {
-      if (isMm) {
-        elPredSub.textContent = isPredZero ? 'သက်တမ်းကုန်မည့် ပစ္စည်းမရှိပါ' : (k.predictedTrendMm || 'AI အကူဖြင့် ခန့်မှန်းချက်');
-      } else {
-        elPredSub.textContent = isPredZero ? 'No upcoming expiry items' : (k.predictedTrend || 'Nearest expiry forecast');
-      }
-    }
-    if (elMoneySub) elMoneySub.textContent = isMm ? 'ယနေ့ ငွေကြေးဆုံးရှုံးမှု' : k.moneyLostSub;
+    if (elPredSub) elPredSub.textContent = isMm ? (k.predictedTrendMm || '၇ ရက်စာ ခန့်မှန်းချက် မရှိသေးပါ') : (k.predictedTrend || 'No 7-day forecast available');
+    if (elMoneySub) elMoneySub.textContent = isMm ? 'မှတ်တမ်းတင်ထားသော အတည်ပြုငွေကြေးဆုံးရှုံးမှုအားလုံး' : k.moneyLostSub;
+    if(this.data.forecastError) {if(elPred)elPred.textContent='—';if(elPredSub)elPredSub.textContent=isMm?'ခန့်မှန်းချက် မရယူနိုင်ပါ။':'Unable to load forecast.';}
+    if(this.data.wasteError) {if(elToday)elToday.textContent='—';if(elMoney)elMoney.textContent='—';}
     if (elCarbonSub) elCarbonSub.textContent = isMm ? 'သဘာဝပတ်ဝန်းကျင် သက်ရောက်မှု' : k.carbonSub;
   },
 
@@ -389,6 +275,7 @@ const Dashboard = {
 
     const isMm = typeof I18n !== 'undefined' && I18n.getLanguage() === 'mm';
 
+    if(this.data.forecastError) {tbody.innerHTML=`<tr><td colspan="3">${isMm?'ခန့်မှန်းချက် မရယူနိုင်ပါ။':'Unable to load current risk assessment.'}</td></tr>`;return;}
     if (!this.data.highRiskFoods || this.data.highRiskFoods.length === 0) {
       tbody.innerHTML = `
         <tr>
@@ -398,7 +285,7 @@ const Dashboard = {
               ${isMm ? 'အန္တရာယ်မြင့် ကုန်ပစ္စည်း မရှိသေးပါ' : 'No high-risk active inventory.'}
             </div>
             <div style="font-size:0.78rem; margin-top:0.25rem;">
-              ${isMm ? 'မီးဖိုချောင် ကုန်ပစ္စည်းများသည် အန္တရာယ်ကင်းသော အခြေအနေတွင် ရှိပါသည်' : 'All active kitchen inventory items are within safe operational thresholds.'}
+              ${isMm ? 'လက်ရှိခန့်မှန်းချက်တွင် ပြသရန် အန္တရာယ်မြင့်ပစ္စည်း မရှိပါ။' : 'No high-risk rows are available in the current assessment.'}
             </div>
           </td>
         </tr>
@@ -444,49 +331,14 @@ const Dashboard = {
   },
 
   generateDynamicRecommendations(d) {
-    const rawTomorrow = (this.data.tomorrowItems && this.data.tomorrowItems.length > 0)
-      ? this.data.tomorrowItems
-      : ((d && d.tomorrowPrediction && Array.isArray(d.tomorrowPrediction.items)) ? d.tomorrowPrediction.items : []);
-
-    const todayStr = (this.data.todayActualWaste && this.data.todayActualWaste.date) 
-      || (d && d.todayActualWaste && d.todayActualWaste.date) 
-      || new Date().toISOString().split('T')[0];
-
-    // Deduplicate candidate items by normalized food item name
-    const seenNames = new Set();
-    const candidateItems = [];
-
-    // 1. Primary source: Tomorrow AI Prediction items
-    for (const item of rawTomorrow) {
-      const stock = Number(item.stock !== undefined ? item.stock : (item.quantity !== undefined ? item.quantity : 0));
-      if (stock <= 0) continue;
-      const name = (item.foodName || item.foodItemName || item.name || item.item || '').trim().toLowerCase();
-      if (!name || seenNames.has(name)) continue;
-      seenNames.add(name);
-      candidateItems.push(item);
-    }
-
-    // 2. Secondary source: If tomorrow items are few, check other active assessed items expiring soon
-    if (candidateItems.length === 0 && d && Array.isArray(d.items)) {
-      for (const item of d.items) {
-        const stock = Number(item.stock !== undefined ? item.stock : (item.quantity !== undefined ? item.quantity : 0));
-        if (stock <= 0) continue;
-        const name = (item.foodName || item.foodItemName || item.name || item.item || '').trim().toLowerCase();
-        if (!name || seenNames.has(name)) continue;
-        const days = Number(item.currentDaysRemaining !== undefined ? item.currentDaysRemaining : (item.expiryDaysRemaining !== undefined ? item.expiryDaysRemaining : (item.expiryDays !== undefined ? item.expiryDays : 99)));
-        const risk = (item.riskLevel || item.risk || '').toUpperCase();
-        if (days >= 1 && days <= 2 && (risk === 'HIGH' || risk === 'MEDIUM')) {
-          seenNames.add(name);
-          candidateItems.push(item);
-        }
-      }
-    }
-
+    const candidateItems = (d?.items || []).filter(i => Number(i.stock) > 0 && ['HIGH','MEDIUM'].includes(i.riskLevel));
+    const forecastById = new Map((d?.forecastItems || []).map(i => [i.foodItemId,i]));
     // Filter strictly for active, non-expired items that need action (HIGH or MEDIUM risk)
     const recs = [];
     for (const item of candidateItems) {
       const stock = Number(item.stock !== undefined ? item.stock : (item.quantity !== undefined ? item.quantity : 0));
-      const predWaste = Number(item.predictedWasteQuantity !== undefined ? item.predictedWasteQuantity : (item.predictedWasteQty || 0));
+      const forecast = forecastById.get(item.foodItemId);
+      const predWaste = Number(forecast?.sevenDayPredictedWaste || 0);
       const risk = (item.riskLevel || item.risk || 'HIGH').toUpperCase();
       const expiry = item.expiryDate || '';
       const days = Number(item.currentDaysRemaining !== undefined ? item.currentDaysRemaining : (item.expiryDaysRemaining !== undefined ? item.expiryDaysRemaining : (item.expiryDays !== undefined ? item.expiryDays : 1)));
@@ -496,7 +348,7 @@ const Dashboard = {
 
       // Section 7: Exclude already-expired / confirmed-waste items (days <= 0 or expiryDate <= today)
       if (days <= 0) continue;
-      if (expiry && expiry <= todayStr) continue;
+
 
       // Only relevant HIGH or MEDIUM risk items
       if (risk !== 'HIGH' && risk !== 'MEDIUM' && predWaste <= 0) continue;
@@ -504,11 +356,11 @@ const Dashboard = {
       const rawName = (item.foodName || item.foodItemName || item.name || item.item || 'Item').trim();
       const capitalizedName = rawName.charAt(0).toUpperCase() + rawName.slice(1);
       const unit = (item.unit || 'kg').toLowerCase();
-      const isRedist = Boolean(item.recommendRedistribution || item.redistributionEligible || (Number(item.projectedSurplus) > 0) || (Number(item.suggestedDonationQuantity) > 0));
+      const isRedist = ['PRIORITY_DONATION','DONATION_RECOMMENDED'].includes(item.redistributionStatus) && item.redistributionEligible === true;
       const surplus = Number(item.projectedSurplus !== undefined ? item.projectedSurplus : (item.suggestedDonationQuantity !== undefined ? item.suggestedDonationQuantity : (stock > (item.expectedDemand || 0) ? (stock - (item.expectedDemand || 0)) : 0)));
       const demand = Number(item.expectedDemand || 0);
       const price = Number(item.pricePerUnit || 2000);
-      const savings = Math.round(predWaste > 0 ? (predWaste * price * 0.70) : (stock * 0.25 * price));
+      const savings = Number(forecast?.potentialSavings || 0);
 
       recs.push({
         id: item.foodItemId || item.id || (recs.length + 1),
@@ -556,8 +408,8 @@ const Dashboard = {
         : `Stock exceeds expected demand. Reduce unnecessary purchasing and offer promotional pricing to accelerate stock clearance.`;
     } else if (risk === 'HIGH') {
       return isMm
-        ? `မနက်ဖြန် စွန့်ပစ်ရမည့် အန္တရာယ် မြင့်မားနေသဖြင့် မီးဖိုချောင်တွင် ချက်ချင်း ဦးစားပေး အသုံးပြုပါ သို့မဟုတ် ရောင်းချပြီး လက်ကျန်ကို အနီးကပ် စောင့်ကြည့်ပါ။`
-        : `High waste risk detected for tomorrow. Prioritize this stock for immediate usage and closely monitor remaining inventory.`;
+        ? `လက်ရှိ အလေအလွင့်ဖြစ်နိုင်သည့် အန္တရာယ် မြင့်မားနေသဖြင့် မီးဖိုချောင်တွင် ချက်ချင်း ဦးစားပေး အသုံးပြုပါ သို့မဟုတ် ရောင်းချပြီး လက်ကျန်ကို အနီးကပ် စောင့်ကြည့်ပါ။`
+        : `High current waste risk detected. Prioritize this stock for immediate usage and closely monitor remaining inventory.`;
     } else {
       return isMm
         ? `ကုန်ပစ္စည်းလက်ကျန် အခြေအနေကို အနီးကပ် စောင့်ကြည့်ပြီး သက်တမ်းမလွန်မီ လိုအပ်သလို အသုံးပြု/ရောင်းချပါ။`
@@ -566,20 +418,7 @@ const Dashboard = {
   },
 
   async fetchRecommendations() {
-    try {
-      if (!this.data.recommendations || this.data.recommendations.length === 0) {
-        if (this.data.predictionData) {
-          this.generateDynamicRecommendations(this.data.predictionData);
-        } else {
-          const predRes = await API.get('/api/prediction');
-          if (predRes && predRes.data) {
-            this.processPredictionData(predRes.data);
-          }
-        }
-      }
-    } catch (e) {
-      console.debug('Recommendations sync complete:', e);
-    }
+    if (this.data.predictionData && !this.data.forecastError) this.generateDynamicRecommendations(this.data.predictionData);
   },
 
   renderRecommendations() {
@@ -593,6 +432,7 @@ const Dashboard = {
       footerSavings.textContent = `${(this.data.totalProjectedSavings || 0).toLocaleString()} MMK`;
     }
 
+    if(this.data.forecastError) {container.textContent=isMm?'လုပ်ဆောင်ရန် အကြံပြုချက် မရယူနိုင်ပါ။':'Unable to load action directives.';return;}
     if (!this.data.recommendations || this.data.recommendations.length === 0) {
       container.innerHTML = `
         <div style="grid-column: 1 / -1; text-align:center; padding:2.5rem 1.5rem; background:rgba(255,255,255,0.6); border-radius:var(--radius-lg); border:1px dashed var(--glass-border);">
@@ -601,7 +441,7 @@ const Dashboard = {
             ${isMm ? 'လတ်တလောတွင် အရေးပေါ် အကြံပြုချက် မရှိသေးပါ' : 'No urgent recommendations at the moment.'}
           </div>
           <div style="font-size:0.85rem; color:var(--text-muted); margin-top:0.25rem;">
-            ${isMm ? 'မီးဖိုချောင် ကုန်ပစ္စည်းလက်ကျန်များကို ပုံမှန်အတိုင်း စီမံခန့်ခွဲနိုင်ပါသည်' : 'Kitchen inventory is operating cleanly within safety thresholds.'}
+            ${isMm ? 'မီးဖိုချောင် ကုန်ပစ္စည်းလက်ကျန်များကို ပုံမှန်အတိုင်း စီမံခန့်ခွဲနိုင်ပါသည်' : 'No current action directives are available.'}
           </div>
         </div>
       `;
@@ -624,7 +464,7 @@ const Dashboard = {
         : '';
 
       const savingsBadge = r.savings > 0
-        ? `<span style="font-weight:800; color:var(--accent-yellow-dark); font-size:0.85rem; background:var(--accent-yellow-100); padding:0.25rem 0.65rem; border-radius:var(--radius-pill);">+${r.savings.toLocaleString()} MMK ${isMm ? 'သက်သာမည်' : 'Saved'}</span>`
+        ? `<span style="font-weight:800; color:var(--accent-yellow-dark); font-size:0.85rem; background:var(--accent-yellow-100); padding:0.25rem 0.65rem; border-radius:var(--radius-pill);">${isMm ? 'ခန့်မှန်း သက်သာနိုင်မည့် ပမာဏ' : 'Potential Savings'}: ${r.savings.toLocaleString()} MMK</span>`
         : '';
 
       return `
@@ -636,7 +476,7 @@ const Dashboard = {
           </div>
           ${savingsBadge}
         </div>
-        <h4 class="rec-title-text" style="margin-top:0.25rem;">${r.name}</h4>
+        <h4 class="rec-title-text" style="margin-top:0.25rem;">${this.escapeHtml(r.name)}</h4>
 
         <!-- Stock and Predicted Waste Metrics Grid -->
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.5rem; margin:0.6rem 0; background:rgba(0,0,0,0.02); padding:0.55rem 0.75rem; border-radius:var(--radius-md); border:1px solid var(--glass-border-subtle);">
@@ -645,7 +485,7 @@ const Dashboard = {
             <div style="font-weight:800; font-size:0.95rem; color:var(--text-main);">${stockFmt}</div>
           </div>
           <div>
-            <div style="font-size:0.72rem; color:var(--text-muted); text-transform:uppercase; font-weight:600;">${isMm ? 'မနက်ဖြန် စွန့်ပစ်ခန့်မှန်း' : 'Predicted Waste'}</div>
+            <div style="font-size:0.72rem; color:var(--text-muted); text-transform:uppercase; font-weight:600;">${isMm ? '၇ ရက်စာ ခန့်မှန်းအလေအလွင့်' : '7-Day Predicted Waste'}</div>
             <div style="font-weight:800; font-size:0.95rem; color:var(--accent-danger, #EF4444);">${predWasteFmt}</div>
           </div>
         </div>
@@ -663,55 +503,6 @@ const Dashboard = {
       </div>
       `;
     }).join('');
-  },
-
-  applyRec(id, savings) {
-    const card = document.getElementById(`rec-bubble-${id}`);
-    const isMm = typeof I18n !== 'undefined' && I18n.getLanguage() === 'mm';
-    if (card) {
-      card.style.opacity = '0.5';
-      card.style.pointerEvents = 'none';
-      card.innerHTML = `
-        <div style="text-align:center; padding:1.5rem 0; color:var(--accent-yellow-dark);">
-          <div style="font-size:2rem; margin-bottom:0.5rem;">✨</div>
-          <div style="font-weight:800; font-size:1rem;">${isMm ? 'အကြံပြုချက်ကို လက်ခံဆောင်ရွက်ပြီးပါပြီ!' : 'Recommendation Applied!'}</div>
-          <div style="font-size:0.85rem; margin-top:0.25rem;">${isMm ? `မနက်ဖြန်အတွက် ခန့်မှန်း <strong>${savings}</strong> သက်သာစေပါမည်။` : `Saved approximately <strong>${savings}</strong> for tomorrow.`}</div>
-        </div>
-      `;
-      if (typeof API !== 'undefined' && typeof API.showToast === 'function') {
-        API.showToast(isMm ? `အကြံပြုချက် အတည်ပြုပြီး (${savings} သက်သာ)` : `Applied recommendation! Saved ${savings}`, 'success');
-      }
-    }
-  },
-
-  dismissRec(id) {
-    const card = document.getElementById(`rec-bubble-${id}`);
-    const isMm = typeof I18n !== 'undefined' && I18n.getLanguage() === 'mm';
-    if (card) {
-      card.style.transition = 'all 0.3s ease';
-      card.style.transform = 'scale(0.9)';
-      card.style.opacity = '0';
-      setTimeout(() => {
-        card.remove();
-        const container = document.getElementById('dashboard-rec-container');
-        if (container && container.querySelectorAll('.rec-card-bubble').length === 0) {
-          container.innerHTML = `
-            <div style="grid-column: 1 / -1; text-align:center; padding:2.5rem 1.5rem; background:rgba(255,255,255,0.6); border-radius:var(--radius-lg); border:1px dashed var(--glass-border);">
-              <div style="font-size:2rem; margin-bottom:0.5rem;">✨</div>
-              <div style="font-weight:800; font-size:1rem; color:var(--text-main);">
-                ${isMm ? 'လတ်တလောတွင် အရေးပေါ် အကြံပြုချက် မရှိသေးပါ' : 'No urgent recommendations at the moment.'}
-              </div>
-              <div style="font-size:0.85rem; color:var(--text-muted); margin-top:0.25rem;">
-                ${isMm ? 'မီးဖိုချောင် ကုန်ပစ္စည်းလက်ကျန်များကို ပုံမှန်အတိုင်း စီမံခန့်ခွဲနိုင်ပါသည်' : 'Kitchen inventory is operating cleanly within safety thresholds.'}
-              </div>
-            </div>
-          `;
-        }
-      }, 300);
-      if (typeof API !== 'undefined' && typeof API.showToast === 'function') {
-        API.showToast(isMm ? 'အကြံပြုချက် ပယ်ဖျက်ပြီး' : 'Recommendation dismissed', 'info');
-      }
-    }
   },
 
   async runEvaluation() {
@@ -733,13 +524,13 @@ const Dashboard = {
         this.renderKPIs();
         this.renderHighRiskList();
 
-        // Refresh recommendations too
-        await this.fetchRecommendations();
+        // Evaluation may confirm newly expired stock; refresh the recorded-waste totals too.
+        await this.fetchLiveDashboardData();
         this.renderRecommendations();
 
         const msg = isMm
-          ? 'မနက်ဖြန် ခန့်မှန်းချက်များကို ပြန်လည်တွက်ချက်ပြီးပါပြီ'
-          : 'Tomorrow’s prediction successfully recalculated';
+          ? '၇ ရက်စာ ခန့်မှန်းချက်ကို တွက်ချက်ပြီးပါပြီ'
+          : '7-day evaluation completed.';
         if (typeof API.showToast === 'function') {
           API.showToast(msg, 'success');
         }
@@ -829,83 +620,55 @@ const Dashboard = {
   },
 
   renderDetailsModalContent() {
-    const isMm = typeof I18n !== 'undefined' && I18n.getLanguage() === 'mm';
+    const mm = typeof I18n !== 'undefined' && I18n.isMyanmar();
+    const t = (en,my) => mm ? my : en;
+    const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     const pred = this.data.predictionData;
-    const tomorrow = (pred && pred.tomorrowPrediction) ? pred.tomorrowPrediction : (pred || {});
-
-    const timeEl = document.getElementById('pred-modal-time');
-    const expiryDateEl = document.getElementById('pred-modal-expiry-date');
-    const totalEl = document.getElementById('pred-modal-total-waste');
-    const listEl = document.getElementById('pred-modal-items-list');
-    const engineEl = document.getElementById('pred-modal-engine-text');
-
-    if (!listEl) return;
-
-    if (engineEl && pred && pred.engine) {
-      engineEl.textContent = pred.engine;
-    }
-
-    if (timeEl) {
-      timeEl.textContent = (pred && (pred.predictionTime || pred.createdAt)) ? (pred.predictionTime || pred.createdAt) : (isMm ? 'မရှိပါ' : 'Just now');
-    }
-
-    const weekly = pred.weeklySummary || pred.weeklyTotals || {};
-    const startDate = pred.forecastStartDate || weekly.forecastStartDate || '--';
-    const endDate = pred.forecastEndDate || weekly.forecastEndDate || '--';
-    if (expiryDateEl) {
-      expiryDateEl.textContent = `${startDate} \u2013 ${endDate}`;
-    }
-
-    const weeklyQuantities = weekly.quantities || pred.quantities || [];
-    if (totalEl) {
-      if (Array.isArray(weeklyQuantities) && weeklyQuantities.length > 0) {
-        totalEl.innerHTML = weeklyQuantities.join('<br>');
-      } else {
-        totalEl.textContent = weekly.formattedTotalWaste || pred.formattedTotalWaste || '0';
-      }
-    }
-
-    if (!listEl) return;
-
-    const days = Array.isArray(pred.days) ? pred.days : [];
-    if (days.length === 0) {
-      listEl.innerHTML = `
-        <div style="text-align:center; padding:2rem 1rem; color:var(--text-muted);">
-          <div style="font-size:2.2rem; margin-bottom:0.5rem;">🎉</div>
-          <div style="font-weight:700; color:var(--text-main); font-size:1rem;">${isMm ? '၇ ရက်အတွင်း အလေအလွင့် ဖြစ်နိုင်ခြေ မရှိပါ' : 'No Predicted Waste in 7-Day Horizon'}</div>
-          <div style="font-size:0.85rem;">${isMm ? 'မီးဖိုချောင် ကုန်ပစ္စည်းများအားလုံး ဘေးကင်းလုံခြုံစွာ အသုံးပြုနိုင်ပါသည်။' : 'All active kitchen inventory items are within safe operational thresholds.'}</div>
+    const list = document.getElementById('pred-modal-items-list');
+    if (!list) return;
+    const messages = {
+      ERROR: t('Unable to load the 7-day forecast. Please try again.','၇ ရက်စာ ခန့်မှန်းချက် မရယူနိုင်ပါ။ ပြန်လည်ကြိုးစားပါ။'),
+      NO_FORECAST: t('No 7-day evaluation has been generated yet. Run the evaluation first.','၇ ရက်စာ ခန့်မှန်းချက် မတွက်ချက်ရသေးပါ။ ဦးစွာ တွက်ချက်ပါ။'),
+      NO_INVENTORY: t('No active inventory is available for the 7-day forecast.','၇ ရက်စာ ခန့်မှန်းရန် လက်ကျန်ပစ္စည်း မရှိပါ။'),
+      ZERO_FORECAST: t('No food waste is currently predicted for the next 7 days.','လာမည့် ၇ ရက်အတွင်း အလေအလွင့် ဖြစ်မည်ဟု မခန့်မှန်းထားပါ။'),
+      PARTIAL: t('Some forecast details are unavailable.','ခန့်မှန်းချက် အသေးစိတ်အချို့ မရရှိနိုင်ပါ။')
+    };
+    const state = this.data.forecastError ? 'ERROR' : !pred ? 'NO_FORECAST' : pred.forecastStatus || 'PARTIAL';
+    const text = (id,value) => {const el=document.getElementById(id); if(el)el.textContent=value;};
+    text('pred-modal-expiry-date', pred ? `${pred.forecastStartDate} → ${pred.forecastEndDate}` : '—');
+    text('pred-modal-time', t('Current inventory; no new stock modeled','လက်ရှိလက်ကျန်အပေါ် အခြေခံသည်။ ထပ်မံဝယ်ယူမှု မပါဝင်ပါ။'));
+    text('pred-modal-total-waste',['ERROR','NO_FORECAST','PARTIAL'].includes(state) ? '—' : pred?.weeklySummary?.quantities?.join(' • ') || '0');
+    text('pred-modal-engine-text','');
+    if (['ERROR','NO_FORECAST','NO_INVENTORY'].includes(state)) {list.innerHTML=`<p role="status">${messages[state]}</p>`;return;}
+    const items = Array.isArray(pred.forecastItems) ? pred.forecastItems : [];
+    list.innerHTML = (messages[state] ? `<p role="status">${messages[state]}</p>` : '') + items.map(item => {
+      const qty = v => `${Number(v || 0).toFixed(1)} ${esc(item.unit)}`;
+      const risk = v => typeof I18n !== 'undefined' ? I18n.translateRisk(v) : v;
+      const days = Array.isArray(item.dailyForecast) ? item.dailyForecast : [];
+      return `<article class="forecast-item">
+        <h3>${esc(item.name)}</h3><p>${esc(item.category)} · ${esc(item.unit)}</p>
+        <div class="forecast-facts">
+          <div>${t('Current Stock','လက်ရှိလက်ကျန်')}<strong>${qty(item.currentStock)}</strong></div>
+          <div>${t('Expiry Date','သက်တမ်းကုန်ရက်')}<strong>${esc(item.expiryDate)} (${item.currentDaysRemaining} ${t('days','ရက်')})</strong></div>
+          <div>${t('Current Risk','လက်ရှိအန္တရာယ်')}<strong>${esc(risk(item.riskLevel))} (${item.riskScore}%)</strong></div>
+          <div>${t('Expected Daily Demand','နေ့စဉ်ခန့်မှန်းဝယ်လိုအား')}<strong>${qty(item.expectedDailyDemand)} / ${t('day','ရက်')}</strong></div>
+          <div>${t('7-Day Predicted Waste','၇ ရက်စာ ခန့်မှန်းအလေအလွင့်')}<strong>${qty(item.sevenDayPredictedWaste)}</strong></div>
+          <div>${t('Projected Surplus','ခန့်မှန်းပိုလျှံပမာဏ')}<strong>${qty(item.projectedSurplus)}</strong></div>
         </div>
-      `;
-      return;
-    }
-
-    listEl.innerHTML = days.map(d => {
-      const dItems = Array.isArray(d.items) ? d.items : [];
-      const dWasteStr = d.formattedTotalWaste || '0.0';
-      const dLoss = Number(d.estimatedLoss || 0).toLocaleString();
-
-      let badgeClass = 'badge-success';
-      if (d.riskLevel === 'HIGH') badgeClass = 'badge-danger';
-      else if (d.riskLevel === 'MEDIUM') badgeClass = 'badge-warning';
-
-      return `
-        <div style="background:var(--bg-surface-glass-card); border:1px solid var(--glass-border); border-radius:var(--radius-sm); padding:0.75rem 0.9rem; margin-bottom:0.5rem;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.35rem;">
-            <div>
-              <strong style="color:var(--text-main); font-size:0.92rem;">Day ${d.dayIndex} (${d.dayName}, ${d.date})</strong>
-            </div>
-            <div style="display:flex; align-items:center; gap:0.4rem;">
-              <span class="badge-bubble ${badgeClass}" style="font-size:0.68rem;">${d.riskLevel} (${d.riskScore}%)</span>
-              <span style="font-size:0.85rem; font-weight:700; color:var(--accent-yellow-dark);">${dWasteStr}</span>
-            </div>
-          </div>
-          <div style="font-size:0.78rem; color:var(--text-muted); display:flex; justify-content:space-between; flex-wrap:wrap; gap:0.25rem;">
-            <span>${isMm ? 'ခန့်မှန်း ဆုံးရှုံးမှု:' : 'Estimated Loss:'} <strong>${dLoss} MMK</strong></span>
-            <span>${dItems.length} ${isMm ? 'ပစ္စည်းများ' : 'items evaluated'}</span>
-          </div>
-        </div>
-      `;
+        <details><summary>${t('Daily Forecast','နေ့စဉ်ခန့်မှန်းချက်')}</summary>
+          ${days.length ? days.map(day=>`<section class="forecast-day"><h4>${esc(day.date)}</h4><div class="forecast-facts">
+            <div>${t('Opening Stock','နေ့အစလက်ကျန်')}<strong>${qty(day.projectedOpeningStock)}</strong></div>
+            <div>${t('Expected Demand','ခန့်မှန်းဝယ်လိုအား')}<strong>${qty(day.expectedDemand)}</strong></div>
+            <div>${t('Days to Expiry','သက်တမ်းကျန်ရက်')}<strong>${day.daysToExpiry}</strong></div>
+            <div>${t('Risk','အန္တရာယ်')}<strong>${esc(risk(day.riskLevel))} (${day.riskScore}%)</strong></div>
+            <div>${t('Predicted Sales','ခန့်မှန်းအရောင်း')}<strong>${qty(day.predictedSales)}</strong></div>
+            <div>${t('Predicted Waste','ခန့်မှန်းအလေအလွင့်')}<strong>${qty(day.predictedWaste)}</strong></div>
+            <div>${t('Closing Stock','နေ့ဆုံးလက်ကျန်')}<strong>${qty(day.projectedClosingStock)}</strong></div>
+          </div><p>${esc(mm ? day.reasonMy || day.reason : day.reason)}</p></section>`).join('') : `<p>${messages.PARTIAL}</p>`}
+          <p>${t('No replenishment is modeled. Once depleted, later days remain at zero.','ထပ်မံဝယ်ယူမှု မပါဝင်ပါ။ လက်ကျန်ကုန်သွားပါက နောက်ရက်များတွင် သုညဖြစ်နေမည်။')}</p>
+        </details></article>`;
     }).join('');
+    if (!items.length && state === 'READY') list.innerHTML = `<p>${messages.PARTIAL}</p>`;
   },
 
   openWasteModal() {
@@ -934,7 +697,7 @@ const Dashboard = {
     const isMm = typeof I18n !== 'undefined' && I18n.getLanguage() === 'mm';
     const localToday = this.getTodayDateString();
 
-    if (dateEl) dateEl.textContent = localToday;
+    if (dateEl) dateEl.textContent = isMm ? 'မှတ်တမ်းအားလုံး' : 'All recorded history';
     if (totalEl) totalEl.textContent = this.data.kpis.todayWaste || '0.0';
 
     const records = this.data.wasteLogs || [];
@@ -951,7 +714,7 @@ const Dashboard = {
             ${isMm ? 'အတည်ပြုပြီး စွန့်ပစ်အစားအစာ မှတ်တမ်း မရှိသေးပါ' : 'No confirmed waste records.'}
           </div>
           <div style="font-size:0.8rem; margin-top:0.25rem;">
-            ${isMm ? 'မီးဖိုချောင်တွင် အလေအလွင့် မရှိဘဲ ကောင်းမွန်စွာ လည်ပတ်နေပါသည်' : 'Kitchen operations running cleanly without logged waste.'}
+            ${isMm ? 'အတည်ပြုအလေအလွင့် မှတ်တမ်း မထည့်သွင်းရသေးပါ။' : 'No confirmed waste records have been entered.'}
           </div>
         </div>
       `;
@@ -965,7 +728,7 @@ const Dashboard = {
       const qtyFmt = (unit.toLowerCase().includes('piece') && qtyNum % 1 === 0 ? Math.round(qtyNum) : qtyNum.toFixed(1)) + ' ' + unit;
       const loss = Number(r.monetaryLoss || 0);
       const lossFmt = loss > 0 ? `${loss.toLocaleString()} MMK` : '';
-      const rawDate = r.wasteDate ? String(r.wasteDate).replace('T', ' ').substring(0, 16) : localToday;
+      const rawDate = r.wasteDate ? API.formatTimestamp(r.wasteDate).text : localToday;
       const reason = (r.reason || 'EXPIRED').toUpperCase();
       const reasonText = typeof I18n !== 'undefined' ? I18n.translateWasteReason(reason) : reason;
 

@@ -71,7 +71,7 @@ public class PredictionServlet extends BaseServlet {
         try {
             // Run fresh evaluation
             Map<String, Object> report = predictionService.assessAllInventory();
-            sendSuccess(resp, "Evaluated inventory via SWI-Prolog expert reasoning system", report);
+            sendSuccess(resp, "7-day evaluation completed.", report);
         } catch (Exception e) {
             logger.error("Error in PredictionServlet POST: {}", e.getMessage(), e);
             sendServerError(resp, "Failed to evaluate predictions: " + e.getMessage());

@@ -18,7 +18,7 @@ public class FoodItemDao extends BaseDao {
 
     public Optional<FoodItem> findById(Long id) throws SQLException {
         String sql = "SELECT f.id, f.name, f.category, f.quantity, f.unit, f.price_per_unit, f.expiry_date, f.status, f.created_at, f.updated_at, " +
-                     "GREATEST(COALESCE((SELECT SUM(t.quantity) FROM inventory_transactions t WHERE t.food_item_id = f.id AND t.transaction_type IN ('PURCHASE', 'STOCK_IN', 'MANUAL_COUNT')), 0), f.quantity) AS total_quantity " +
+                     "COALESCE((SELECT SUM(t.quantity) FROM inventory_transactions t WHERE t.food_item_id = f.id AND t.transaction_type IN ('PURCHASE', 'STOCK_IN')), f.quantity) AS total_quantity " +
                      "FROM food_items f WHERE f.id = ?";
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -35,7 +35,7 @@ public class FoodItemDao extends BaseDao {
     public List<FoodItem> findAll() throws SQLException {
         List<FoodItem> list = new ArrayList<>();
         String sql = "SELECT f.id, f.name, f.category, f.quantity, f.unit, f.price_per_unit, f.expiry_date, f.status, f.created_at, f.updated_at, " +
-                     "GREATEST(COALESCE((SELECT SUM(t.quantity) FROM inventory_transactions t WHERE t.food_item_id = f.id AND t.transaction_type IN ('PURCHASE', 'STOCK_IN', 'MANUAL_COUNT')), 0), f.quantity) AS total_quantity " +
+                     "COALESCE((SELECT SUM(t.quantity) FROM inventory_transactions t WHERE t.food_item_id = f.id AND t.transaction_type IN ('PURCHASE', 'STOCK_IN')), f.quantity) AS total_quantity " +
                      "FROM food_items f ORDER BY f.expiry_date ASC, f.name ASC";
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql);
@@ -50,7 +50,7 @@ public class FoodItemDao extends BaseDao {
     public List<FoodItem> findByCategory(String category) throws SQLException {
         List<FoodItem> list = new ArrayList<>();
         String sql = "SELECT f.id, f.name, f.category, f.quantity, f.unit, f.price_per_unit, f.expiry_date, f.status, f.created_at, f.updated_at, " +
-                     "GREATEST(COALESCE((SELECT SUM(t.quantity) FROM inventory_transactions t WHERE t.food_item_id = f.id AND t.transaction_type IN ('PURCHASE', 'STOCK_IN', 'MANUAL_COUNT')), 0), f.quantity) AS total_quantity " +
+                     "COALESCE((SELECT SUM(t.quantity) FROM inventory_transactions t WHERE t.food_item_id = f.id AND t.transaction_type IN ('PURCHASE', 'STOCK_IN')), f.quantity) AS total_quantity " +
                      "FROM food_items f WHERE f.category = ? ORDER BY f.expiry_date ASC";
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -67,7 +67,7 @@ public class FoodItemDao extends BaseDao {
     public List<FoodItem> findNearExpiry(int daysThreshold) throws SQLException {
         List<FoodItem> list = new ArrayList<>();
         String sql = "SELECT f.id, f.name, f.category, f.quantity, f.unit, f.price_per_unit, f.expiry_date, f.status, f.created_at, f.updated_at, " +
-                     "GREATEST(COALESCE((SELECT SUM(t.quantity) FROM inventory_transactions t WHERE t.food_item_id = f.id AND t.transaction_type IN ('PURCHASE', 'STOCK_IN', 'MANUAL_COUNT')), 0), f.quantity) AS total_quantity " +
+                     "COALESCE((SELECT SUM(t.quantity) FROM inventory_transactions t WHERE t.food_item_id = f.id AND t.transaction_type IN ('PURCHASE', 'STOCK_IN')), f.quantity) AS total_quantity " +
                      "FROM food_items f WHERE f.expiry_date <= DATE_ADD(CURDATE(), INTERVAL ? DAY) AND f.quantity > 0 ORDER BY f.expiry_date ASC";
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -200,7 +200,7 @@ public class FoodItemDao extends BaseDao {
                 BigDecimal totalQty = newQty;
                 try (PreparedStatement totalStmt = conn.prepareStatement(
                         "SELECT GREATEST(COALESCE(SUM(quantity), 0), ?) FROM inventory_transactions " +
-                        "WHERE food_item_id = ? AND transaction_type IN ('PURCHASE', 'STOCK_IN', 'MANUAL_COUNT')")) {
+                        "WHERE food_item_id = ? AND transaction_type IN ('PURCHASE', 'STOCK_IN')")) {
                     totalStmt.setBigDecimal(1, newQty);
                     totalStmt.setLong(2, existingMatch.getId());
                     try (ResultSet trs = totalStmt.executeQuery()) {
@@ -353,7 +353,7 @@ public class FoodItemDao extends BaseDao {
         try {
             BigDecimal totalQty = rs.getBigDecimal("total_quantity");
             if (totalQty != null) {
-                item.setTotalQuantity(totalQty.max(remainingQty != null ? remainingQty : BigDecimal.ZERO));
+                item.setTotalQuantity(totalQty);
             } else {
                 item.setTotalQuantity(remainingQty != null ? remainingQty : BigDecimal.ZERO);
             }
@@ -369,11 +369,11 @@ public class FoodItemDao extends BaseDao {
         // Dynamically compute status and all expiry fields using Asia/Yangon date
         item.updateComputedExpiryFields();
 
-        Timestamp created = rs.getTimestamp("created_at");
-        if (created != null) item.setCreatedAt(created.toLocalDateTime());
+        java.time.LocalDateTime created = rs.getObject("created_at", java.time.LocalDateTime.class);
+        if (created != null) item.setCreatedAt(created);
 
-        Timestamp updated = rs.getTimestamp("updated_at");
-        if (updated != null) item.setUpdatedAt(updated.toLocalDateTime());
+        java.time.LocalDateTime updated = rs.getObject("updated_at", java.time.LocalDateTime.class);
+        if (updated != null) item.setUpdatedAt(updated);
 
         return item;
     }

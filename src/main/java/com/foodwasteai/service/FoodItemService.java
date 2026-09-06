@@ -112,14 +112,13 @@ public class FoodItemService {
         BigDecimal stockInSum = memoryTransactions.stream()
                 .filter(t -> item.getId().equals(t.getFoodItemId()))
                 .filter(t -> t.getTransactionType() == InventoryTransaction.Type.PURCHASE
-                        || "STOCK_IN".equalsIgnoreCase(String.valueOf(t.getTransactionType()))
-                        || t.getTransactionType() == InventoryTransaction.Type.MANUAL_COUNT)
+                        || "STOCK_IN".equalsIgnoreCase(String.valueOf(t.getTransactionType())))
                 .map(InventoryTransaction::getQuantity)
                 .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         if (stockInSum.compareTo(BigDecimal.ZERO) > 0) {
-            item.setTotalQuantity(stockInSum.max(remainingQty));
+            item.setTotalQuantity(stockInSum);
         } else {
             item.setTotalQuantity(remainingQty);
         }
@@ -182,7 +181,7 @@ public class FoodItemService {
                 BigDecimal currentQty = existing.getQuantity() != null ? existing.getQuantity() : BigDecimal.ZERO;
                 BigDecimal newQty = currentQty.add(addedQty);
                 existing.setQuantity(newQty);
-                existing.setUpdatedAt(LocalDateTime.now());
+                existing.setUpdatedAt(LocalDateTime.now(java.time.ZoneOffset.UTC));
                 computeStatus(existing);
 
                 InventoryTransaction tx = new InventoryTransaction(
@@ -194,7 +193,7 @@ public class FoodItemService {
                         userId
                 );
                 tx.setId((long) (memoryTransactions.size() + 1));
-                tx.setCreatedAt(LocalDateTime.now());
+                tx.setCreatedAt(LocalDateTime.now(java.time.ZoneOffset.UTC));
                 memoryTransactions.add(tx);
 
                 computeMemoryTotalQuantity(existing);
@@ -212,8 +211,8 @@ public class FoodItemService {
         item.setTotalQuantity(addedQty);
         item.setUnit(normUnit);
         item.setPricePerUnit(price);
-        item.setCreatedAt(LocalDateTime.now());
-        item.setUpdatedAt(LocalDateTime.now());
+        item.setCreatedAt(LocalDateTime.now(java.time.ZoneOffset.UTC));
+        item.setUpdatedAt(LocalDateTime.now(java.time.ZoneOffset.UTC));
         computeStatus(item);
         memoryStore.put(newId, item);
 
@@ -226,7 +225,7 @@ public class FoodItemService {
                 userId
         );
         tx.setId((long) (memoryTransactions.size() + 1));
-        tx.setCreatedAt(LocalDateTime.now());
+        tx.setCreatedAt(LocalDateTime.now(java.time.ZoneOffset.UTC));
         memoryTransactions.add(tx);
 
         logger.info("Created new food item #{} in-memory with initial stock {}", newId, addedQty);
@@ -261,8 +260,8 @@ public class FoodItemService {
         item.setId(newId);
         item.setRemainingQuantity(item.getQuantity());
         item.setTotalQuantity(item.getQuantity());
-        item.setCreatedAt(LocalDateTime.now());
-        item.setUpdatedAt(LocalDateTime.now());
+        item.setCreatedAt(LocalDateTime.now(java.time.ZoneOffset.UTC));
+        item.setUpdatedAt(LocalDateTime.now(java.time.ZoneOffset.UTC));
         memoryStore.put(newId, item);
         return item;
     }
@@ -336,7 +335,7 @@ public class FoodItemService {
 
         // Memory Store Fallback
         if (memoryStore.containsKey(item.getId())) {
-            item.setUpdatedAt(LocalDateTime.now());
+            item.setUpdatedAt(LocalDateTime.now(java.time.ZoneOffset.UTC));
             memoryStore.put(item.getId(), item);
             return true;
         }
@@ -392,7 +391,7 @@ public class FoodItemService {
         } else {
             item.setQuantity(newQty);
             item.setRemainingQuantity(newQty);
-            item.setUpdatedAt(LocalDateTime.now());
+            item.setUpdatedAt(LocalDateTime.now(java.time.ZoneOffset.UTC));
             computeMemoryTotalQuantity(item);
             memoryStore.put(foodItemId, item);
         }

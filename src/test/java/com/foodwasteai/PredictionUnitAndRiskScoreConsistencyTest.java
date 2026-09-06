@@ -398,7 +398,7 @@ public class PredictionUnitAndRiskScoreConsistencyTest {
     }
 
     @Test
-    @DisplayName("17. Two identical or case/whitespace variant 'cheese' items produce only one cheese in Tomorrow Prediction")
+    @DisplayName("17. Distinct batches retain their identity in Tomorrow Prediction")
     public void testDuplicateProductsDeduplicatedInTomorrowPrediction() {
         LocalDate today = com.foodwasteai.util.ExpiryStatusResolver.getToday();
         LocalDate targetDate = today.plusDays(1);
@@ -415,7 +415,7 @@ public class PredictionUnitAndRiskScoreConsistencyTest {
         @SuppressWarnings("unchecked")
         List<PrologAssessment> items = (List<PrologAssessment>) tomorrowPred.get("items");
         assertNotNull(items);
-        assertEquals(1, items.size(), "Duplicate product names must be deduplicated to exactly 1 product card");
+        assertEquals(2, items.size(), "Distinct batch IDs must not be discarded by name");
         assertEquals("cheese", items.get(0).getFoodName().trim().toLowerCase());
         assertEquals("pcs", items.get(0).getUnit());
         assertEquals(34.0, items.get(0).getStock(), 0.01);
@@ -424,8 +424,8 @@ public class PredictionUnitAndRiskScoreConsistencyTest {
         @SuppressWarnings("unchecked")
         Map<String, Double> breakdown = (Map<String, Double>) tomorrowPred.get("unitBreakdown");
         assertNotNull(breakdown);
-        assertEquals(items.get(0).getPredictedWasteQuantity(), breakdown.get("pcs"), 0.05,
-                "Card total must match single deduplicated product waste, not doubled");
+        assertEquals(items.stream().mapToDouble(PrologAssessment::getPredictedWasteQuantity).sum(), breakdown.get("pcs"), 0.05,
+                "Card total must match all distinct batches");
     }
 
     @Test

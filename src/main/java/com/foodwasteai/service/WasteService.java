@@ -143,7 +143,7 @@ public class WasteService {
 
         // Guarantee Requirement 9: Waste Record date/time must be when the waste was actually recorded, never expiry date
         if (record.getWasteDate() == null) {
-            record.setWasteDate(LocalDateTime.now());
+            record.setWasteDate(LocalDateTime.now(java.time.ZoneOffset.UTC));
         }
 
         // Idempotency check with in-flight lock: if a clientRequestId is provided, ensure strictly one execution
@@ -235,12 +235,12 @@ public class WasteService {
             record.setMonetaryLoss(monetaryLoss);
 
             if (record.getWasteDate() == null) {
-                record.setWasteDate(LocalDateTime.now());
+                record.setWasteDate(LocalDateTime.now(java.time.ZoneOffset.UTC));
             }
 
             long newId = wasteIdGen.incrementAndGet();
             record.setId(newId);
-            record.setCreatedAt(LocalDateTime.now());
+            record.setCreatedAt(LocalDateTime.now(java.time.ZoneOffset.UTC));
             memoryWaste.put(newId, record);
 
             // Deduct stock in memory store

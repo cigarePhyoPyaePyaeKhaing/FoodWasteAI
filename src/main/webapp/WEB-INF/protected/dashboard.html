@@ -96,7 +96,7 @@
             <div class="kpi-bubble-value" id="kpi-today-waste">0.0</div>
             <div style="display:flex; align-items:center; justify-content:space-between; gap:0.5rem; flex-wrap:wrap; margin-top:0.25rem;">
               <div class="kpi-bubble-sub" id="kpi-today-sub">Today: 2026-08-29</div>
-              <button type="button" class="btn-kpi-details" id="btn-waste-details" data-action="open-waste-details" onclick="if(window.Dashboard)window.Dashboard.openWasteModal();" data-i18n="dash.kpi.viewDetails" aria-haspopup="dialog" aria-controls="waste-details-modal">View Details &rarr;</button>
+              <button type="button" class="btn-kpi-details" id="btn-waste-details" data-action="open-waste-details" data-i18n="dash.kpi.viewDetails" aria-haspopup="dialog" aria-controls="waste-details-modal">View Details &rarr;</button>
             </div>
           </div>
         </div>
@@ -111,7 +111,7 @@
             <div class="kpi-bubble-value" id="kpi-predicted-tomorrow">0.0</div>
             <div style="display:flex; align-items:center; justify-content:space-between; gap:0.5rem; flex-wrap:wrap; margin-top:0.25rem;">
               <div class="kpi-bubble-sub" id="kpi-pred-sub" data-i18n="dash.kpi.noPred">No prediction available</div>
-              <button type="button" class="btn-kpi-details" id="btn-pred-details" data-action="open-prediction-details" onclick="if(window.Dashboard)window.Dashboard.openDetailsModal();" data-i18n="dash.kpi.viewDetails" aria-haspopup="dialog" aria-controls="prediction-details-modal">View Details &rarr;</button>
+              <button type="button" class="btn-kpi-details" id="btn-pred-details" data-action="open-prediction-details" data-i18n="dash.kpi.viewDetails" aria-haspopup="dialog" aria-controls="prediction-details-modal">View Details &rarr;</button>
             </div>
           </div>
         </div>
@@ -187,7 +187,6 @@
             <h2 class="card-title-glass" data-i18n="dash.rec.title">⚡ Priority Action Directives</h2>
             <div class="card-subtitle-glass" data-i18n="dash.rec.subtitle">Grounded in inventory metrics and expected demand</div>
           </div>
-          <span class="btn-bubble btn-yellow btn-sm-bubble" data-i18n="dash.rec.openActionCenter">Open Action Center</span>
         </div>
         <div class="card-body-glass">
           <div class="recommendations-grid" id="dashboard-rec-container">
@@ -261,7 +260,7 @@
         <span style="font-size:1.3rem;">🔮</span>
         <h3 id="pred-modal-title" style="font-size:1.15rem; font-weight:800; color:var(--text-main); margin:0;" data-i18n="pred.modal.title">7-Day Predicted Waste Forecast</h3>
       </div>
-      <button type="button" class="btn-bubble btn-glass-subtle btn-sm-bubble" data-action="close-prediction-details" onclick="if(window.Dashboard)window.Dashboard.closeDetailsModal();" aria-label="Close" style="width:32px; height:32px; padding:0; display:flex; align-items:center; justify-content:center; font-size:1.2rem;">&times;</button>
+      <button type="button" class="btn-bubble btn-glass-subtle btn-sm-bubble" data-action="close-prediction-details" aria-label="Close" style="width:32px; height:32px; padding:0; display:flex; align-items:center; justify-content:center; font-size:1.2rem;">&times;</button>
     </div>
 
     <div class="modal-glass-body" style="padding:1.25rem; overflow-y:auto; max-height:calc(88vh - 130px); overflow-x:hidden;">
@@ -287,8 +286,8 @@
     </div>
 
     <div class="modal-glass-footer" style="display:flex; justify-content:space-between; align-items:center;">
-      <span style="font-size:0.75rem; color:var(--text-muted);" id="pred-modal-engine-text">AI Expert Engine</span>
-      <button type="button" class="btn-bubble btn-glass btn-sm-bubble" data-action="close-prediction-details" onclick="if(window.Dashboard)window.Dashboard.closeDetailsModal();" data-i18n="action.close">Close</button>
+      <span style="font-size:0.75rem; color:var(--text-muted);" id="pred-modal-engine-text"></span>
+      <button type="button" class="btn-bubble btn-glass btn-sm-bubble" data-action="close-prediction-details" data-i18n="action.close">Close</button>
     </div>
   </div>
 </div>
@@ -301,7 +300,7 @@
         <span style="font-size:1.3rem;">🗑️</span>
         <h3 id="waste-modal-title" style="font-size:1.15rem; font-weight:800; color:var(--text-main); margin:0;" data-i18n="dash.wasteModal.title">Confirmed Food Waste Details</h3>
       </div>
-      <button type="button" class="btn-bubble btn-glass-subtle btn-sm-bubble" data-action="close-waste-details" onclick="if(window.Dashboard)window.Dashboard.closeWasteModal();" aria-label="Close" style="width:32px; height:32px; padding:0; display:flex; align-items:center; justify-content:center; font-size:1.2rem;">&times;</button>
+      <button type="button" class="btn-bubble btn-glass-subtle btn-sm-bubble" data-action="close-waste-details" aria-label="Close" style="width:32px; height:32px; padding:0; display:flex; align-items:center; justify-content:center; font-size:1.2rem;">&times;</button>
     </div>
 
     <div class="modal-glass-body" style="padding:1.25rem; overflow-y:auto; max-height:calc(88vh - 130px); overflow-x:hidden;">
@@ -328,7 +327,7 @@
 
     <div class="modal-glass-footer" style="display:flex; justify-content:space-between; align-items:center;">
       <span style="font-size:0.75rem; color:var(--text-muted);" id="waste-modal-loss-text">Total Loss: 0 MMK</span>
-      <button type="button" class="btn-bubble btn-glass btn-sm-bubble" data-action="close-waste-details" onclick="if(window.Dashboard)window.Dashboard.closeWasteModal();" data-i18n="action.close">Close</button>
+      <button type="button" class="btn-bubble btn-glass btn-sm-bubble" data-action="close-waste-details" data-i18n="action.close">Close</button>
     </div>
   </div>
 </div>

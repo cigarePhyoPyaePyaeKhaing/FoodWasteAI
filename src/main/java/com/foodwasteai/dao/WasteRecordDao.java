@@ -73,11 +73,11 @@ public class WasteRecordDao extends BaseDao {
         String sql = "SELECT w.id, w.food_item_id, f.name AS food_name, f.unit AS food_unit, w.quantity_wasted, w.reason, " +
                      "w.monetary_loss, w.waste_date, w.notes, w.created_at " +
                      "FROM waste_records w JOIN food_items f ON w.food_item_id = f.id " +
-                     "WHERE DATE(w.waste_date) BETWEEN ? AND ? ORDER BY w.waste_date DESC";
+                     "WHERE w.waste_date >= ? AND w.waste_date < ? ORDER BY w.waste_date DESC";
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setDate(1, Date.valueOf(start));
-            stmt.setDate(2, Date.valueOf(end));
+            stmt.setObject(1, start.atStartOfDay(com.foodwasteai.util.ExpiryStatusResolver.ZONE_YANGON).withZoneSameInstant(java.time.ZoneOffset.UTC).toLocalDateTime());
+            stmt.setObject(2, end.plusDays(1).atStartOfDay(com.foodwasteai.util.ExpiryStatusResolver.ZONE_YANGON).withZoneSameInstant(java.time.ZoneOffset.UTC).toLocalDateTime());
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
                     list.add(mapResultSetToWasteRecord(rs));
@@ -206,7 +206,7 @@ public class WasteRecordDao extends BaseDao {
             record.setMonetaryLoss(monetaryLoss);
 
             if (record.getWasteDate() == null) {
-                record.setWasteDate(LocalDateTime.now());
+                record.setWasteDate(LocalDateTime.now(java.time.ZoneOffset.UTC));
             }
 
             // 5. Insert waste record
@@ -215,7 +215,7 @@ public class WasteRecordDao extends BaseDao {
                 insertStmt.setBigDecimal(2, record.getQuantityWasted());
                 insertStmt.setString(3, record.getReason().name());
                 insertStmt.setBigDecimal(4, record.getMonetaryLoss());
-                insertStmt.setTimestamp(5, Timestamp.valueOf(record.getWasteDate()));
+                insertStmt.setObject(5, record.getWasteDate());
                 insertStmt.setString(6, record.getNotes());
 
                 int affected = insertStmt.executeUpdate();
@@ -299,13 +299,13 @@ public class WasteRecordDao extends BaseDao {
         record.setReason(WasteRecord.Reason.valueOf(rs.getString("reason")));
         record.setMonetaryLoss(rs.getBigDecimal("monetary_loss"));
 
-        Timestamp wasteDate = rs.getTimestamp("waste_date");
-        if (wasteDate != null) record.setWasteDate(wasteDate.toLocalDateTime());
+        java.time.LocalDateTime wasteDate = rs.getObject("waste_date", java.time.LocalDateTime.class);
+        if (wasteDate != null) record.setWasteDate(wasteDate);
 
         record.setNotes(rs.getString("notes"));
 
-        Timestamp created = rs.getTimestamp("created_at");
-        if (created != null) record.setCreatedAt(created.toLocalDateTime());
+        java.time.LocalDateTime created = rs.getObject("created_at", java.time.LocalDateTime.class);
+        if (created != null) record.setCreatedAt(created);
 
         return record;
     }

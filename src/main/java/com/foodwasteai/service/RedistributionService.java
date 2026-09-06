@@ -210,7 +210,7 @@ public class RedistributionService {
         dispatch.setRecipientName(recipient.getName());
 
         if (dispatch.getPickupTime() == null) {
-            dispatch.setPickupTime(LocalDateTime.now().plusDays(1).withHour(14).withMinute(0));
+            dispatch.setPickupTime(LocalDateTime.now(com.foodwasteai.util.ExpiryStatusResolver.ZONE_YANGON).plusDays(1).withHour(14).withMinute(0));
         }
         if (dispatch.getStatus() == null) {
             dispatch.setStatus(Redistribution.Status.CONFIRMED);
@@ -237,7 +237,7 @@ public class RedistributionService {
         } else {
             long id = dispatchIdGen.incrementAndGet();
             dispatch.setId(id);
-            dispatch.setCreatedAt(LocalDateTime.now());
+            dispatch.setCreatedAt(LocalDateTime.now(java.time.ZoneOffset.UTC));
             memoryDispatches.put(id, dispatch);
             saved = dispatch;
         }
@@ -263,7 +263,7 @@ public class RedistributionService {
         Redistribution d = memoryDispatches.get(id);
         if (d != null) {
             d.setStatus(status);
-            d.setUpdatedAt(LocalDateTime.now());
+            d.setUpdatedAt(LocalDateTime.now(java.time.ZoneOffset.UTC));
             return true;
         }
         return false;
@@ -281,43 +281,44 @@ public class RedistributionService {
             foodMap.put(f.getId(), f);
         }
 
-        double totalRedistributedKg = 0.0;
-        double totalMoneySaved = 0.0;
-        double wasteReductionKg = 0.0;
-        int pending = 0;
-        int completed = 0;
-        int cancelled = 0;
+        return summarizeDispatches(dispatches, foodMap, recipients.size());
+    }
 
+    /** Confirmed outcomes and pending reservations are separate, unit-aware metrics. */
+    public static Map<String, Object> summarizeDispatches(List<Redistribution> dispatches,
+                                                          Map<Long, FoodItem> foodMap, int partnerCount) {
+        Map<String, Double> completedUnits = new LinkedHashMap<>();
+        Map<String, Double> pendingUnits = new LinkedHashMap<>();
+        double confirmedValue = 0, pendingValue = 0;
+        int completed = 0, pending = 0, cancelled = 0;
         for (Redistribution d : dispatches) {
-            double qty = d.getQuantity() != null ? d.getQuantity().doubleValue() : 0.0;
-            FoodItem food = foodMap.get(d.getFoodItemId());
-            double unitPrice = (food != null && food.getPricePerUnit() != null) ? food.getPricePerUnit().doubleValue() : 3500.0;
-
-            if (d.getStatus() == Redistribution.Status.COLLECTED || d.getStatus() == Redistribution.Status.COMPLETED) {
-                totalRedistributedKg += qty;
-                wasteReductionKg += qty;
-                totalMoneySaved += qty * unitPrice;
-                completed++;
-            } else if (d.getStatus() == Redistribution.Status.PENDING || d.getStatus() == Redistribution.Status.CONFIRMED) {
-                totalRedistributedKg += qty;
-                wasteReductionKg += qty;
-                totalMoneySaved += qty * unitPrice;
-                pending++;
-            } else if (d.getStatus() == Redistribution.Status.CANCELLED) {
-                cancelled++;
-            }
+            double qty = d.getQuantity() == null ? 0 : d.getQuantity().doubleValue();
+            FoodItem item = foodMap.get(d.getFoodItemId());
+            double price = item != null && item.getPricePerUnit() != null ? item.getPricePerUnit().doubleValue() : 0;
+            String unit = d.getUnit() != null ? d.getUnit() : "units";
+            if (d.getStatus() == Redistribution.Status.COMPLETED || d.getStatus() == Redistribution.Status.COLLECTED) {
+                completedUnits.merge(unit, qty, Double::sum); confirmedValue += qty * price; completed++;
+            } else if (d.getStatus() == Redistribution.Status.PENDING) {
+                pendingUnits.merge(unit, qty, Double::sum); pendingValue += qty * price; pending++;
+            } else if (d.getStatus() == Redistribution.Status.CANCELLED) cancelled++;
         }
-
         Map<String, Object> stats = new LinkedHashMap<>();
-        stats.put("quantityRedistributedKg", BigDecimal.valueOf(totalRedistributedKg).setScale(2, java.math.RoundingMode.HALF_UP));
-        stats.put("estimatedMoneySaved", BigDecimal.valueOf(totalMoneySaved).setScale(2, java.math.RoundingMode.HALF_UP));
-        stats.put("wasteReductionImpactKg", BigDecimal.valueOf(wasteReductionKg).setScale(2, java.math.RoundingMode.HALF_UP));
-        stats.put("activeCharitiesCount", recipients.size());
+        stats.put("completedQuantityByUnit", completedUnits);
+        stats.put("pendingQuantityByUnit", pendingUnits);
+        stats.put("completedQuantities", PredictionService.formatUnitBreakdownList(completedUnits));
+        stats.put("pendingQuantities", PredictionService.formatUnitBreakdownList(pendingUnits));
+        stats.put("confirmedValueSaved", confirmedValue);
+        stats.put("pendingRedistributionValue", pendingValue);
+        // Compatibility aliases now contain completed outcomes only, with actual mass conversion.
+        double completedKg = completedUnits.getOrDefault("kg",0.0) + completedUnits.getOrDefault("g",0.0)/1000;
+        stats.put("quantityRedistributedKg", BigDecimal.valueOf(completedKg));
+        stats.put("wasteReductionImpactKg", BigDecimal.valueOf(completedKg));
+        stats.put("estimatedMoneySaved", BigDecimal.valueOf(confirmedValue));
+        stats.put("activeCharitiesCount", partnerCount);
         stats.put("pendingDispatchesCount", pending);
         stats.put("completedDispatchesCount", completed);
         stats.put("cancelledDispatchesCount", cancelled);
         stats.put("totalDispatchesCount", dispatches.size());
-
         return stats;
     }
 

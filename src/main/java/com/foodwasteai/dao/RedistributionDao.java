@@ -135,7 +135,7 @@ public class RedistributionDao extends BaseDao {
             stmt.setLong(2, d.getRecipientId());
             stmt.setBigDecimal(3, d.getQuantity());
             stmt.setString(4, d.getUnit() != null ? d.getUnit() : "kg");
-            stmt.setTimestamp(5, d.getPickupTime() != null ? Timestamp.valueOf(d.getPickupTime()) : Timestamp.valueOf(java.time.LocalDateTime.now()));
+            stmt.setObject(5, d.getPickupTime() != null ? d.getPickupTime() : java.time.LocalDateTime.now(com.foodwasteai.util.ExpiryStatusResolver.ZONE_YANGON));
             stmt.setString(6, d.getStatus() != null ? d.getStatus().name() : Redistribution.Status.PENDING.name());
             stmt.setString(7, d.getNotes());
             stmt.setString(8, d.getNotesEn());
@@ -181,8 +181,8 @@ public class RedistributionDao extends BaseDao {
         d.setQuantity(rs.getBigDecimal("quantity"));
         d.setUnit(rs.getString("unit"));
 
-        Timestamp pickup = rs.getTimestamp("pickup_time");
-        if (pickup != null) d.setPickupTime(pickup.toLocalDateTime());
+        java.time.LocalDateTime pickup = rs.getObject("pickup_time", java.time.LocalDateTime.class);
+        if (pickup != null) d.setPickupTime(pickup);
 
         String statusStr = rs.getString("status");
         if ("COLLECTED".equalsIgnoreCase(statusStr)) {
@@ -198,11 +198,11 @@ public class RedistributionDao extends BaseDao {
         d.setNotesEn(rs.getString("notes_en"));
         d.setNotesMy(rs.getString("notes_my"));
 
-        Timestamp created = rs.getTimestamp("created_at");
-        if (created != null) d.setCreatedAt(created.toLocalDateTime());
+        java.time.LocalDateTime created = rs.getObject("created_at", java.time.LocalDateTime.class);
+        if (created != null) d.setCreatedAt(created);
 
-        Timestamp updated = rs.getTimestamp("updated_at");
-        if (updated != null) d.setUpdatedAt(updated.toLocalDateTime());
+        java.time.LocalDateTime updated = rs.getObject("updated_at", java.time.LocalDateTime.class);
+        if (updated != null) d.setUpdatedAt(updated);
 
         return d;
     }

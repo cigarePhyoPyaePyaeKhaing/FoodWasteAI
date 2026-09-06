@@ -211,10 +211,12 @@ const Sales = {
     this.renderLoading();
     try {
       const res = await API.get('/api/sales');
+      this.loadError=false;
       this.sales = (res && res.data) ? res.data : [];
     } catch (err) {
+      this.loadError=true;
       console.warn('API fetch sales error:', err);
-      API.showToast('Using local sales view', 'info');
+      API.showToast(typeof I18n !== 'undefined' && I18n.isMyanmar() ? 'စာရင်း မရယူနိုင်ပါ။ ပြန်လည်ကြိုးစားပါ။' : 'Unable to load sales records. Please try again.', 'error');
     } finally {
       this.loading = false;
       this.render();
@@ -246,6 +248,7 @@ const Sales = {
     }
 
     const isMm = typeof I18n !== 'undefined' && I18n.getLanguage() === 'mm';
+    if(this.loadError) {tbody.innerHTML=`<tr><td colspan="8">${isMm?'စာရင်း မရယူနိုင်ပါ။ ပြန်လည်ကြိုးစားပါ။':'Unable to load sales records. Please try again.'}</td></tr>`;return;}
 
     if (this.sales.length === 0) {
       tbody.innerHTML = `
@@ -267,7 +270,7 @@ const Sales = {
       const totalFmt = Number(s.totalAmount || 0).toLocaleString() + ' MMK';
       const diners = s.customerCount || 1;
       const dinersText = `${diners} ${isMm ? 'ဦး' : 'Diners'}`;
-      const dateFmt = s.saleDate ? s.saleDate.replace('T', ' ').substring(0, 16) : (isMm ? 'ယနေ့' : 'Today');
+      const dateFmt = s.saleDate ? API.formatTimestamp(s.saleDate).text : (isMm ? 'ယနေ့' : 'Today');
 
       return `
         <tr>
@@ -286,6 +289,7 @@ const Sales = {
   },
 
   updateKpis() {
+    if(this.loadError) {document.querySelectorAll('[id^="kpi-sales-"]').forEach(el=>el.textContent='—');return;}
     const isMm = typeof I18n !== 'undefined' && I18n.getLanguage() === 'mm';
     const totalRev = this.sales.reduce((sum, s) => sum + Number(s.totalAmount || 0), 0);
     const totalDiners = this.sales.reduce((sum, s) => sum + Number(s.customerCount || 0), 0);

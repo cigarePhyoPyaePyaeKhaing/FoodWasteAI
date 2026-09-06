@@ -191,12 +191,12 @@ public class SalesService {
                 sale.setTotalAmount(sale.getUnitPrice().multiply(requestedQty).setScale(2, java.math.RoundingMode.HALF_UP));
             }
             if (sale.getSaleDate() == null) {
-                sale.setSaleDate(LocalDateTime.now());
+                sale.setSaleDate(LocalDateTime.now(java.time.ZoneOffset.UTC));
             }
 
             long newId = salesIdGen.incrementAndGet();
             sale.setId(newId);
-            sale.setCreatedAt(LocalDateTime.now());
+            sale.setCreatedAt(LocalDateTime.now(java.time.ZoneOffset.UTC));
             memorySales.put(newId, sale);
 
             // Deduct stock in memory store
