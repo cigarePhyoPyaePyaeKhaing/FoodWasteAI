@@ -58,10 +58,11 @@
       <a href="/reports.html" class="nav-bubble-link active">
         <span class="nav-bubble-icon">📈</span> <span data-i18n="nav.reports">Reports</span>
       </a>
+      <a href="/profile.html" class="nav-bubble-link"><span class="nav-bubble-icon">👤</span> <span data-i18n="profile.title">My Profile</span></a>
       <a href="/settings.html" class="nav-bubble-link">
         <span class="nav-bubble-icon">⚙️</span> <span data-i18n="nav.settings">Settings</span>
       </a>
-      <a href="/logout" class="nav-bubble-link" id="sidebar-logout-btn" onclick="event.preventDefault(); Auth.logout();" style="color: #EF4444; margin-top: 8px;">
+      <a href="/logout" class="nav-bubble-link" id="sidebar-logout-btn" onclick="event.preventDefault(); Auth.logout();" style="color:var(--risk-high-text); margin-top: 8px;">
         <span class="nav-bubble-icon">🚪</span> <span>Sign Out</span>
       </a>
     </nav>
@@ -123,7 +124,7 @@
           </div>
           <div>
             <div class="kpi-bubble-value" id="report-kpi-saved">0.0</div>
-            <div class="kpi-bubble-sub" style="color:#047857; font-weight:700;" data-i18n="reports.kpi.foodSavedSub">Rescued & redistributed</div>
+            <div class="kpi-bubble-sub" style="color:var(--risk-low-text); font-weight:700;" data-i18n="reports.kpi.foodSavedSub">Rescued & redistributed</div>
           </div>
         </div>
 
@@ -189,6 +190,7 @@
     <span class="dock-icon">📈</span>
     <span data-i18n="dock.reports">Reports</span>
   </a>
+<a href="/profile.html" class="dock-item"><span class="dock-icon">👤</span><span data-i18n="profile.short">Profile</span></a>
 </nav>
 
 <script src="/js/theme.js"></script>

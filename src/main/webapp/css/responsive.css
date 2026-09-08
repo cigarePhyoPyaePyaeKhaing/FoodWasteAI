@@ -6,6 +6,29 @@
    ========================================================================== */
 
 /* --- Desktop (> 1200px) --- */
+.modal-glass-header > :first-child { min-width: 0; overflow-wrap: anywhere; line-height: 1.7; }
+.modal-glass-header > button { flex-shrink: 0; }
+.modal-glass-body .form-group-bubble { min-width: 0; }
+.modal-glass-footer .btn-bubble { white-space: normal; line-height: 1.6; text-align: center; }
+.card-header-glass { gap: 1rem; flex-wrap: wrap; }
+.form-input-bubble::placeholder, .form-textarea-bubble::placeholder { color: var(--text-muted); opacity: 1; }
+.form-select-bubble option { background: var(--bg-secondary); color: var(--text-main); }
+[data-theme="dark"] .btn-primary, [data-theme="dark"] .btn-blue { background: #93C5FD; color: #102039; }
+[data-theme="dark"] .theme-btn.active { background: #93C5FD !important; color: #102039 !important; }
+[data-theme="dark"] input:-webkit-autofill { -webkit-text-fill-color: var(--text-main); -webkit-box-shadow: 0 0 0 1000px var(--bg-surface-glass-elevated) inset; }
+@media (max-width: 767px) {
+  .modal-glass-backdrop { padding: 10px; }
+  .modal-glass-dialog { max-height: calc(100dvh - 20px); }
+  .modal-glass-header, .modal-glass-body, .modal-glass-footer { padding: 1rem; }
+  #disposal-modal .modal-glass-body > div[style*="grid-template-columns"] { grid-template-columns: minmax(0, 1fr) !important; }
+  #disposal-modal .modal-glass-footer > div { min-width: 0; flex: 1 1 100%; }
+  #disposal-modal .modal-glass-footer .btn-bubble { width: 100%; }
+}
+@media (min-width: 768px) and (max-width: 1199px) {
+  .sidebar-header { padding: 1rem .75rem; gap: .5rem; }
+  .brand-main-title { font-size: 1rem; overflow-wrap: anywhere; }
+}
+
 @media (min-width: 1200px) {
   .app-container {
     max-width: 1600px;
@@ -78,6 +101,7 @@
 
   .topbar-glass {
     padding: 0.75rem 0.95rem;
+    height: auto;
     min-height: 56px;
     margin-bottom: 0.85rem;
     flex-wrap: wrap;

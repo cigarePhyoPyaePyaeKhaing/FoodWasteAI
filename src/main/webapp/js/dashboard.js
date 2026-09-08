@@ -423,7 +423,7 @@ const Dashboard = {
     if(this.data.forecastError) {container.textContent=isMm?'လုပ်ဆောင်ရန် အကြံပြုချက် မရယူနိုင်ပါ။':'Unable to load action directives.';return;}
     if (!this.data.recommendations || this.data.recommendations.length === 0) {
       container.innerHTML = `
-        <div style="grid-column: 1 / -1; text-align:center; padding:2.5rem 1.5rem; background:rgba(255,255,255,0.6); border-radius:var(--radius-lg); border:1px dashed var(--glass-border);">
+        <div style="grid-column: 1 / -1; text-align:center; padding:2.5rem 1.5rem; background:var(--bg-surface-glass-card); border-radius:var(--radius-lg); border:1px dashed var(--glass-border);">
           <div style="font-size:2rem; margin-bottom:0.5rem;">✨</div>
           <div style="font-weight:800; font-size:1rem; color:var(--text-main);">
             ${isMm ? 'လတ်တလောတွင် အရေးပေါ် အကြံပြုချက် မရှိသေးပါ' : 'No urgent recommendations at the moment.'}

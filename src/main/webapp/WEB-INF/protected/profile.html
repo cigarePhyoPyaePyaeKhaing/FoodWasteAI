@@ -16,13 +16,13 @@
   </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FoodWaste AI - Settings</title>
+  <title>FoodWaste AI - Profile</title>
   <link rel="stylesheet" href="/css/variables.css">
   <link rel="stylesheet" href="/css/theme.css?v=1">
   <link rel="stylesheet" href="/css/components.css">
   <link rel="stylesheet" href="/css/styles.css">
   <link rel="stylesheet" href="/css/responsive.css?v=1">
-</head>
+<link rel="stylesheet" href="/css/profile.css"></head>
 <body>
 
 <div class="app-container">
@@ -58,8 +58,8 @@
       <a href="/reports.html" class="nav-bubble-link">
         <span class="nav-bubble-icon">📈</span> <span data-i18n="nav.reports">Reports</span>
       </a>
-      <a href="/profile.html" class="nav-bubble-link"><span class="nav-bubble-icon">👤</span> <span data-i18n="profile.title">My Profile</span></a>
-      <a href="/settings.html" class="nav-bubble-link active">
+      <a href="/profile.html" class="nav-bubble-link active"><span class="nav-bubble-icon">👤</span> <span data-i18n="profile.title">My Profile</span></a>
+      <a href="/settings.html" class="nav-bubble-link">
         <span class="nav-bubble-icon">⚙️</span> <span data-i18n="nav.settings">Settings</span>
       </a>
       <a href="/logout" class="nav-bubble-link" id="sidebar-logout-btn" onclick="event.preventDefault(); Auth.logout();" style="color:var(--risk-high-text); margin-top: 8px;">
@@ -73,8 +73,8 @@
       <div class="topbar-left">
         <div class="page-title-group">
           <span class="page-eyebrow" data-i18n="nav.management">MANAGEMENT</span>
-          <h1 class="page-headline-glass" data-i18n="settings.headline">Settings & Preferences</h1>
-          <p class="page-description-glass" data-i18n="settings.subtitle">Configure application theme and language.</p>
+          <h1 class="page-headline-glass" data-i18n="profile.title">My Profile</h1>
+          <p class="page-description-glass" data-i18n="profile.subtitle">Your FoodWaste AI account information.</p>
         </div>
       </div>
       <div class="topbar-right">
@@ -84,33 +84,23 @@
     </header>
 
     <main class="content-body-float">
-      <!-- 1. Appearance Card -->
-      <div class="card-glass" style="margin-bottom:1.25rem;">
-        <div class="card-header-glass">
-          <div>
-            <h2 class="card-title-glass" data-i18n="settings.appearance.title">🎨 Appearance & Theme</h2>
-            <div class="card-subtitle-glass" data-i18n="settings.appearance.subtitle">Choose your preferred visual theme across FoodWaste AI</div>
-          </div>
-        </div>
-        <div class="card-body-glass">
-          <div id="settings-theme-container" style="max-width:360px;"></div>
-        </div>
-      </div>
-
-      <!-- 2. Language Preference Card -->
-      <div class="card-glass" style="margin-bottom:1.25rem;">
-        <div class="card-header-glass">
-          <div>
-            <h2 class="card-title-glass" data-i18n="settings.language.title">🌐 Language Preference</h2>
-            <div class="card-subtitle-glass" data-i18n="settings.language.subtitle">Select application language for menus, AI reasoning, and reports</div>
-          </div>
-        </div>
-        <div class="card-body-glass">
-          <div id="settings-language-container" style="max-width:360px;"></div>
-        </div>
-      </div>
-
-    </main>
+ <div class="profile-layout">
+  <section class="card-glass" aria-labelledby="profile-heading"><div class="card-body-glass">
+   <h2 id="profile-heading" class="card-title-glass" data-i18n="profile.details">Account details</h2>
+   <p id="profile-status" role="status" aria-live="polite" data-i18n="profile.loading">Loading your profile…</p>
+   <button id="profile-retry" type="button" class="btn-bubble btn-glass" data-i18n="profile.retry" hidden>Try again</button>
+   <div id="profile-content" hidden>
+    <div class="profile-identity"><div id="profile-avatar" class="profile-avatar" aria-hidden="true"></div><h2 id="profile-name"></h2></div>
+    <dl class="profile-details"><div><dt data-i18n="profile.email">Email address</dt><dd id="profile-email"></dd></div><div><dt data-i18n="profile.role">Account role</dt><dd id="profile-role"></dd></div></dl>
+   </div>
+  </div></section>
+  <section class="card-glass"><div class="card-body-glass">
+   <h2 class="card-title-glass" data-i18n="profile.preferences">Your preferences</h2>
+   <p class="card-subtitle-glass" data-i18n="profile.preferencesHint">Choose your language and appearance in Settings.</p>
+   <div class="profile-actions"><a class="btn-bubble btn-primary" href="/settings.html" data-i18n="nav.settings">Settings</a><button type="button" class="btn-bubble btn-glass" onclick="Auth.logout()" data-i18n="profile.logout">Sign out</button></div>
+  </div></section>
+ </div>
+</main>
   </div>
 </div>
 
@@ -123,11 +113,11 @@
     <span class="dock-icon">📦</span>
     <span data-i18n="dock.inventory">Inventory</span>
   </a>
-  <a href="/settings.html" class="dock-item active">
+  <a href="/settings.html" class="dock-item">
     <span class="dock-icon">⚙️</span>
     <span data-i18n="dock.settings">Settings</span>
   </a>
-<a href="/profile.html" class="dock-item"><span class="dock-icon">👤</span><span data-i18n="profile.short">Profile</span></a>
+<a href="/profile.html" class="dock-item active"><span class="dock-icon">👤</span><span data-i18n="profile.short">Profile</span></a>
 </nav>
 
 <script src="/js/theme.js"></script>
@@ -136,5 +126,5 @@
 <script src="/js/i18n/language.js"></script>
 <script src="/js/api.js"></script>
 
-</body>
+<script src="/js/profile.js"></script></body>
 </html>

@@ -649,6 +649,8 @@
 }
 
 .modal-glass-header {
+  gap: 1rem;
+  flex-shrink: 0;
   padding: 1.25rem 1.5rem;
   border-bottom: 1px solid var(--glass-border-subtle);
   display: flex;
@@ -657,10 +659,13 @@
 }
 
 .modal-glass-body {
+  min-width: 0;
   padding: 1.5rem;
 }
 
 .modal-glass-footer {
+  flex-wrap: wrap;
+  flex-shrink: 0;
   padding: 1rem 1.5rem;
   border-top: 1px solid var(--glass-border-subtle);
   background: var(--bg-surface-glass-subtle);

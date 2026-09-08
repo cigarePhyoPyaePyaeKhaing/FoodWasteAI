@@ -88,7 +88,7 @@ class PrivateWorkspaceIntegrationTest {
         for (String path : new String[]{"/api/inventory", "/api/sales", "/api/waste", "/api/prediction", "/api/recommendations", "/api/redistribution", "/api/redistribution/recipients", "/api/auth/me"}) {
             assertEquals(401, request(client(), "GET", path, null).statusCode(), path);
         }
-        for (String path : new String[]{"/", "/dashboard.html", "/reports.html", "/settings.html"}) {
+        for (String path : new String[]{"/", "/dashboard.html", "/reports.html", "/settings.html", "/profile.html", "/profile"}) {
             assertEquals(302, request(client(), "GET", path, null).statusCode(), path);
         }
     }
@@ -159,6 +159,18 @@ class PrivateWorkspaceIntegrationTest {
         assertTrue(new com.foodwasteai.dao.PredictionDao().findItemsByPredictionId(predictionId,bobId).isEmpty());
         assertFalse(new com.foodwasteai.dao.PredictionDao().findItemsByPredictionId(predictionId,aliceId).isEmpty());
     }
+    @Test void profileUsesOnlyAuthenticatedIdentity() throws Exception {
+        for (String path : new String[]{"/profile.html", "/profile"}) {
+            var page = request(alice, "GET", path, null);
+            assertEquals(200, page.statusCode());
+            assertTrue(page.body().contains("/js/profile.js"));
+        }
+        var identity = json(request(bob, "GET", "/api/auth/me?userId=" + aliceId, null).body()).getAsJsonObject("data");
+        assertEquals(bobId, identity.get("id").getAsLong());
+        assertFalse(identity.has("password"));
+        assertFalse(identity.has("passwordHash"));
+    }
+
     @Test void expiredInventoryNeedsExplicitOwnerConfirmation() throws Exception {
         var body = json("{\"name\":\"Expired confirmation fixture\",\"category\":\"Seafood\",\"quantity\":10,\"unit\":\"kg\",\"pricePerUnit\":1000}");
         body.addProperty("expiryDate", com.foodwasteai.util.AppTime.today().minusDays(1).toString());

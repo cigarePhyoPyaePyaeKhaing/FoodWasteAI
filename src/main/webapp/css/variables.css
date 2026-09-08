@@ -8,6 +8,7 @@
 :root {
   /* Theme Metadata */
   --theme-name: 'light';
+  color-scheme: light;
 
   /* Standard CSS Variable System */
   --bg-primary: #F8FAFC;
@@ -141,23 +142,29 @@
    ========================================================================== */
 [data-theme="dark"] {
   --theme-name: 'dark';
+  --accent-danger: #FDA4AF;
+  --accent-success: #6EE7B7;
+  --btn-action-bg: #93C5FD;
+  --btn-action-hover: #BFDBFE;
+  --btn-action-text: #102039;
 
-  /* Color System — genuine dark navy canvas */
+  color-scheme: dark;
+  /* Opaque slate layers keep text legible over tables and nested overlays. */
   --bg-primary: #0F172A;
   --bg-app: #0F172A;
   --bg-secondary: #1E293B;
-  --surface: rgba(255, 255, 255, 0.07);
-  --surface-primary: rgba(255, 255, 255, 0.07);
-  --surface-glass: rgba(255, 255, 255, 0.07);
-  --card: rgba(255, 255, 255, 0.07);
-  --bg-surface-glass: rgba(255, 255, 255, 0.07);
-  --bg-surface-glass-card: rgba(255, 255, 255, 0.09);
-  --bg-surface-glass-elevated: rgba(255, 255, 255, 0.12);
-  --bg-surface-glass-subtle: rgba(255, 255, 255, 0.05);
-  --bg-surface-bubble: rgba(255, 255, 255, 0.14);
-  --bg-modal-backdrop: rgba(0, 0, 0, 0.60);
-  --bg-table-row: rgba(255, 255, 255, 0.05);
-  --bg-table-row-hover: rgba(255, 255, 255, 0.10);
+  --surface: #1E293B;
+  --surface-primary: #1E293B;
+  --surface-glass: #1E293B;
+  --card: #1E293B;
+  --bg-surface-glass: #1E293B;
+  --bg-surface-glass-card: #253247;
+  --bg-surface-glass-elevated: #29384E;
+  --bg-surface-glass-subtle: #223047;
+  --bg-surface-bubble: #33445E;
+  --bg-modal-backdrop: rgba(8, 15, 28, 0.68);
+  --bg-table-row: #253247;
+  --bg-table-row-hover: #30415A;
 
   /* Primary Accent System */
   --accent: #3B82F6;
@@ -165,7 +172,7 @@
   --accent-primary-hover: #3B82F6;
   --accent-primary-active: #2563EB;
   --accent-primary-light: rgba(96, 165, 250, 0.15);
-  --accent-primary-text: #FFFFFF;
+  --accent-primary-text: #102039;
   --accent-primary-glow: rgba(96, 165, 250, 0.25);
   --accent-cyan: #38BDF8;
 
@@ -191,8 +198,8 @@
   --text-secondary: #CBD5E1;
   --text-main: #F1F5F9;
   --text-body: #E2E8F0;
-  --text-muted: #94A3B8;
-  --text-subtle: #64748B;
+  --text-muted: #BBC9DC;
+  --text-subtle: #A8B9D0;
 
   /* Glass Borders — white at low opacity works well on dark canvas */
   --border: rgba(255, 255, 255, 0.12);
@@ -204,17 +211,17 @@
 
   /* Semantic Risk Colors */
   --risk-high-bg: rgba(248, 113, 113, 0.14);
-  --risk-high-text: #F87171;
+  --risk-high-text: #FDA4AF;
   --risk-high-border: rgba(248, 113, 113, 0.28);
   --risk-high-bubble: rgba(248, 113, 113, 0.14);
 
   --risk-med-bg: rgba(251, 191, 36, 0.14);
-  --risk-med-text: #FBBF24;
+  --risk-med-text: #FDE68A;
   --risk-med-border: rgba(251, 191, 36, 0.28);
   --risk-med-bubble: rgba(251, 191, 36, 0.14);
 
   --risk-low-bg: rgba(52, 211, 153, 0.14);
-  --risk-low-text: #34D399;
+  --risk-low-text: #6EE7B7;
   --risk-low-border: rgba(52, 211, 153, 0.28);
   --risk-low-bubble: rgba(52, 211, 153, 0.14);
 

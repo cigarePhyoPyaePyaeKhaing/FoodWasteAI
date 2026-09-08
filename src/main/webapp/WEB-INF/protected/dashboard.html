@@ -59,10 +59,11 @@
       <a href="/reports.html" class="nav-bubble-link">
         <span class="nav-bubble-icon">📈</span> <span data-i18n="nav.reports">Reports</span>
       </a>
+      <a href="/profile.html" class="nav-bubble-link"><span class="nav-bubble-icon">👤</span> <span data-i18n="profile.title">My Profile</span></a>
       <a href="/settings.html" class="nav-bubble-link">
         <span class="nav-bubble-icon">⚙️</span> <span data-i18n="nav.settings">Settings</span>
       </a>
-      <a href="/logout" class="nav-bubble-link" id="sidebar-logout-btn" onclick="event.preventDefault(); Auth.logout();" style="color: #EF4444; margin-top: 8px;">
+      <a href="/logout" class="nav-bubble-link" id="sidebar-logout-btn" onclick="event.preventDefault(); Auth.logout();" style="color:var(--risk-high-text); margin-top: 8px;">
         <span class="nav-bubble-icon">🚪</span> <span>Sign Out</span>
       </a>
     </nav>
@@ -143,7 +144,7 @@
             <div>
               <div style="display:flex; align-items:center; gap:0.5rem;">
                 <strong style="font-size:1rem; color:var(--text-main);" data-i18n="dash.attention.title">Needs Attention</strong>
-                <span class="badge-bubble" style="background:rgba(220,38,38,0.2); color:#DC2626; font-size:0.72rem; font-weight:700;" id="dash-attention-badge">1 expired item</span>
+                <span class="badge-bubble" style="background:rgba(220,38,38,0.2); color:var(--risk-high-text); font-size:0.72rem; font-weight:700;" id="dash-attention-badge">1 expired item</span>
               </div>
               <div style="font-size:0.82rem; color:var(--text-muted); margin-top:0.15rem;" id="dash-attention-detail">
                 <!-- Populated dynamically via dashboard.js -->
@@ -216,6 +217,7 @@
     <span class="dock-icon">📦</span>
     <span data-i18n="dock.inventory">Inventory</span>
   </a>
+  <a href="/profile.html" class="dock-item"><span class="dock-icon">👤</span><span data-i18n="profile.short">Profile</span></a>
   <button type="button" class="dock-item" onclick="toggleMobileMore()">
     <span class="dock-icon">☰</span>
     <span data-i18n="dock.more">More</span>

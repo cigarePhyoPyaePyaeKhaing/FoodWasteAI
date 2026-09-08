@@ -59,10 +59,11 @@
       <a href="/reports.html" class="nav-bubble-link">
         <span class="nav-bubble-icon">📈</span> <span data-i18n="nav.reports">Reports</span>
       </a>
+      <a href="/profile.html" class="nav-bubble-link"><span class="nav-bubble-icon">👤</span> <span data-i18n="profile.title">My Profile</span></a>
       <a href="/settings.html" class="nav-bubble-link">
         <span class="nav-bubble-icon">⚙️</span> <span data-i18n="nav.settings">Settings</span>
       </a>
-      <a href="/logout" class="nav-bubble-link" id="sidebar-logout-btn" onclick="event.preventDefault(); Auth.logout();" style="color: #EF4444; margin-top: 8px;">
+      <a href="/logout" class="nav-bubble-link" id="sidebar-logout-btn" onclick="event.preventDefault(); Auth.logout();" style="color:var(--risk-high-text); margin-top: 8px;">
         <span class="nav-bubble-icon">🚪</span> <span>Sign Out</span>
       </a>
     </nav>
@@ -290,7 +291,7 @@
     </div>
     <div class="modal-glass-body">
       <div style="background:rgba(220,38,38,0.08); border:1px solid rgba(220,38,38,0.25); border-radius:12px; padding:1rem; margin-bottom:1rem;">
-        <div style="font-weight:700; font-size:1.05rem; color:#DC2626;" id="disposal-food-name">Food Item</div>
+        <div style="font-weight:700; font-size:1.05rem; color:var(--risk-high-text);" id="disposal-food-name">Food Item</div>
         <p style="font-size:0.9rem; color:var(--text-main); margin-top:0.35rem;" id="disposal-prompt-text">
           Has expired with remaining stock. How would you like to handle it?
         </p>
@@ -309,7 +310,7 @@
 
       <div style="background:var(--bg-surface-glass-subtle); border:1px solid var(--glass-border-subtle); border-radius:10px; padding:0.75rem 1rem; margin-bottom:0.5rem; display:flex; justify-content:space-between; align-items:center;">
         <span style="font-size:0.85rem; color:var(--text-muted);" data-i18n="waste.disposal.financialLoss">Estimated Financial Loss</span>
-        <strong style="font-size:1.05rem; color:#DC2626;" id="disposal-financial-loss">0 MMK</strong>
+        <strong style="font-size:1.05rem; color:var(--risk-high-text);" id="disposal-financial-loss">0 MMK</strong>
       </div>
     </div>
     <div class="modal-glass-footer" style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:0.5rem;">
@@ -336,6 +337,7 @@
     <span class="dock-icon">📈</span>
     <span data-i18n="dock.reports">Reports</span>
   </a>
+<a href="/profile.html" class="dock-item"><span class="dock-icon">👤</span><span data-i18n="profile.short">Profile</span></a>
 </nav>
 
 <script src="/js/theme.js"></script>

@@ -303,7 +303,7 @@ const Redistribution = {
       } else if (d.status === 'PENDING' || d.status === 'CONFIRMED') {
         actionBtns = `
           <div class="redist-action-btn-group">
-            <button class="btn-bubble btn-glass-subtle redist-mini-btn" style="color:#ef4444;" onclick="Redistribution.updateStatus(${d.id}, 'CANCELLED')" title="${isMm ? 'ပယ်ဖျက်မည်' : 'Cancel'}">✕</button>
+            <button class="btn-bubble btn-glass-subtle redist-mini-btn" style="color:var(--risk-high-text);" onclick="Redistribution.updateStatus(${d.id}, 'CANCELLED')" title="${isMm ? 'ပယ်ဖျက်မည်' : 'Cancel'}">✕</button>
             <button class="btn-bubble btn-yellow redist-mini-btn" onclick="Redistribution.updateStatus(${d.id}, 'COMPLETED')" title="${isMm ? 'ပြီးစီးကြောင်း မှတ်မည်' : 'Mark Completed'}">✓</button>
           </div>
         `;
@@ -417,7 +417,7 @@ const Redistribution = {
 
   buildCandidateCard(item, isPriority) {
     const isMm = typeof I18n !== 'undefined' && I18n.isMyanmar();
-    const badgeStyle = isPriority ? 'background:rgba(220,38,38,0.15); color:#DC2626; border:1px solid rgba(220,38,38,0.3); font-weight:800;' : 'background:rgba(14,165,233,0.15); color:#0284C7; border:1px solid rgba(14,165,233,0.3); font-weight:700;';
+    const badgeStyle = isPriority ? 'background:rgba(220,38,38,0.15); color:var(--risk-high-text); border:1px solid rgba(220,38,38,0.3); font-weight:800;' : 'background:rgba(14,165,233,0.15); color:var(--accent-primary); border:1px solid rgba(14,165,233,0.3); font-weight:700;';
     const statusText = isMm ? (item.statusLabelMy || (isPriority ? 'ဦးစားပေး လှူဒါန်းရန်' : 'လှူဒါန်းသင့်')) : (item.statusLabelEn || (isPriority ? 'Priority Donation' : 'Donation Recommended'));
     const reasonText = isMm ? (item.reasonMy || item.reasonEn) : (item.reasonEn || item.reasonMy);
     const actionText = isMm ? (item.suggestedActionMy || item.suggestedActionEn) : (item.suggestedActionEn || item.suggestedActionMy);

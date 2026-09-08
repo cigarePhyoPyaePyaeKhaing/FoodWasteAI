@@ -201,6 +201,9 @@ public class App {
                 "WEB-INF/protected/reports.html",
                 "WEB-INF/protected/sales.html",
                 "WEB-INF/protected/settings.html",
+                "WEB-INF/protected/profile.html",
+                "css/profile.css",
+                "js/profile.js",
                 "WEB-INF/protected/waste.html",
                 "css/variables.css",
                 "css/components.css",
@@ -249,7 +252,8 @@ public class App {
             "/waste.html", "/waste",
             "/redistribution.html", "/redistribution",
             "/reports.html", "/reports",
-            "/settings.html", "/settings"
+            "/settings.html", "/settings",
+            "/profile.html", "/profile"
         };
         for (String route : protectedRoutes) {
             ctx.addServletMappingDecoded(route, "ProtectedPageServlet");

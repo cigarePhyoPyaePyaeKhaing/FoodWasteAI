@@ -58,10 +58,11 @@
       <a href="/reports.html" class="nav-bubble-link">
         <span class="nav-bubble-icon">📈</span> <span data-i18n="nav.reports">Reports</span>
       </a>
+      <a href="/profile.html" class="nav-bubble-link"><span class="nav-bubble-icon">👤</span> <span data-i18n="profile.title">My Profile</span></a>
       <a href="/settings.html" class="nav-bubble-link">
         <span class="nav-bubble-icon">⚙️</span> <span data-i18n="nav.settings">Settings</span>
       </a>
-      <a href="/logout" class="nav-bubble-link" id="sidebar-logout-btn" onclick="event.preventDefault(); Auth.logout();" style="color: #EF4444; margin-top: 8px;">
+      <a href="/logout" class="nav-bubble-link" id="sidebar-logout-btn" onclick="event.preventDefault(); Auth.logout();" style="color:var(--risk-high-text); margin-top: 8px;">
         <span class="nav-bubble-icon">🚪</span> <span>Sign Out</span>
       </a>
     </nav>
@@ -91,7 +92,7 @@
           </div>
           <div>
             <div class="kpi-bubble-value" id="kpi-sales-revenue">0 MMK</div>
-            <div class="kpi-bubble-sub" id="kpi-sales-sub" style="color:#047857; font-weight:700;" data-i18n="sales.kpi.grossIncome">Gross sales recorded</div>
+            <div class="kpi-bubble-sub" id="kpi-sales-sub" style="color:var(--risk-low-text); font-weight:700;" data-i18n="sales.kpi.grossIncome">Gross sales recorded</div>
           </div>
         </div>
 
@@ -179,7 +180,7 @@
               <input class="form-input-bubble" type="number" step="0.01" min="0.01" id="sale-qty" required placeholder="1.00" oninput="Sales.onQuantityInput()" style="padding-right:3.8rem; width:100%;">
               <span id="sale-unit-addon" style="position:absolute; right:0.85rem; font-size:0.85rem; font-weight:700; color:var(--text-muted); pointer-events:none;"></span>
             </div>
-            <div id="sale-qty-error" style="color:#ef4444; font-size:0.78rem; font-weight:700; margin-top:0.35rem; display:none;"></div>
+            <div id="sale-qty-error" style="color:var(--risk-high-text); font-size:0.78rem; font-weight:700; margin-top:0.35rem; display:none;"></div>
           </div>
           <div class="form-group-bubble">
             <label class="form-label-bubble" data-i18n="sales.modal.diners">Customer Diners Served</label>
@@ -218,6 +219,7 @@
     <span class="dock-icon">📈</span>
     <span data-i18n="dock.reports">Reports</span>
   </a>
+<a href="/profile.html" class="dock-item"><span class="dock-icon">👤</span><span data-i18n="profile.short">Profile</span></a>
 </nav>
 
 <script src="/js/theme.js"></script>

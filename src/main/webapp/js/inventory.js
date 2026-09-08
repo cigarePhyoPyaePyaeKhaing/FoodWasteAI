@@ -473,7 +473,7 @@ const Inventory = {
       let dateStr = tx.createdAt ? API.formatTimestamp(tx.createdAt).text : 'N/A';
 
       return `
-        <div style="background:rgba(255,255,255,0.7); border:1px solid var(--glass-border-subtle); border-radius:10px; padding:0.75rem 1rem; display:flex; justify-content:space-between; align-items:center;">
+        <div style="background:var(--bg-surface-glass-card); border:1px solid var(--glass-border-subtle); border-radius:10px; padding:0.75rem 1rem; display:flex; justify-content:space-between; align-items:center;">
           <div>
             <div style="font-weight:700; font-size:0.9rem; color:var(--text-main); display:flex; align-items:center; gap:0.4rem;">
               <span>${isInitial ? '📦' : '📥'}</span>
@@ -485,7 +485,7 @@ const Inventory = {
             ${tx.notes ? `<div style="font-size:0.75rem; color:var(--text-body); margin-top:2px;">${this.escapeHtml(tx.notes)}</div>` : ''}
           </div>
           <div style="text-align:right;">
-            <span style="font-size:1.05rem; font-weight:800; color:#16A34A; background:rgba(22,163,74,0.1); padding:0.25rem 0.6rem; border-radius:var(--radius-pill);">
+            <span style="font-size:1.05rem; font-weight:800; color:var(--risk-low-text); background:rgba(22,163,74,0.1); padding:0.25rem 0.6rem; border-radius:var(--radius-pill);">
               ${snapshot ? '= ' : addition ? '+ ' : '− '}${qty} ${this.escapeHtml(unit)}
             </span>
           </div>
@@ -806,7 +806,7 @@ const Inventory = {
       donatedTotalsHtml = `<span style="font-size:0.85rem; color:var(--text-muted);">${isMm ? 'လှူဒါန်းမှု မှတ်တမ်း မရှိသေးပါ' : 'No donations recorded'}</span>`;
     } else {
       donatedTotalsHtml = Array.from(donatedUnitsMap.entries()).map(([unit, qty]) => {
-        return `<span style="font-size:1.05rem; font-weight:800; color:#059669; background:rgba(5,150,105,0.08); padding:0.25rem 0.65rem; border-radius:var(--radius-pill); border:1px solid rgba(5,150,105,0.15);">${formatQty(qty, unit)}</span>`;
+        return `<span style="font-size:1.05rem; font-weight:800; color:var(--risk-low-text); background:rgba(5,150,105,0.08); padding:0.25rem 0.65rem; border-radius:var(--radius-pill); border:1px solid rgba(5,150,105,0.15);">${formatQty(qty, unit)}</span>`;
       }).join('');
     }
 
@@ -844,7 +844,7 @@ const Inventory = {
         return `
           <div style="display:flex; justify-content:space-between; align-items:center; padding:0.3rem 0; border-bottom:1px solid rgba(0,0,0,0.04);">
             <span style="color:var(--text-main); font-weight:600;">${label}</span>
-            <span style="color:#059669; font-weight:700;">${formatQty(item.qty, item.unit)}</span>
+            <span style="color:var(--risk-low-text); font-weight:700;">${formatQty(item.qty, item.unit)}</span>
           </div>
         `;
       }).join('');

@@ -27,7 +27,8 @@ import java.util.Map;
         "/recommendations.html", "/recommendations",
         "/redistribution.html", "/redistribution",
         "/reports.html", "/reports",
-        "/settings.html", "/settings"
+        "/settings.html", "/settings",
+        "/profile.html", "/profile"
 })
 public class ProtectedPageServlet extends BaseServlet {
     private static final long serialVersionUID = 1L;
@@ -51,7 +52,9 @@ public class ProtectedPageServlet extends BaseServlet {
             Map.entry("/reports.html", "reports.html"),
             Map.entry("/reports", "reports.html"),
             Map.entry("/settings.html", "settings.html"),
-            Map.entry("/settings", "settings.html")
+            Map.entry("/settings", "settings.html"),
+            Map.entry("/profile.html", "profile.html"),
+            Map.entry("/profile", "profile.html")
     );
 
     @Override
