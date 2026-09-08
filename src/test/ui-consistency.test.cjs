@@ -71,6 +71,20 @@ const overflow=await page.locator('.forecast-item').first().evaluate(el=>el.scro
 }
 }
 await page.evaluate(()=>I18n.setLanguage('en'));
+// Contradictory scores prove the UI follows only the backend category.
+for(const lang of ['en','mm']) {
+ await page.evaluate(lang=>I18n.setLanguage(lang),lang);
+ for(const [level,label] of (lang==='en' ? [['HIGH','HIGH RISK'],['MEDIUM','MEDIUM RISK'],['LOW','LOW RISK'],['OUT_OF_STOCK','OUT OF STOCK']] : [['HIGH','အန္တရာယ်မြင့်'],['MEDIUM','အန္တရာယ်အလယ်အလတ်'],['LOW','အန္တရာယ်နည်း'],['OUT_OF_STOCK','လက်ကျန်မရှိ']])) {
+  await page.evaluate(level=>{const i=Dashboard.data.predictionData.forecastItems[0];i.riskLevel=level;i.riskScore=85;i.riskPercentage=85;i.dailyForecast.forEach(d=>{d.riskLevel=level;d.riskScore=73.3;});Dashboard.renderDetailsModalContent();},level);
+  const card=page.locator('.forecast-item').first();
+  assert.equal(await card.locator('.forecast-item-heading .badge-bubble').textContent(),label);
+  assert.ok((await card.textContent()).includes(label));
+  assert.ok(!/85%|73.3%|Risk Score|Risk %/.test(await card.textContent()));
+ }
+ assert.ok(!/%/.test(await page.locator('#high-risk-tbody').textContent()));
+ assert.equal(await page.locator('#high-risk-tbody tr').first().locator('td').count(),2);
+}
+await page.evaluate(()=>I18n.setLanguage('en'));
 await page.evaluate(()=>{const item=Dashboard.data.predictionData.forecastItems[0];item.reason='SWI-Prolog Expert Engine';item.recommendedAction='predicate rule trace';Dashboard.renderDetailsModalContent();});
 assert.ok(!/SWI-Prolog|Expert Engine|predicate|rule trace/.test(await page.locator('#prediction-details-modal').textContent()));
 for(const [state,text] of [['NO_INVENTORY','No active inventory'],['NO_FORECAST','No 7-day evaluation'],['ZERO_FORECAST','No food waste is currently predicted'],['ERROR','Unable to load the 7-day forecast'],['PARTIAL','Some forecast details could not be loaded']]) {
@@ -92,6 +106,7 @@ for(const name of ['dashboard','inventory','sales','waste','redistribution','rep
  await page.goto(`http://foodwaste.test/${name}.html`);
  for(const width of [1440,768,390]) {await page.setViewportSize({width,height:900});
  for(const lang of ['en','mm']) {await page.evaluate(lang=>I18n.setLanguage(lang),lang);
+ assert.ok(!/\b(?:85|50|18)%|Risk Score:|Risk %|အန္တရာယ် %/.test(await page.locator('body').innerText()),name+' risk percentage');
  const button=page.locator('.topbar-right button').last();
  if(name!=='settings') {assert.ok(await button.isVisible(),`${name} core action hidden at ${width} ${lang}`);const rect=await button.boundingBox();assert.ok(rect.x>=0&&rect.x+rect.width<=width+1,`${name} action outside viewport at ${width} ${lang}`);}
  }}

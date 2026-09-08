@@ -129,7 +129,6 @@ const Dashboard = {
     const highRiskOnly = allActive.filter(item => item.riskLevel === 'HIGH');
     this.data.highRiskFoods = highRiskOnly.map(item => ({
       name: item.foodName || item.foodItemName || item.item || 'Item',
-      riskPct: Math.round(Number(item.riskScore !== undefined ? item.riskScore : (item.riskPercentage !== undefined ? item.riskPercentage : 85))),
       riskLevel: item.riskLevel || 'HIGH',
       category: item.category || 'Kitchen Item',
       stockQty: Number(item.stock !== undefined ? item.stock : item.quantity || 0).toFixed(1),
@@ -275,11 +274,11 @@ const Dashboard = {
 
     const isMm = typeof I18n !== 'undefined' && I18n.getLanguage() === 'mm';
 
-    if(this.data.forecastError) {tbody.innerHTML=`<tr><td colspan="3">${isMm?'ခန့်မှန်းချက် မရယူနိုင်ပါ။':'Unable to load current risk assessment.'}</td></tr>`;return;}
+    if(this.data.forecastError) {tbody.innerHTML=`<tr><td colspan="2">${isMm?'ခန့်မှန်းချက် မရယူနိုင်ပါ။':'Unable to load current risk assessment.'}</td></tr>`;return;}
     if (!this.data.highRiskFoods || this.data.highRiskFoods.length === 0) {
       tbody.innerHTML = `
         <tr>
-          <td colspan="3" style="text-align:center; padding:2.5rem 1rem; color:var(--text-muted);">
+          <td colspan="2" style="text-align:center; padding:2.5rem 1rem; color:var(--text-muted);">
             <div style="font-size:1.8rem; margin-bottom:0.4rem;">🌱</div>
             <div style="font-weight:700; color:var(--text-main); font-size:0.92rem;">
               ${isMm ? 'အန္တရာယ်မြင့် ကုန်ပစ္စည်း မရှိသေးပါ' : 'No high-risk active inventory.'}
@@ -295,15 +294,12 @@ const Dashboard = {
 
     tbody.innerHTML = this.data.highRiskFoods.map(item => {
       let badgeClass = 'badge-risk-low';
-      let barColor = 'var(--risk-low-text)';
       let levelText = typeof I18n !== 'undefined' ? I18n.translateRisk(item.riskLevel) : item.riskLevel;
 
       if (item.riskLevel === 'HIGH') {
         badgeClass = 'badge-risk-high';
-        barColor = 'var(--risk-high-text)';
       } else if (item.riskLevel === 'MEDIUM') {
         badgeClass = 'badge-risk-medium';
-        barColor = 'var(--risk-med-text)';
       }
 
       return `
@@ -312,14 +308,6 @@ const Dashboard = {
             <div style="font-weight:700; color:var(--text-main); font-size:0.92rem;">${this.escapeHtml(item.name)}</div>
             <div style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">
               ${isMm ? 'လက်ကျန်:' : 'Stock:'} <strong>${item.stockQty} ${item.unit}</strong> &bull; ${isMm ? 'သက်တမ်းကုန်ရက်:' : 'Expiry:'} <strong>${isMm ? (item.expiryDays + ' ရက်') : (item.expiryDays + ' Day(s)')}</strong>
-            </div>
-          </td>
-          <td style="width:35%;">
-            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;">
-              <span style="font-size:0.85rem; font-weight:800; color:${barColor};">${item.riskPct}%</span>
-            </div>
-            <div style="background:rgba(0,0,0,0.05); height:8px; border-radius:9999px; overflow:hidden;">
-              <div style="width:${item.riskPct}%; height:100%; background:${barColor}; border-radius:9999px;"></div>
             </div>
           </td>
           <td style="text-align:right;">
@@ -452,7 +440,7 @@ const Dashboard = {
       const isHigh = r.riskLevel === 'HIGH';
       const riskClass = isHigh ? 'badge-urgent' : 'badge-important';
       const riskText = isMm 
-        ? (isHigh ? 'အန္တရာယ် မြင့်မား' : 'အလယ်အလတ် အန္တရာယ်')
+        ? (isHigh ? 'အန္တရာယ်မြင့်' : 'အန္တရာယ်အလယ်အလတ်')
         : `${r.riskLevel} RISK`;
 
       const stockFmt = `${(Math.round(r.stock * 10) / 10).toFixed(1)} ${r.unit}`;
@@ -650,13 +638,13 @@ const Dashboard = {
       const days = Array.isArray(item.dailyForecast) ? item.dailyForecast : [];
       return `<article class="forecast-item">
         <div class="forecast-item-heading"><h3>${esc(item.name)}</h3>
-          <span class="badge-bubble ${item.riskLevel==='HIGH'?'badge-risk-high':item.riskLevel==='MEDIUM'?'badge-risk-medium':'badge-risk-low'}">${esc(risk(item.riskLevel))} · ${esc(item.riskScore)}%</span>
+          <span class="badge-bubble ${item.riskLevel==='HIGH'?'badge-risk-high':item.riskLevel==='MEDIUM'?'badge-risk-medium':'badge-risk-low'}">${esc(risk(item.riskLevel))}</span>
           ${item.sevenDayPredictedWaste===0?`<span class="forecast-zero-badge">${t('0 Predicted Waste','ခန့်မှန်းအလေအလွင့် ၀')}</span>`:''}
         </div><p>${esc(typeof I18n!=='undefined'?I18n.translateFoodCategory(item.category):item.category)} · ${esc(item.unit)}</p>
         <div class="forecast-facts">
           <div>${t('Current Stock','လက်ရှိလက်ကျန်')}<strong>${qty(item.currentStock)}</strong></div>
           <div>${t('Expiry Date','သက်တမ်းကုန်ရက်')}<strong>${esc(item.expiryDate)} (${item.currentDaysRemaining} ${t('days','ရက်')})</strong></div>
-          <div>${t('Current Risk','လက်ရှိအန္တရာယ်')}<strong>${esc(risk(item.riskLevel))} (${item.riskScore}%)</strong></div>
+          <div>${t('Current Risk','လက်ရှိအန္တရာယ်')}<strong>${esc(risk(item.riskLevel))}</strong></div>
           <div>${t('Expected Daily Demand','နေ့စဉ်ခန့်မှန်းဝယ်လိုအား')}<strong>${qty(item.expectedDailyDemand)} / ${t('day','ရက်')}</strong></div>
           <div>${t('7-Day Predicted Waste','၇ ရက်စာ ခန့်မှန်းအလေအလွင့်')}<strong class="forecast-quantity">${qty(item.sevenDayPredictedWaste)}</strong></div>
           <div>${t('Projected Surplus','ခန့်မှန်းပိုလျှံပမာဏ')}<strong>${qty(item.projectedSurplus)}</strong></div>
@@ -672,7 +660,7 @@ const Dashboard = {
             <div>${t('Opening Stock','နေ့အစလက်ကျန်')}<strong>${qty(day.projectedOpeningStock)}</strong></div>
             <div>${t('Expected Demand','ခန့်မှန်းဝယ်လိုအား')}<strong>${qty(day.expectedDemand)}</strong></div>
             <div>${t('Days to Expiry','သက်တမ်းကျန်ရက်')}<strong>${day.daysToExpiry}</strong></div>
-            <div>${t('Daily Forecast Risk','နေ့စဉ်ခန့်မှန်း အန္တရာယ်')}<strong>${esc(risk(day.riskLevel))} (${day.riskScore}%)</strong></div>
+            <div>${t('Daily Forecast Risk','နေ့စဉ်ခန့်မှန်း အန္တရာယ်')}<strong>${esc(risk(day.riskLevel))}</strong></div>
             <div>${t('Predicted Sales','ခန့်မှန်းအရောင်း')}<strong>${qty(day.predictedSales)}</strong></div>
             <div>${t('Predicted Waste','ခန့်မှန်းအလေအလွင့်')}<strong>${qty(day.predictedWaste)}</strong></div>
             <div>${t('Closing Stock','နေ့ဆုံးလက်ကျန်')}<strong>${qty(day.projectedClosingStock)}</strong></div>

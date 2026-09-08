@@ -171,7 +171,7 @@ const I18n = {
       return 'အန္တရာယ်မြင့်: ထုတ်လုပ်မှုပမာဏကို ၁၅-၂၅% လျှော့ချပါ';
     }
     if (trimmed.includes('assess_waste_risk') && (trimmed.includes('Medium Risk') || trimmed.includes('medium')) && trimmed.includes('evaluate_priority_use')) {
-      return 'အလယ်အလတ်အန္တရာယ်: ချက်ချင်း ဦးစားပေးအဆင့်ဖြင့် သုံးစွဲပါ';
+      return 'အန္တရာယ်အလယ်အလတ်: ချက်ချင်း ဦးစားပေးအဆင့်ဖြင့် သုံးစွဲပါ';
     }
     if (trimmed.includes('assess_waste_risk') && (trimmed.includes('Low Risk') || trimmed.includes('low')) && trimmed.includes('recommend_production')) {
       return 'အန္တရာယ်နည်း: ပုံမှန် သတ်မှတ်ထားသော ထုတ်လုပ်မှုအတိုင်း ဆက်လက်ဆောင်ရွက်ပါ';
@@ -345,12 +345,14 @@ const I18n = {
     const upper = String(risk).toUpperCase();
     if (this.isMyanmar()) {
       if (upper === 'HIGH') return 'အန္တရာယ်မြင့်';
-      if (upper === 'MEDIUM' || upper === 'MED') return 'အလယ်အလတ်အန္တရာယ်';
+      if (upper === 'MEDIUM' || upper === 'MED') return 'အန္တရာယ်အလယ်အလတ်';
       if (upper === 'LOW') return 'အန္တရာယ်နည်း';
+      if (upper === 'OUT_OF_STOCK') return 'လက်ကျန်မရှိ';
     }
     if (upper === 'HIGH') return 'HIGH RISK';
     if (upper === 'MEDIUM' || upper === 'MED') return 'MEDIUM RISK';
     if (upper === 'LOW') return 'LOW RISK';
+    if (upper === 'OUT_OF_STOCK') return 'OUT OF STOCK';
     return upper;
   },
 

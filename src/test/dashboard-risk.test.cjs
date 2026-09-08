@@ -13,8 +13,8 @@ dashboard.processPredictionData({items: [
 ]});
 assert.equal(dashboard.data.highRiskFoods.length,1);
 assert.equal(dashboard.data.highRiskFoods[0].name,'Generic high');
-assert.equal(dashboard.data.highRiskFoods[0].riskPct,78);
+assert.equal(dashboard.data.highRiskFoods[0].riskPct,undefined);
 assert.equal(dashboard.data.highRiskFoods[0].expiryDays,1);
 dashboard.processPredictionData({items: []});
 assert.equal(dashboard.data.highRiskFoods.length,0);
-console.log('PASS: backend status and score remain authoritative; zero stock and stale rows excluded.');
+console.log('PASS: backend risk level remains authoritative; zero stock and stale rows excluded.');
