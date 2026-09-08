@@ -16,6 +16,7 @@ import java.util.Optional;
 /**
  * Data Access Object for Waste records, loss calculations, historical waste rates,
  * and atomic stock deduction transactions.
+ * Reads and writes the existing waste_records table without requiring a user_id column.
  */
 public class WasteRecordDao extends BaseDao {
 
@@ -41,27 +42,14 @@ public class WasteRecordDao extends BaseDao {
 
     public List<WasteRecord> findAll(Long userId) throws SQLException {
         List<WasteRecord> list = new ArrayList<>();
-        String sql;
-        if (userId != null) {
-            sql = "SELECT w.id, w.food_item_id, f.name AS food_name, f.unit AS food_unit, w.quantity_wasted, w.reason, " +
-                  "w.monetary_loss, w.waste_date, w.notes, w.created_at, w.user_id " +
-                  "FROM waste_records w JOIN food_items f ON w.food_item_id = f.id " +
-                  "WHERE (w.user_id = ? OR (w.user_id IS NULL AND ? = 1)) ORDER BY w.waste_date DESC";
-        } else {
-            sql = "SELECT w.id, w.food_item_id, f.name AS food_name, f.unit AS food_unit, w.quantity_wasted, w.reason, " +
-                  "w.monetary_loss, w.waste_date, w.notes, w.created_at, w.user_id " +
-                  "FROM waste_records w JOIN food_items f ON w.food_item_id = f.id ORDER BY w.waste_date DESC";
-        }
+        String sql = "SELECT w.id, w.food_item_id, f.name AS food_name, f.unit AS food_unit, w.quantity_wasted, w.reason, " +
+                     "w.monetary_loss, w.waste_date, w.notes, w.created_at " +
+                     "FROM waste_records w JOIN food_items f ON w.food_item_id = f.id ORDER BY w.waste_date DESC";
         try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            if (userId != null) {
-                stmt.setLong(1, userId);
-                stmt.setLong(2, userId);
-            }
-            try (ResultSet rs = stmt.executeQuery()) {
-                while (rs.next()) {
-                    list.add(mapResultSetToWasteRecord(rs));
-                }
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+            while (rs.next()) {
+                list.add(mapResultSetToWasteRecord(rs));
             }
         }
         return list;
@@ -104,14 +92,16 @@ public class WasteRecordDao extends BaseDao {
         return list;
     }
 
-    /**
-     * Calculates the historical waste rate = Total Waste / (Total Waste + Total Sales) over past N days.
-     * Essential input for SWI-Prolog assessment.
-     */
     public BigDecimal calculateHistoricalWasteRate(Long foodItemId, int pastDays) throws SQLException {
+        return getHistoricalWasteRate(foodItemId, pastDays);
+    }
+
+    public BigDecimal getHistoricalWasteRate(Long foodItemId, int pastDays) throws SQLException {
         String sql = "SELECT " +
-                     "  (SELECT IFNULL(SUM(quantity_wasted), 0) FROM waste_records WHERE food_item_id = ? AND waste_date >= DATE_SUB(NOW(), INTERVAL ? DAY) AND waste_date <= NOW()) AS total_waste, " +
-                     "  (SELECT IFNULL(SUM(quantity_sold), 0) FROM sales WHERE food_item_id = ? AND sale_date >= DATE_SUB(NOW(), INTERVAL ? DAY) AND sale_date <= NOW()) AS total_sold";
+                     "  IFNULL(SUM(w.quantity_wasted), 0) AS total_waste, " +
+                     "  IFNULL((SELECT SUM(s.quantity_sold) FROM sales s WHERE s.food_item_id = ? AND s.sale_date >= DATE_SUB(NOW(), INTERVAL ? DAY)), 0) AS total_sold " +
+                     "FROM waste_records w " +
+                     "WHERE w.food_item_id = ? AND w.waste_date >= DATE_SUB(NOW(), INTERVAL ? DAY)";
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setLong(1, foodItemId);
@@ -143,8 +133,8 @@ public class WasteRecordDao extends BaseDao {
 
         String selectFoodSql = "SELECT id, name, category, quantity, unit, price_per_unit, expiry_date, status " +
                                "FROM food_items WHERE id = ? FOR UPDATE";
-        String insertWasteSql = "INSERT INTO waste_records (food_item_id, quantity_wasted, reason, monetary_loss, waste_date, notes, user_id) " +
-                                "VALUES (?, ?, ?, ?, ?, ?, ?)";
+        String insertWasteSql = "INSERT INTO waste_records (food_item_id, quantity_wasted, reason, monetary_loss, waste_date, notes) " +
+                                "VALUES (?, ?, ?, ?, ?, ?)";
         String updateFoodQtySql = "UPDATE food_items SET quantity = ?, status = CASE " +
                                   "WHEN expiry_date < CURDATE() THEN 'EXPIRED' " +
                                   "WHEN expiry_date <= DATE_ADD(CURDATE(), INTERVAL 2 DAY) THEN 'NEAR_EXPIRY' " +
@@ -237,11 +227,6 @@ public class WasteRecordDao extends BaseDao {
                 insertStmt.setBigDecimal(4, record.getMonetaryLoss());
                 insertStmt.setObject(5, record.getWasteDate());
                 insertStmt.setString(6, record.getNotes());
-                if (validUserId != null) {
-                    insertStmt.setLong(7, validUserId);
-                } else {
-                    insertStmt.setNull(7, Types.BIGINT);
-                }
 
                 int affected = insertStmt.executeUpdate();
                 if (affected > 0) {
@@ -330,13 +315,6 @@ public class WasteRecordDao extends BaseDao {
 
         java.time.LocalDateTime created = rs.getObject("created_at", java.time.LocalDateTime.class);
         if (created != null) record.setCreatedAt(created);
-
-        try {
-            long uid = rs.getLong("user_id");
-            if (!rs.wasNull()) {
-                record.setUserId(uid);
-            }
-        } catch (SQLException ignored) {}
 
         return record;
     }

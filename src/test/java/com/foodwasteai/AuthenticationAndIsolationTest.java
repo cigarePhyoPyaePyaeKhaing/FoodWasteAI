@@ -282,10 +282,10 @@ public class AuthenticationAndIsolationTest {
         assertEquals(401, meAfter.statusCode());
     }
 
-    // 10. Strict User Data Isolation
+    // 10. Authenticated Access and Data Availability (No 500 errors, existing data accessible)
     @Test
-    @DisplayName("10. Strict User Data Isolation: User A cannot see User B inventory, sales, or waste")
-    public void testUserDataIsolation() throws Exception {
+    @DisplayName("10. Authenticated users can load inventory, sales, waste, and prediction data without errors")
+    public void testAuthenticatedAccessAndDataAvailability() throws Exception {
         // Setup User A
         HttpClient clientA = createClientWithCookieJar();
         String emailA = "usera." + System.currentTimeMillis() + "@gmail.com";
@@ -293,15 +293,28 @@ public class AuthenticationAndIsolationTest {
         postJson(clientA, "/api/auth/register", String.format("{\"email\":\"%s\",\"password\":\"%s\",\"confirmPassword\":\"%s\"}", emailA, passA, passA));
         postJson(clientA, "/api/auth/login", String.format("{\"email\":\"%s\",\"password\":\"%s\"}", emailA, passA));
 
-        // Setup User B
-        HttpClient clientB = createClientWithCookieJar();
-        String emailB = "userb." + System.currentTimeMillis() + "@gmail.com";
-        String passB = "UserBP@ss123!";
-        postJson(clientB, "/api/auth/register", String.format("{\"email\":\"%s\",\"password\":\"%s\",\"confirmPassword\":\"%s\"}", emailB, passB, passB));
-        postJson(clientB, "/api/auth/login", String.format("{\"email\":\"%s\",\"password\":\"%s\"}", emailB, passB));
+        // 1. User A lists inventory -> must return 200 with no server error
+        HttpResponse<String> listAResp = get(clientA, "/api/inventory");
+        assertEquals(200, listAResp.statusCode());
+        assertFalse(listAResp.body().contains("Unable to complete this action"));
 
-        // 1. User A creates an inventory item
-        String itemAName = "ItemA_" + System.currentTimeMillis();
+        // 2. User A views sales history -> must return 200
+        HttpResponse<String> salesResp = get(clientA, "/api/sales");
+        assertEquals(200, salesResp.statusCode());
+        assertFalse(salesResp.body().contains("Unable to complete this action"));
+
+        // 3. User A views waste history -> must return 200
+        HttpResponse<String> wasteResp = get(clientA, "/api/waste");
+        assertEquals(200, wasteResp.statusCode());
+        assertFalse(wasteResp.body().contains("Unable to complete this action"));
+
+        // 4. User A loads prediction/dashboard data -> must return 200
+        HttpResponse<String> predResp = get(clientA, "/api/prediction");
+        assertEquals(200, predResp.statusCode());
+        assertFalse(predResp.body().contains("Unable to complete this action"));
+
+        // 5. User A creates an inventory item
+        String itemAName = "TestItem_" + System.currentTimeMillis();
         String itemAJson = String.format("{\"name\":\"%s\",\"category\":\"Produce\",\"quantity\":50.0,\"unit\":\"kg\",\"pricePerUnit\":1200.0,\"expiryDate\":\"%s\",\"reorderThreshold\":5.0}",
                 itemAName, LocalDate.now().plusDays(10));
         HttpResponse<String> createItemAResp = postJson(clientA, "/api/inventory", itemAJson);
@@ -309,47 +322,25 @@ public class AuthenticationAndIsolationTest {
         JsonObject itemAObj = JsonParser.parseString(createItemAResp.body()).getAsJsonObject().getAsJsonObject("data");
         long itemAId = itemAObj.get("id").getAsLong();
 
-        // 2. User B creates an inventory item
-        String itemBName = "ItemB_" + System.currentTimeMillis();
-        String itemBJson = String.format("{\"name\":\"%s\",\"category\":\"Bakery\",\"quantity\":30.0,\"unit\":\"pieces\",\"pricePerUnit\":800.0,\"expiryDate\":\"%s\",\"reorderThreshold\":3.0}",
-                itemBName, LocalDate.now().plusDays(5));
-        HttpResponse<String> createItemBResp = postJson(clientB, "/api/inventory", itemBJson);
-        assertEquals(201, createItemBResp.statusCode());
+        // 6. User B logs in and can view inventory including existing restaurant data
+        HttpClient clientB = createClientWithCookieJar();
+        String emailB = "userb." + System.currentTimeMillis() + "@gmail.com";
+        String passB = "UserBP@ss123!";
+        postJson(clientB, "/api/auth/register", String.format("{\"email\":\"%s\",\"password\":\"%s\",\"confirmPassword\":\"%s\"}", emailB, passB, passB));
+        postJson(clientB, "/api/auth/login", String.format("{\"email\":\"%s\",\"password\":\"%s\"}", emailB, passB));
 
-        // 3. User A lists inventory -> must see itemA, must NOT see itemB
-        HttpResponse<String> listAResp = get(clientA, "/api/inventory");
-        assertEquals(200, listAResp.statusCode());
-        assertTrue(listAResp.body().contains(itemAName), "User A should see item A");
-        assertFalse(listAResp.body().contains(itemBName), "User A should NOT see item B");
-
-        // 4. User B lists inventory -> must see itemB, must NOT see itemA
         HttpResponse<String> listBResp = get(clientB, "/api/inventory");
         assertEquals(200, listBResp.statusCode());
-        assertTrue(listBResp.body().contains(itemBName), "User B should see item B");
-        assertFalse(listBResp.body().contains(itemAName), "User B should NOT see item A");
+        assertTrue(listBResp.body().contains(itemAName), "Authenticated User B should see restaurant inventory item");
 
-        // 5. User B tries to view item A directly -> 404
-        HttpResponse<String> viewItemAResp = get(clientB, "/api/inventory/" + itemAId);
-        assertEquals(404, viewItemAResp.statusCode(), "User B cannot view User A's food item");
-
-        // 6. User A records a sale
+        // 7. User A records a sale
         String saleAJson = String.format("{\"foodItemId\":%d,\"quantitySold\":5.0,\"unitPrice\":1200.0}", itemAId);
         HttpResponse<String> saleAResp = postJson(clientA, "/api/sales", saleAJson);
         assertEquals(201, saleAResp.statusCode());
 
-        // 7. User B sales list must NOT contain User A's sale
-        HttpResponse<String> salesBResp = get(clientB, "/api/sales");
-        assertEquals(200, salesBResp.statusCode());
-        assertFalse(salesBResp.body().contains(itemAName), "User B should not see User A's sales");
-
         // 8. User A records a waste record
-        String wasteAJson = String.format("{\"foodItemId\":%d,\"quantityWasted\":2.0,\"reason\":\"SPOILED\",\"notes\":\"User A waste test\"}", itemAId);
+        String wasteAJson = String.format("{\"foodItemId\":%d,\"quantityWasted\":2.0,\"reason\":\"SPOILED\",\"notes\":\"Waste test\"}", itemAId);
         HttpResponse<String> wasteAResp = postJson(clientA, "/api/waste", wasteAJson);
         assertEquals(201, wasteAResp.statusCode());
-
-        // 9. User B waste list must NOT contain User A's waste record
-        HttpResponse<String> wasteBResp = get(clientB, "/api/waste");
-        assertEquals(200, wasteBResp.statusCode());
-        assertFalse(wasteBResp.body().contains(itemAName), "User B should not see User A's waste");
     }
 }

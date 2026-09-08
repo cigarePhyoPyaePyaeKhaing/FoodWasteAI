@@ -70,7 +70,23 @@ public final class PasswordUtils {
             }
         }
 
-        // Backward compatibility fallback for legacy plaintext seed/mock credentials (e.g. admin123, user123)
+        // 2. Backward compatibility fallback for SHA-256 hex hashes (64 hex characters)
+        if (storedHash.length() == 64 && storedHash.matches("^[a-fA-F0-9]{64}$")) {
+            try {
+                MessageDigest md = MessageDigest.getInstance("SHA-256");
+                byte[] digest = md.digest(password.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                StringBuilder sb = new StringBuilder();
+                for (byte b : digest) {
+                    sb.append(String.format("%02x", b));
+                }
+                if (MessageDigest.isEqual(sb.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8),
+                        storedHash.toLowerCase().getBytes(java.nio.charset.StandardCharsets.UTF_8))) {
+                    return true;
+                }
+            } catch (Exception ignored) {}
+        }
+
+        // 3. Backward compatibility fallback for legacy plaintext seed/mock credentials (e.g. admin123, user123)
         return MessageDigest.isEqual(password.getBytes(java.nio.charset.StandardCharsets.UTF_8),
                 storedHash.getBytes(java.nio.charset.StandardCharsets.UTF_8));
     }

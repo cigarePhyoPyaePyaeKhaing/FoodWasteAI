@@ -56,17 +56,7 @@ public class RecommendationService {
         if (memoryRecs.isEmpty()) {
             return generateRecommendationsFromProlog(userId);
         }
-        List<Recommendation> list = new ArrayList<>();
-        for (Recommendation r : memoryRecs.values()) {
-            if (userId != null) {
-                if (r.getUserId() == null) {
-                    if (!Long.valueOf(1).equals(userId)) continue;
-                } else if (!r.getUserId().equals(userId)) {
-                    continue;
-                }
-            }
-            list.add(r);
-        }
+        List<Recommendation> list = new ArrayList<>(memoryRecs.values());
         if (list.isEmpty()) {
             return generateRecommendationsFromProlog(userId);
         }
@@ -116,9 +106,6 @@ public class RecommendationService {
         }
         Recommendation r = memoryRecs.get(id);
         if (r != null) {
-            if (userId != null && r.getUserId() != null && !r.getUserId().equals(userId)) {
-                return false;
-            }
             r.setStatus(status);
             r.setUpdatedAt(LocalDateTime.now());
             return true;
@@ -145,14 +132,7 @@ public class RecommendationService {
         if (DatabaseConfig.isAvailable()) {
             recommendationDao.clearPendingRecommendations(userId);
         } else {
-            if (userId != null) {
-                memoryRecs.entrySet().removeIf(e -> {
-                    Long u = e.getValue().getUserId();
-                    return Objects.equals(u, userId) || (u == null && Long.valueOf(1).equals(userId));
-                });
-            } else {
-                memoryRecs.clear();
-            }
+            memoryRecs.clear();
         }
 
         TranslationService translator = TranslationService.getInstance();

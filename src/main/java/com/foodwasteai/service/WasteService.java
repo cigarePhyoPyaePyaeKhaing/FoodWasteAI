@@ -56,17 +56,7 @@ public class WasteService {
         if (DatabaseConfig.isAvailable()) {
             persisted = wasteDao.findAll(userId);
         } else {
-            persisted = new ArrayList<>();
-            for (WasteRecord w : memoryWaste.values()) {
-                if (userId != null) {
-                    if (w.getUserId() == null) {
-                        if (!Long.valueOf(1).equals(userId)) continue;
-                    } else if (!w.getUserId().equals(userId)) {
-                        continue;
-                    }
-                }
-                persisted.add(w);
-            }
+            persisted = new ArrayList<>(memoryWaste.values());
         }
 
         // Single Date Rule: Products that reach the end of their usable life TODAY (expiry_date == today, quantity > 0)
@@ -122,21 +112,10 @@ public class WasteService {
 
     public Optional<WasteRecord> getWasteRecordById(Long id, Long userId) throws SQLException {
         if (id == null) return Optional.empty();
-        Optional<WasteRecord> opt;
         if (DatabaseConfig.isAvailable()) {
-            opt = wasteDao.findById(id);
-        } else {
-            opt = Optional.ofNullable(memoryWaste.get(id));
+            return wasteDao.findById(id);
         }
-        if (opt.isPresent() && userId != null) {
-            WasteRecord w = opt.get();
-            if (w.getUserId() == null) {
-                if (!Long.valueOf(1).equals(userId)) return Optional.empty();
-            } else if (!w.getUserId().equals(userId)) {
-                return Optional.empty();
-            }
-        }
-        return opt;
+        return Optional.ofNullable(memoryWaste.get(id));
     }
 
     public List<WasteRecord> getWasteByFoodItemId(Long foodItemId) throws SQLException {
@@ -350,12 +329,6 @@ public class WasteService {
         if (id == null) return false;
         if (DatabaseConfig.isAvailable()) {
             return wasteDao.delete(id);
-        }
-        WasteRecord existing = memoryWaste.get(id);
-        if (existing != null && userId != null) {
-            if (existing.getUserId() != null && !existing.getUserId().equals(userId)) {
-                return false;
-            }
         }
         return memoryWaste.remove(id) != null;
     }

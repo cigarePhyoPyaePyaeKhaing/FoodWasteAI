@@ -73,9 +73,13 @@ public class DatabaseConfig {
             try (Connection conn = dataSource.getConnection()) {
                 if (conn.isValid(3)) {
                     available = true;
-                    applyBilingualMigrations(conn);
-                    ensureDefaultUsersExist(conn);
-                    ensureDefaultRecipientsExist(conn);
+                    if (AppConfig.getBoolean("DB_AUTO_MIGRATE", false)) {
+                        applyBilingualMigrations(conn);
+                    }
+                    if (AppConfig.getBoolean("DB_AUTO_SEED", false)) {
+                        ensureDefaultUsersExist(conn);
+                        ensureDefaultRecipientsExist(conn);
+                    }
                     logger.info("Production database connection established successfully to {}:{}/{}!", host, port, dbName);
                 }
             }

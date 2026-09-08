@@ -54,13 +54,6 @@ public class FoodItemService {
         logger.debug("Serving food items from in-memory fallback");
         List<FoodItem> list = new ArrayList<>();
         for (FoodItem item : memoryStore.values()) {
-            if (userId != null) {
-                if (item.getUserId() == null) {
-                    if (!Long.valueOf(1).equals(userId)) continue;
-                } else if (!item.getUserId().equals(userId)) {
-                    continue;
-                }
-            }
             item.updateComputedExpiryFields();
             computeMemoryTotalQuantity(item);
             list.add(item);
@@ -80,13 +73,6 @@ public class FoodItemService {
         }
         FoodItem item = memoryStore.get(id);
         if (item != null) {
-            if (userId != null) {
-                if (item.getUserId() == null) {
-                    if (!Long.valueOf(1).equals(userId)) return Optional.empty();
-                } else if (!item.getUserId().equals(userId)) {
-                    return Optional.empty();
-                }
-            }
             item.updateComputedExpiryFields();
             computeMemoryTotalQuantity(item);
         }
@@ -103,13 +89,6 @@ public class FoodItemService {
         }
         List<FoodItem> list = new ArrayList<>();
         for (FoodItem item : memoryStore.values()) {
-            if (userId != null) {
-                if (item.getUserId() == null) {
-                    if (!Long.valueOf(1).equals(userId)) continue;
-                } else if (!item.getUserId().equals(userId)) {
-                    continue;
-                }
-            }
             item.updateComputedExpiryFields();
             computeMemoryTotalQuantity(item);
             if (category == null || category.trim().isEmpty() || item.getCategory().equalsIgnoreCase(category.trim())) {
@@ -131,13 +110,6 @@ public class FoodItemService {
         LocalDate cutoff = com.foodwasteai.util.ExpiryStatusResolver.getToday().plusDays(daysThreshold);
         List<FoodItem> list = new ArrayList<>();
         for (FoodItem item : memoryStore.values()) {
-            if (userId != null) {
-                if (item.getUserId() == null) {
-                    if (!Long.valueOf(1).equals(userId)) continue;
-                } else if (!item.getUserId().equals(userId)) {
-                    continue;
-                }
-            }
             item.updateComputedExpiryFields();
             computeMemoryTotalQuantity(item);
             if (!item.getExpiryDate().isAfter(cutoff) && item.getQuantity().compareTo(BigDecimal.ZERO) > 0) {
@@ -221,9 +193,6 @@ public class FoodItemService {
         BigDecimal addedQty = item.getQuantity() != null ? item.getQuantity() : BigDecimal.ZERO;
 
         for (FoodItem existing : memoryStore.values()) {
-            if (userId != null && !Objects.equals(existing.getUserId(), userId)) {
-                continue;
-            }
             String exNorm = existing.getName() != null ? existing.getName().trim() : "";
             String exUnit = existing.getUnit() != null ? existing.getUnit().trim() : "kg";
             BigDecimal exPrice = existing.getPricePerUnit() != null ? existing.getPricePerUnit().setScale(2, java.math.RoundingMode.HALF_UP) : BigDecimal.ZERO;
@@ -322,6 +291,18 @@ public class FoodItemService {
         item.setCreatedAt(LocalDateTime.now(java.time.ZoneOffset.UTC));
         item.setUpdatedAt(LocalDateTime.now(java.time.ZoneOffset.UTC));
         memoryStore.put(newId, item);
+
+        InventoryTransaction tx = new InventoryTransaction(
+                newId,
+                InventoryTransaction.Type.PURCHASE,
+                item.getQuantity(),
+                item.getUnit(),
+                "Initial stock addition",
+                userId
+        );
+        tx.setId((long) (memoryTransactions.size() + 1));
+        tx.setCreatedAt(LocalDateTime.now(java.time.ZoneOffset.UTC));
+        memoryTransactions.add(tx);
         return item;
     }
 
@@ -395,12 +376,21 @@ public class FoodItemService {
         // Memory Store Fallback
         if (memoryStore.containsKey(item.getId())) {
             FoodItem existing = memoryStore.get(item.getId());
-            if (userId != null && existing != null && existing.getUserId() != null && !existing.getUserId().equals(userId)) {
-                return false;
-            }
             item.setUserId(existing != null ? existing.getUserId() : userId);
             item.setUpdatedAt(LocalDateTime.now(java.time.ZoneOffset.UTC));
             memoryStore.put(item.getId(), item);
+
+            InventoryTransaction tx = new InventoryTransaction(
+                    item.getId(),
+                    InventoryTransaction.Type.MANUAL_COUNT,
+                    item.getQuantity(),
+                    item.getUnit(),
+                    "Manual inventory count / edit",
+                    userId
+            );
+            tx.setId((long) (memoryTransactions.size() + 1));
+            tx.setCreatedAt(LocalDateTime.now(java.time.ZoneOffset.UTC));
+            memoryTransactions.add(tx);
             return true;
         }
         return false;
@@ -414,12 +404,6 @@ public class FoodItemService {
         if (id == null) return false;
         if (DatabaseConfig.isAvailable()) {
             return foodItemDao.delete(id, userId);
-        }
-        FoodItem existing = memoryStore.get(id);
-        if (existing != null && userId != null) {
-            if (existing.getUserId() != null && !existing.getUserId().equals(userId)) {
-                return false;
-            }
         }
         return memoryStore.remove(id) != null;
     }

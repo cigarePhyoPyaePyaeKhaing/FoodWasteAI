@@ -62,7 +62,7 @@ function Test-DatabaseConfig {
 
     if (-not $dbHost) { $dbHost = "mysql-33833560-foodwasteai.h.aivencloud.com" }
     if (-not $dbPort) { $dbPort = "15129" }
-    if (-not $dbName) { $dbName = "defaultdb" }
+    if (-not $dbName) { $dbName = "foodwaste_ai" }
     if (-not $dbUser) { $dbUser = "avnadmin" }
     if (-not $dbSsl)  { $dbSsl  = "REQUIRED" }
 

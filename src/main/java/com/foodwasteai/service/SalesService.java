@@ -52,17 +52,7 @@ public class SalesService {
         if (DatabaseConfig.isAvailable()) {
             return salesDao.findAll(userId);
         }
-        List<Sale> list = new ArrayList<>();
-        for (Sale s : memorySales.values()) {
-            if (userId != null) {
-                if (s.getUserId() == null) {
-                    if (!Long.valueOf(1).equals(userId)) continue;
-                } else if (!s.getUserId().equals(userId)) {
-                    continue;
-                }
-            }
-            list.add(s);
-        }
+        List<Sale> list = new ArrayList<>(memorySales.values());
         list.sort(Comparator.comparing(Sale::getSaleDate, Comparator.nullsLast(Comparator.reverseOrder())));
         return list;
     }
@@ -73,21 +63,10 @@ public class SalesService {
 
     public Optional<Sale> getSaleById(Long id, Long userId) throws SQLException {
         if (id == null) return Optional.empty();
-        Optional<Sale> opt;
         if (DatabaseConfig.isAvailable()) {
-            opt = salesDao.findById(id);
-        } else {
-            opt = Optional.ofNullable(memorySales.get(id));
+            return salesDao.findById(id);
         }
-        if (opt.isPresent() && userId != null) {
-            Sale s = opt.get();
-            if (s.getUserId() == null) {
-                if (!Long.valueOf(1).equals(userId)) return Optional.empty();
-            } else if (!s.getUserId().equals(userId)) {
-                return Optional.empty();
-            }
-        }
-        return opt;
+        return Optional.ofNullable(memorySales.get(id));
     }
 
     public List<Sale> getSalesByFoodItemId(Long foodItemId) throws SQLException {
@@ -258,12 +237,6 @@ public class SalesService {
         if (id == null) return false;
         if (DatabaseConfig.isAvailable()) {
             return salesDao.delete(id);
-        }
-        Sale existing = memorySales.get(id);
-        if (existing != null && userId != null) {
-            if (existing.getUserId() != null && !existing.getUserId().equals(userId)) {
-                return false;
-            }
         }
         return memorySales.remove(id) != null;
     }

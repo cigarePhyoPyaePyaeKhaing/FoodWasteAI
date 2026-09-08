@@ -7,6 +7,7 @@ import java.util.*;
 
 /**
  * Data Access Object for AI recommendations with prepared statements.
+ * Reads and writes the existing recommendations table without requiring a user_id column.
  */
 public class RecommendationDao extends BaseDao {
 
@@ -41,48 +42,33 @@ public class RecommendationDao extends BaseDao {
 
     public List<Recommendation> findActiveRecommendations(Long userId) throws SQLException {
         List<Recommendation> list = new ArrayList<>();
-        String sql;
-        if (userId != null) {
-            sql = "SELECT r.id, r.food_item_id, f.name AS food_name, f.quantity AS stock, " +
-                  "r.category, r.risk_level, r.title, r.title_en, r.title_my, r.description, r.description_en, r.description_my, " +
-                  "r.reasoning_details, r.reasoning_details_en, r.reasoning_details_my, r.estimated_savings, r.status, r.created_at, r.updated_at, r.user_id " +
-                  "FROM recommendations r JOIN food_items f ON r.food_item_id = f.id " +
-                  "WHERE f.quantity > 0 AND r.status != 'DISMISSED' AND (r.user_id = ? OR (r.user_id IS NULL AND ? = 1)) " +
-                  "ORDER BY r.id DESC";
-        } else {
-            sql = "SELECT r.id, r.food_item_id, f.name AS food_name, f.quantity AS stock, " +
-                  "r.category, r.risk_level, r.title, r.title_en, r.title_my, r.description, r.description_en, r.description_my, " +
-                  "r.reasoning_details, r.reasoning_details_en, r.reasoning_details_my, r.estimated_savings, r.status, r.created_at, r.updated_at, r.user_id " +
-                  "FROM recommendations r JOIN food_items f ON r.food_item_id = f.id " +
-                  "WHERE f.quantity > 0 AND r.status != 'DISMISSED' " +
-                  "ORDER BY r.id DESC";
-        }
+        String sql = "SELECT r.id, r.food_item_id, f.name AS food_name, f.quantity AS stock, " +
+                     "r.category, r.risk_level, r.title, r.title_en, r.title_my, r.description, r.description_en, r.description_my, " +
+                     "r.reasoning_details, r.reasoning_details_en, r.reasoning_details_my, r.estimated_savings, r.status, r.created_at, r.updated_at " +
+                     "FROM recommendations r JOIN food_items f ON r.food_item_id = f.id " +
+                     "WHERE f.quantity > 0 AND r.status != 'DISMISSED' " +
+                     "ORDER BY r.id DESC";
 
         Set<String> seenActions = new HashSet<>();
         Map<Long, Recommendation.RiskLevel> latestItemRisk = new HashMap<>();
 
         try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            if (userId != null) {
-                stmt.setLong(1, userId);
-                stmt.setLong(2, userId);
-            }
-            try (ResultSet rs = stmt.executeQuery()) {
-                while (rs.next()) {
-                    Recommendation rec = mapResultSetToRecommendation(rs);
-                    Long foodId = rec.getFoodItemId();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+            while (rs.next()) {
+                Recommendation rec = mapResultSetToRecommendation(rs);
+                Long foodId = rec.getFoodItemId();
 
-                    // Maintain single authoritative risk level consistency per food item
-                    Recommendation.RiskLevel itemRisk = latestItemRisk.computeIfAbsent(foodId, k -> rec.getRiskLevel());
-                    if (rec.getRiskLevel() != itemRisk) {
-                        continue; // Skip stale rows from previous runs with contradictory risk levels
-                    }
+                // Maintain single authoritative risk level consistency per food item
+                Recommendation.RiskLevel itemRisk = latestItemRisk.computeIfAbsent(foodId, k -> rec.getRiskLevel());
+                if (rec.getRiskLevel() != itemRisk) {
+                    continue; // Skip stale rows from previous runs with contradictory risk levels
+                }
 
-                    // Deduplicate by foodItemId + category + actionTitle
-                    String dedupeKey = foodId + "_" + rec.getCategory().name() + "_" + rec.getTitle();
-                    if (seenActions.add(dedupeKey)) {
-                        list.add(rec);
-                    }
+                // Deduplicate by foodItemId + category + actionTitle
+                String dedupeKey = foodId + "_" + rec.getCategory().name() + "_" + rec.getTitle();
+                if (seenActions.add(dedupeKey)) {
+                    list.add(rec);
                 }
             }
         }
@@ -120,8 +106,8 @@ public class RecommendationDao extends BaseDao {
     public Recommendation save(Recommendation rec) throws SQLException {
         String sql = "INSERT INTO recommendations (food_item_id, category, risk_level, title, title_en, title_my, " +
                      "description, description_en, description_my, reasoning_details, reasoning_details_en, reasoning_details_my, " +
-                     "estimated_savings, status, user_id) " +
-                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                     "estimated_savings, status) " +
+                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             stmt.setLong(1, rec.getFoodItemId());
@@ -138,11 +124,6 @@ public class RecommendationDao extends BaseDao {
             stmt.setString(12, rec.getReasoningDetailsMy());
             stmt.setBigDecimal(13, rec.getEstimatedSavings());
             stmt.setString(14, rec.getStatus() != null ? rec.getStatus().name() : Recommendation.Status.PENDING.name());
-            if (rec.getUserId() != null) {
-                stmt.setLong(15, rec.getUserId());
-            } else {
-                stmt.setNull(15, Types.BIGINT);
-            }
 
             int affected = stmt.executeUpdate();
             if (affected > 0) {
@@ -161,20 +142,11 @@ public class RecommendationDao extends BaseDao {
     }
 
     public boolean updateStatus(Long id, Recommendation.Status status, Long userId) throws SQLException {
-        String sql;
-        if (userId != null) {
-            sql = "UPDATE recommendations SET status = ? WHERE id = ? AND (user_id = ? OR (user_id IS NULL AND ? = 1))";
-        } else {
-            sql = "UPDATE recommendations SET status = ? WHERE id = ?";
-        }
+        String sql = "UPDATE recommendations SET status = ? WHERE id = ?";
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, status.name());
             stmt.setLong(2, id);
-            if (userId != null) {
-                stmt.setLong(3, userId);
-                stmt.setLong(4, userId);
-            }
             return stmt.executeUpdate() > 0;
         }
     }
@@ -184,18 +156,9 @@ public class RecommendationDao extends BaseDao {
     }
 
     public int clearPendingRecommendations(Long userId) throws SQLException {
-        String sql;
-        if (userId != null) {
-            sql = "DELETE FROM recommendations WHERE status = 'PENDING' AND (user_id = ? OR (user_id IS NULL AND ? = 1))";
-        } else {
-            sql = "DELETE FROM recommendations WHERE status = 'PENDING'";
-        }
+        String sql = "DELETE FROM recommendations WHERE status = 'PENDING'";
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
-            if (userId != null) {
-                stmt.setLong(1, userId);
-                stmt.setLong(2, userId);
-            }
             return stmt.executeUpdate();
         }
     }
@@ -232,11 +195,6 @@ public class RecommendationDao extends BaseDao {
 
         Timestamp updated = rs.getTimestamp("updated_at");
         if (updated != null) rec.setUpdatedAt(updated.toLocalDateTime());
-
-        try {
-            long uid = rs.getLong("user_id");
-            if (!rs.wasNull()) rec.setUserId(uid);
-        } catch (SQLException ignored) {}
 
         return rec;
     }

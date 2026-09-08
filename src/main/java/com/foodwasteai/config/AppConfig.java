@@ -162,19 +162,19 @@ public class AppConfig {
 
     public static String getDbName() {
         String name = get("DB_NAME", null);
-        if (name != null) return name;
+        if (name != null && !name.equalsIgnoreCase("defaultdb")) return name;
 
         name = get("MYSQLDATABASE", null);
-        if (name != null) return name;
+        if (name != null && !name.equalsIgnoreCase("defaultdb")) return name;
 
         name = get("MYSQL_DATABASE", null);
-        if (name != null) return name;
+        if (name != null && !name.equalsIgnoreCase("defaultdb")) return name;
 
         name = get("DATABASE_NAME", null);
-        if (name != null) return name;
+        if (name != null && !name.equalsIgnoreCase("defaultdb")) return name;
 
         ParsedDbUrl parsed = parseDatabaseUrl();
-        if (parsed != null && parsed.dbName != null) {
+        if (parsed != null && parsed.dbName != null && !parsed.dbName.equalsIgnoreCase("defaultdb")) {
             return parsed.dbName;
         }
 
