@@ -37,22 +37,7 @@ public abstract class BaseServlet extends HttpServlet {
                     return LocalDate.parse(json.getAsString().substring(0, 10), DateTimeFormatter.ISO_LOCAL_DATE);
                 }
             })
-            .registerTypeAdapter(LocalDateTime.class, new JsonSerializer<LocalDateTime>() {
-                @Override
-                public JsonElement serialize(LocalDateTime src, Type typeOfSrc, JsonSerializationContext context) {
-                    return new JsonPrimitive(src.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
-                }
-            })
-            .registerTypeAdapter(LocalDateTime.class, new JsonDeserializer<LocalDateTime>() {
-                @Override
-                public LocalDateTime deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
-                    String str = json.getAsString();
-                    if (str.length() == 10) {
-                        return LocalDate.parse(str, DateTimeFormatter.ISO_LOCAL_DATE).atStartOfDay();
-                    }
-                    return LocalDateTime.parse(str.replace(" ", "T"), DateTimeFormatter.ISO_LOCAL_DATE_TIME);
-                }
-            })
+            .registerTypeAdapter(LocalDateTime.class, new com.foodwasteai.util.LocalDateTimeJsonAdapter())
             .serializeNulls()
             .create();
 

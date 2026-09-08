@@ -214,7 +214,7 @@ public class RedistributionService {
         dispatch.setRecipientName(recipient.getName());
 
         if (dispatch.getPickupTime() == null) {
-            dispatch.setPickupTime(LocalDateTime.now(com.foodwasteai.util.ExpiryStatusResolver.ZONE_YANGON).plusDays(1).withHour(14).withMinute(0));
+            dispatch.setPickupTime(com.foodwasteai.util.AppTime.now().plusDays(1).withHour(14).withMinute(0));
         }
         if (dispatch.getStatus() == null) {
             dispatch.setStatus(Redistribution.Status.CONFIRMED);
@@ -241,7 +241,7 @@ public class RedistributionService {
         } else {
             long id = dispatchIdGen.incrementAndGet();
             dispatch.setId(id);
-            dispatch.setCreatedAt(LocalDateTime.now(java.time.ZoneOffset.UTC));
+            dispatch.setCreatedAt(com.foodwasteai.util.AppTime.utcNow());
             memoryDispatches.put(id, dispatch);
             saved = dispatch;
         }
@@ -273,7 +273,7 @@ public class RedistributionService {
         Redistribution d = memoryDispatches.get(id);
         if (d != null) {
             d.setStatus(status);
-            d.setUpdatedAt(LocalDateTime.now(java.time.ZoneOffset.UTC));
+            d.setUpdatedAt(com.foodwasteai.util.AppTime.utcNow());
             return true;
         }
         return false;

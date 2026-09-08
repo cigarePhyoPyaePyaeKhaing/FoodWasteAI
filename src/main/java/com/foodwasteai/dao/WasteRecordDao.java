@@ -98,8 +98,8 @@ public class WasteRecordDao extends BaseDao {
                      "WHERE w.waste_date >= ? AND w.waste_date < ? AND f.user_id = ? ORDER BY w.waste_date DESC";
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setObject(1, start.atStartOfDay(com.foodwasteai.util.ExpiryStatusResolver.ZONE_YANGON).withZoneSameInstant(java.time.ZoneOffset.UTC).toLocalDateTime());
-            stmt.setObject(2, end.plusDays(1).atStartOfDay(com.foodwasteai.util.ExpiryStatusResolver.ZONE_YANGON).withZoneSameInstant(java.time.ZoneOffset.UTC).toLocalDateTime());
+            stmt.setObject(1, com.foodwasteai.util.AppTime.startOfDayUtc(start));
+            stmt.setObject(2, com.foodwasteai.util.AppTime.startOfDayUtc(end.plusDays(1)));
             stmt.setLong(3, userId);
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
@@ -163,8 +163,8 @@ public class WasteRecordDao extends BaseDao {
         String insertWasteSql = "INSERT INTO waste_records (food_item_id, quantity_wasted, reason, monetary_loss, waste_date, notes) " +
                                 "VALUES (?, ?, ?, ?, ?, ?)";
         String updateFoodQtySql = "UPDATE food_items SET quantity = ?, status = CASE " +
-                                  "WHEN expiry_date < CURDATE() THEN 'EXPIRED' " +
-                                  "WHEN expiry_date <= DATE_ADD(CURDATE(), INTERVAL 2 DAY) THEN 'NEAR_EXPIRY' " +
+                                  "WHEN expiry_date < " + com.foodwasteai.util.AppTime.SQL_TODAY + " THEN 'EXPIRED' " +
+                                  "WHEN expiry_date <= DATE_ADD(" + com.foodwasteai.util.AppTime.SQL_TODAY + ", INTERVAL 2 DAY) THEN 'NEAR_EXPIRY' " +
                                   "ELSE 'OK' END WHERE id = ? AND user_id = ?";
         String insertTxSql = "INSERT INTO inventory_transactions (food_item_id, transaction_type, quantity, unit, notes, created_by) " +
                              "VALUES (?, 'WASTE_ADJUSTMENT', ?, ?, ?, ?)";
@@ -190,8 +190,8 @@ public class WasteRecordDao extends BaseDao {
                         foodItem.setQuantity(rs.getBigDecimal("quantity"));
                         foodItem.setUnit(rs.getString("unit"));
                         foodItem.setPricePerUnit(rs.getBigDecimal("price_per_unit"));
-                        Date exp = rs.getDate("expiry_date");
-                        if (exp != null) foodItem.setExpiryDate(exp.toLocalDate());
+                        java.time.LocalDate exp = rs.getObject("expiry_date", java.time.LocalDate.class);
+                        if (exp != null) foodItem.setExpiryDate(exp);
                         foodItem.setStatus(rs.getString("status"));
                     }
                 }
@@ -241,7 +241,7 @@ public class WasteRecordDao extends BaseDao {
             record.setMonetaryLoss(monetaryLoss);
 
             if (record.getWasteDate() == null) {
-                record.setWasteDate(LocalDateTime.now(java.time.ZoneOffset.UTC));
+                record.setWasteDate(com.foodwasteai.util.AppTime.utcNow());
             }
 
             Long validUserId = resolveValidUserId(conn, userId);

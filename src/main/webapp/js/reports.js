@@ -10,7 +10,7 @@ const Reports = {
     return date.toISOString().slice(0,10);
   },
   _dateRangeFor(period) {
-    const endDate=API.formatTimestamp(new Date().toISOString()).date;
+    const endDate=API.today();
     const today=new Date(endDate+'T00:00:00Z');
     if(period==='today') return {startDate:endDate,endDate};
     if(period==='week') {const day=today.getUTCDay();today.setUTCDate(today.getUTCDate()+(day===0?-6:1-day));return {startDate:this._toISO(today),endDate};}
@@ -248,8 +248,8 @@ const Reports = {
     }
 
     // ── Today's date for filename & timestamp ────────────────────────────────
-    const now       = new Date();
-    const todayISO  = this._toISO(now);
+    const now       = API.now();
+    const todayISO  = API.today();
     const timestamp = API.formatTimestamp(now.toISOString()).text;
 
     // ── Read live KPI card values from DOM ───────────────────────────────────

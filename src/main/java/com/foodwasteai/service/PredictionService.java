@@ -34,7 +34,7 @@ public class PredictionService {
     private final WasteRecordDao wasteDao;
     private final PredictionDao predictionDao;
     private final WasteService wasteService;
-    private java.time.Clock clock = java.time.Clock.system(com.foodwasteai.util.ExpiryStatusResolver.ZONE_YANGON);
+    private java.time.Clock clock = java.time.Clock.system(com.foodwasteai.util.AppTime.APP_ZONE);
 
     public PredictionService() {
         this.prologService = new PrologService();
@@ -70,7 +70,7 @@ public class PredictionService {
                              SalesDao salesDao, WasteRecordDao wasteDao, PredictionDao predictionDao,
                              WasteService wasteService, java.time.Clock clock) {
         this(prologService, foodItemService, salesDao, wasteDao, predictionDao, wasteService);
-        this.clock = Objects.requireNonNull(clock).withZone(com.foodwasteai.util.ExpiryStatusResolver.ZONE_YANGON);
+        this.clock = Objects.requireNonNull(clock).withZone(com.foodwasteai.util.AppTime.APP_ZONE);
     }
     /**
      * Assesses a food item by passing raw metrics to Prolog.
@@ -137,7 +137,7 @@ public class PredictionService {
         if (item == null) return Optional.empty();
         double stock = item.getQuantity() != null ? Math.max(0.0, item.getQuantity().doubleValue()) : 0.0;
         String unit = item.getUnit() != null && !item.getUnit().trim().isEmpty() ? item.getUnit().trim() : "kg";
-        int expiryDays = com.foodwasteai.util.ExpiryStatusResolver.calculateDaysRemaining(item.getExpiryDate(), LocalDate.now(clock));
+        int expiryDays = com.foodwasteai.util.ExpiryStatusResolver.calculateDaysRemaining(item.getExpiryDate(), com.foodwasteai.util.AppTime.today(clock));
 
         double expectedDemand = calculateExpectedDailyDemand(item);
 
@@ -152,7 +152,7 @@ public class PredictionService {
         assessment.setCategory(item.getCategory());
         assessment.setUnit(unit);
         assessment.setExpiryDate(item.getExpiryDate());
-        int curDays = com.foodwasteai.util.ExpiryStatusResolver.calculateDaysRemaining(item.getExpiryDate(), LocalDate.now(clock));
+        int curDays = com.foodwasteai.util.ExpiryStatusResolver.calculateDaysRemaining(item.getExpiryDate(), com.foodwasteai.util.AppTime.today(clock));
         assessment.setCurrentDaysRemaining(curDays);
         assessment.setExpiryDaysRemaining(curDays);
 
@@ -177,7 +177,7 @@ public class PredictionService {
     public Map<String, Object> assessInventory(List<FoodItem> items) throws SQLException {
         if (items == null) items = Collections.emptyList();
 
-        LocalDate today = LocalDate.now(clock);
+        LocalDate today = com.foodwasteai.util.AppTime.today(clock);
         LocalDate forecastStartDate = today.plusDays(1);
         LocalDate forecastEndDate = today.plusDays(7);
 
@@ -384,7 +384,7 @@ public class PredictionService {
         weeklySummary.put("potentialSavings", Math.round(weeklyPotentialSavings));
         weeklySummary.put("totalItemsEvaluated", activeItems.size());
 
-        String predictionTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("MMM d, yyyy, h:mm a", Locale.US));
+        String predictionTime = LocalDateTime.ofInstant(clock.instant(), com.foodwasteai.util.AppTime.APP_ZONE).format(DateTimeFormatter.ofPattern("MMM d, yyyy, h:mm a", Locale.US));
 
         Map<String, Object> todayActualWaste = calculateTodayActualWaste(items);
 
@@ -497,7 +497,7 @@ public class PredictionService {
      */
     public Map<String, Object> calculateTodayActualWaste(List<FoodItem> items) {
         Map<String, Object> result = new LinkedHashMap<>();
-        LocalDate today = LocalDate.now(clock);
+        LocalDate today = com.foodwasteai.util.AppTime.today(clock);
         String todayStr = today.toString();
 
         result.put("date", todayStr);
@@ -593,7 +593,7 @@ public class PredictionService {
 
     /** Expiring-tomorrow subset of the same day-one projection, preserving batch identity. */
     private Map<String,Object> summarizeTomorrow(List<Map<String,Object>> forecastDays) {
-        LocalDate tomorrow = LocalDate.now(clock).plusDays(1);
+        LocalDate tomorrow = com.foodwasteai.util.AppTime.today(clock).plusDays(1);
         List<PrologAssessment> rows = (List<PrologAssessment>) forecastDays.get(0).get("items");
         List<PrologAssessment> selected = rows.stream().filter(a -> tomorrow.equals(a.getExpiryDate())).toList();
         Map<String,Double> units = new LinkedHashMap<>();
@@ -619,7 +619,7 @@ public class PredictionService {
             return Collections.emptyList();
         }
 
-        LocalDate today = LocalDate.now(clock);
+        LocalDate today = com.foodwasteai.util.AppTime.today(clock);
         LocalDate tomorrow = today.plusDays(1);
 
         // Filter strictly for active items with remainingQuantity > 0 and expiryDate == tomorrow
@@ -694,13 +694,13 @@ public class PredictionService {
         String formattedTotalWaste = (String) report.get("formattedTotalWaste");
 
         Long savedId = null;
-        LocalDateTime createdAt = LocalDateTime.now();
+        LocalDateTime createdAt = com.foodwasteai.util.AppTime.utcNow(clock);
 
         // Persist to MySQL predictions and prediction_items tables
         if (DatabaseConfig.isAvailable() && assessments != null && !assessments.isEmpty()) {
             try {
                 Prediction pred = new Prediction();
-                pred.setPredictionDate(LocalDate.now(clock).plusDays(1));
+                pred.setPredictionDate(com.foodwasteai.util.AppTime.today(clock).plusDays(1));
                 pred.setOverallRiskScore(BigDecimal.valueOf(avgRisk).setScale(2, RoundingMode.HALF_UP));
                 pred.setExpectedTotalWasteKg(BigDecimal.valueOf(expectedTotalWasteKg).setScale(2, RoundingMode.HALF_UP));
                 pred.setEstimatedMoneyLost(BigDecimal.valueOf(estimatedMoneyLost).setScale(2, RoundingMode.HALF_UP));

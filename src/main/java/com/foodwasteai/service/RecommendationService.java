@@ -107,7 +107,7 @@ public class RecommendationService {
         Recommendation r = memoryRecs.get(id);
         if (r != null) {
             r.setStatus(status);
-            r.setUpdatedAt(LocalDateTime.now());
+            r.setUpdatedAt(com.foodwasteai.util.AppTime.utcNow());
             return true;
         }
         return false;
@@ -386,7 +386,7 @@ public class RecommendationService {
         } else {
             long newId = recIdGen.incrementAndGet();
             r.setId(newId);
-            r.setCreatedAt(LocalDateTime.now());
+            r.setCreatedAt(com.foodwasteai.util.AppTime.utcNow());
             memoryRecs.put(newId, r);
         }
     }

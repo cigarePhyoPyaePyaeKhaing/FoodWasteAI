@@ -1,4 +1,29 @@
 # FoodWaste AI
+
+## Application time contract
+
+`AppTime.APP_ZONE` (`Asia/Yangon`, UTC+06:30) is authoritative for business dates,
+expiry, today/tomorrow, and forecast calendar days. Session expiry and request
+deduplication continue to use elapsed-time durations rather than calendar dates.
+
+MySQL event columns (`created_at`, `updated_at`, `sale_date`, `waste_date`) retain
+their UTC contract. Every pooled connection explicitly sets its session timezone
+to `+00:00`; JDBC reads event values as `LocalDateTime` in that session, avoiding
+`Timestamp.toLocalDateTime()` conversions through the JVM default timezone.
+JSON event timestamps carry `Z`. The `pickup_time` DATETIME column retains Yangon
+wall time, and its JSON `pickupTime` carries `+06:30`. Offset-bearing input is
+normalized once into the corresponding storage contract. Existing timezone-less
+event input means UTC; timezone-less scheduled pickup input means Yangon.
+Calendar DATE columns remain dates, without an offset. No historical rows are
+rewritten by this change.
+
+Inclusive report date selections are queried as the half-open UTC interval from
+the first selected Yangon midnight to midnight after the last selected day.
+Rolling sales/waste history windows remain elapsed-day windows. SQL expiry
+checks use the Yangon business date without requiring MySQL timezone tables.
+Frontend timestamps use the shared `API.timeZone`; after an API response, the
+server timestamp anchors the current clock. Report filenames and date defaults
+use the same Yangon date. Scheduled pickup inputs are explicitly Yangon time.
 ### An Intelligent System for Food Waste Prediction, Prevention & Redistribution
 
 **Tagline:**  

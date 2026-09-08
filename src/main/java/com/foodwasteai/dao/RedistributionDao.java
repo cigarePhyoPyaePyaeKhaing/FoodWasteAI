@@ -155,7 +155,7 @@ public class RedistributionDao extends BaseDao {
             stmt.setLong(2, d.getRecipientId());
             stmt.setBigDecimal(3, d.getQuantity());
             stmt.setString(4, d.getUnit() != null ? d.getUnit() : "kg");
-            stmt.setObject(5, d.getPickupTime() != null ? d.getPickupTime() : java.time.LocalDateTime.now(com.foodwasteai.util.ExpiryStatusResolver.ZONE_YANGON));
+            stmt.setObject(5, d.getPickupTime() != null ? d.getPickupTime() : com.foodwasteai.util.AppTime.now());
             stmt.setString(6, d.getStatus() != null ? d.getStatus().name() : Redistribution.Status.PENDING.name());
             stmt.setString(7, d.getNotes());
             stmt.setString(8, d.getNotesEn());

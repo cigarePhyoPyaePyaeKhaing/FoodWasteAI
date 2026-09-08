@@ -61,6 +61,7 @@ public class DatabaseConfig {
             config.setUsername(user);
             config.setPassword(password);
             config.setDriverClassName("com.mysql.cj.jdbc.Driver");
+            config.setConnectionInitSql("SET time_zone = '+00:00'");
 
             config.setMinimumIdle(AppConfig.getInt("DB_POOL_MIN_IDLE", 2));
             config.setMaximumPoolSize(AppConfig.getInt("DB_POOL_MAX_SIZE", 10));

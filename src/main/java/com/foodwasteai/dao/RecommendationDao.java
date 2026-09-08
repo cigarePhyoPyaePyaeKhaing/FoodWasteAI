@@ -210,11 +210,11 @@ public class RecommendationDao extends BaseDao {
         rec.setEstimatedSavings(rs.getBigDecimal("estimated_savings"));
         rec.setStatus(Recommendation.Status.valueOf(rs.getString("status")));
 
-        Timestamp created = rs.getTimestamp("created_at");
-        if (created != null) rec.setCreatedAt(created.toLocalDateTime());
+        java.time.LocalDateTime created = rs.getObject("created_at", java.time.LocalDateTime.class);
+        if (created != null) rec.setCreatedAt(created);
 
-        Timestamp updated = rs.getTimestamp("updated_at");
-        if (updated != null) rec.setUpdatedAt(updated.toLocalDateTime());
+        java.time.LocalDateTime updated = rs.getObject("updated_at", java.time.LocalDateTime.class);
+        if (updated != null) rec.setUpdatedAt(updated);
 
         return rec;
     }

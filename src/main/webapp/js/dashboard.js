@@ -26,7 +26,7 @@ const Dashboard = {
   },
 
   getTodayDateString() {
-    return API.formatTimestamp(new Date().toISOString()).date;
+    return API.today();
   },
 
   async init() {

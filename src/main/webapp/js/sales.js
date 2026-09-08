@@ -64,7 +64,7 @@ const Sales = {
 
     // Group items by normalized product name (case-insensitive, trimmed)
     const groups = new Map();
-    const todayStr = new Date().toISOString().slice(0, 10);
+    const todayStr = API.today();
 
     const isBatchSellable = (item) => {
       const remQty = Number(item.remainingQuantity !== undefined ? item.remainingQuantity : (item.quantity || 0));

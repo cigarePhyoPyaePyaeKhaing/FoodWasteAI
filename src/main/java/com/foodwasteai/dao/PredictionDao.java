@@ -19,7 +19,7 @@ public class PredictionDao extends BaseDao {
                      "estimated_money_lost, potential_savings, status, user_id) VALUES (?, ?, ?, ?, ?, ?, ?)";
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-            stmt.setDate(1, Date.valueOf(pred.getPredictionDate() != null ? pred.getPredictionDate() : java.time.LocalDate.now()));
+            stmt.setObject(1, pred.getPredictionDate() != null ? pred.getPredictionDate() : com.foodwasteai.util.AppTime.today());
             stmt.setBigDecimal(2, pred.getOverallRiskScore());
             stmt.setBigDecimal(3, pred.getExpectedTotalWasteKg());
             stmt.setBigDecimal(4, pred.getEstimatedMoneyLost());
@@ -134,14 +134,14 @@ public class PredictionDao extends BaseDao {
                 Prediction p = new Prediction();
                 p.setUserId(userId);
                 p.setId(rs.getLong("id"));
-                p.setPredictionDate(rs.getDate("prediction_date").toLocalDate());
+                p.setPredictionDate(rs.getObject("prediction_date", java.time.LocalDate.class));
                 p.setOverallRiskScore(rs.getBigDecimal("overall_risk_score"));
                 p.setExpectedTotalWasteKg(rs.getBigDecimal("expected_total_waste_kg"));
                 p.setEstimatedMoneyLost(rs.getBigDecimal("estimated_money_lost"));
                 p.setPotentialSavings(rs.getBigDecimal("potential_savings"));
                 p.setStatus(Prediction.Status.valueOf(rs.getString("status")));
-                Timestamp ct = rs.getTimestamp("created_at");
-                if (ct != null) p.setCreatedAt(ct.toLocalDateTime());
+                java.time.LocalDateTime ct = rs.getObject("created_at", java.time.LocalDateTime.class);
+                if (ct != null) p.setCreatedAt(ct);
                 return Optional.of(p);
             }
             }
@@ -172,8 +172,8 @@ public class PredictionDao extends BaseDao {
         item.setReasoningTextEn(rs.getString("reasoning_text_en"));
         item.setReasoningTextMy(rs.getString("reasoning_text_my"));
 
-        Timestamp ct = rs.getTimestamp("created_at");
-        if (ct != null) item.setCreatedAt(ct.toLocalDateTime());
+        java.time.LocalDateTime ct = rs.getObject("created_at", java.time.LocalDateTime.class);
+        if (ct != null) item.setCreatedAt(ct);
         return item;
     }
 }

@@ -154,11 +154,11 @@ public class UserDao extends BaseDao {
         user.setRole(User.Role.valueOf(rs.getString("role")));
         user.setActive(rs.getBoolean("active"));
 
-        Timestamp created = rs.getTimestamp("created_at");
-        if (created != null) user.setCreatedAt(created.toLocalDateTime());
+        java.time.LocalDateTime created = rs.getObject("created_at", java.time.LocalDateTime.class);
+        if (created != null) user.setCreatedAt(created);
 
-        Timestamp updated = rs.getTimestamp("updated_at");
-        if (updated != null) user.setUpdatedAt(updated.toLocalDateTime());
+        java.time.LocalDateTime updated = rs.getObject("updated_at", java.time.LocalDateTime.class);
+        if (updated != null) user.setUpdatedAt(updated);
 
         return user;
     }

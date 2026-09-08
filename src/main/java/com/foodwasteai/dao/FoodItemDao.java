@@ -90,7 +90,7 @@ public class FoodItemDao extends BaseDao {
         List<FoodItem> list = new ArrayList<>();
         String sql = "SELECT f.id, f.name, f.category, f.quantity, f.unit, f.price_per_unit, f.expiry_date, f.status, f.created_at, f.updated_at, f.user_id, " +
                      "COALESCE((SELECT SUM(t.quantity) FROM inventory_transactions t WHERE t.food_item_id = f.id AND t.transaction_type IN ('PURCHASE', 'STOCK_IN')), f.quantity) AS total_quantity " +
-                     "FROM food_items f WHERE f.expiry_date <= DATE_ADD(CURDATE(), INTERVAL ? DAY) AND f.quantity > 0 AND f.user_id = ? ORDER BY f.expiry_date ASC";
+                     "FROM food_items f WHERE f.expiry_date <= DATE_ADD(" + com.foodwasteai.util.AppTime.SQL_TODAY + ", INTERVAL ? DAY) AND f.quantity > 0 AND f.user_id = ? ORDER BY f.expiry_date ASC";
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, daysThreshold);
@@ -119,7 +119,7 @@ public class FoodItemDao extends BaseDao {
             stmt.setBigDecimal(3, item.getQuantity());
             stmt.setString(4, item.getUnit().trim());
             stmt.setBigDecimal(5, item.getPricePerUnit());
-            stmt.setDate(6, Date.valueOf(item.getExpiryDate()));
+            stmt.setObject(6, item.getExpiryDate());
             stmt.setString(7, item.getStatus() != null ? item.getStatus() : "OK");
             stmt.setLong(8, requireUserId(item.getUserId()));
 
@@ -162,8 +162,8 @@ public class FoodItemDao extends BaseDao {
                 "ORDER BY id ASC LIMIT 1 FOR UPDATE";
 
         String updateStockSql = "UPDATE food_items SET quantity = ?, status = CASE " +
-                                "WHEN expiry_date < CURDATE() THEN 'EXPIRED' " +
-                                "WHEN expiry_date <= DATE_ADD(CURDATE(), INTERVAL 2 DAY) THEN 'NEAR_EXPIRY' " +
+                                "WHEN expiry_date < " + com.foodwasteai.util.AppTime.SQL_TODAY + " THEN 'EXPIRED' " +
+                                "WHEN expiry_date <= DATE_ADD(" + com.foodwasteai.util.AppTime.SQL_TODAY + ", INTERVAL 2 DAY) THEN 'NEAR_EXPIRY' " +
                                 "ELSE 'OK' END, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?";
 
         String insertFoodSql = "INSERT INTO food_items (name, category, quantity, unit, price_per_unit, expiry_date, status, user_id) " +
@@ -187,7 +187,7 @@ public class FoodItemDao extends BaseDao {
                 stmt.setString(1, normName);
                 stmt.setString(2, normUnit);
                 stmt.setBigDecimal(3, price);
-                stmt.setDate(4, Date.valueOf(expiry));
+                stmt.setObject(4, expiry);
                 stmt.setLong(5, userId);
                 try (ResultSet rs = stmt.executeQuery()) {
                     if (rs.next()) {
@@ -256,7 +256,7 @@ public class FoodItemDao extends BaseDao {
                     insertStmt.setBigDecimal(3, addedQty);
                     insertStmt.setString(4, normUnit);
                     insertStmt.setBigDecimal(5, price);
-                    insertStmt.setDate(6, Date.valueOf(expiry));
+                    insertStmt.setObject(6, expiry);
                     insertStmt.setString(7, item.getStatus() != null ? item.getStatus() : "OK");
                     insertStmt.setLong(8, userId);
 
@@ -334,7 +334,7 @@ public class FoodItemDao extends BaseDao {
             stmt.setBigDecimal(3, item.getQuantity());
             stmt.setString(4, item.getUnit().trim());
             stmt.setBigDecimal(5, item.getPricePerUnit());
-            stmt.setDate(6, Date.valueOf(item.getExpiryDate()));
+            stmt.setObject(6, item.getExpiryDate());
             stmt.setString(7, item.getStatus());
             stmt.setLong(8, item.getId());
             stmt.setLong(9, requireUserId(item.getUserId()));
@@ -352,8 +352,8 @@ public class FoodItemDao extends BaseDao {
             newQuantity = BigDecimal.ZERO.setScale(2, java.math.RoundingMode.HALF_UP);
         }
         String sql = "UPDATE food_items SET quantity = ?, status = CASE " +
-                     "WHEN expiry_date < CURDATE() THEN 'EXPIRED' " +
-                     "WHEN expiry_date <= DATE_ADD(CURDATE(), INTERVAL 2 DAY) THEN 'NEAR_EXPIRY' " +
+                     "WHEN expiry_date < " + com.foodwasteai.util.AppTime.SQL_TODAY + " THEN 'EXPIRED' " +
+                     "WHEN expiry_date <= DATE_ADD(" + com.foodwasteai.util.AppTime.SQL_TODAY + ", INTERVAL 2 DAY) THEN 'NEAR_EXPIRY' " +
                      "ELSE 'OK' END WHERE id = ? AND user_id = ?";
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -402,9 +402,9 @@ public class FoodItemDao extends BaseDao {
             item.setTotalQuantity(remainingQty != null ? remainingQty : BigDecimal.ZERO);
         }
 
-        Date expiry = rs.getDate("expiry_date");
+        java.time.LocalDate expiry = rs.getObject("expiry_date", java.time.LocalDate.class);
         if (expiry != null) {
-            item.setExpiryDate(expiry.toLocalDate());
+            item.setExpiryDate(expiry);
         }
 
         // Dynamically compute status and all expiry fields using Asia/Yangon date

@@ -66,7 +66,7 @@ public class WasteService {
         Set<Long> recordedFoodItemIdsToday = new HashSet<>();
         for (WasteRecord w : persisted) {
             if (w.getFoodItemId() != null && w.getWasteDate() != null) {
-                if (w.getWasteDate().toLocalDate().isEqual(today)) {
+                if (com.foodwasteai.util.AppTime.businessDate(w.getWasteDate()).isEqual(today)) {
                     recordedFoodItemIdsToday.add(w.getFoodItemId());
                 }
             }
@@ -88,10 +88,10 @@ public class WasteService {
                             autoWaste.setUnit(item.getUnit());
                             BigDecimal price = item.getPricePerUnit() != null ? item.getPricePerUnit() : BigDecimal.ZERO;
                             autoWaste.setMonetaryLoss(price.multiply(item.getQuantity()).setScale(2, RoundingMode.HALF_UP));
-                            autoWaste.setWasteDate(today.atStartOfDay());
+                            autoWaste.setWasteDate(com.foodwasteai.util.AppTime.startOfDayUtc(today));
                             autoWaste.setReason(WasteRecord.Reason.EXPIRED);
                             autoWaste.setNotes("Usable life ended on " + today + " (unsold inventory stock)");
-                            autoWaste.setCreatedAt(today.atStartOfDay());
+                            autoWaste.setCreatedAt(com.foodwasteai.util.AppTime.startOfDayUtc(today));
                             autoWaste.setUserId(userId);
                             result.add(autoWaste);
                         }
@@ -142,7 +142,7 @@ public class WasteService {
         List<WasteRecord> list = new ArrayList<>();
         for (WasteRecord w : all) {
             if (w.getWasteDate() != null) {
-                LocalDate d = w.getWasteDate().toLocalDate();
+                LocalDate d = com.foodwasteai.util.AppTime.businessDate(w.getWasteDate());
                 if (!d.isBefore(start) && !d.isAfter(end)) {
                     list.add(w);
                 }
@@ -159,7 +159,7 @@ public class WasteService {
 
         // Guarantee Requirement 9: Waste Record date/time must be when the waste was actually recorded, never expiry date
         if (record.getWasteDate() == null) {
-            record.setWasteDate(LocalDateTime.now(java.time.ZoneOffset.UTC));
+            record.setWasteDate(com.foodwasteai.util.AppTime.utcNow());
         }
 
         // Idempotency check with in-flight lock: if a clientRequestId is provided, ensure strictly one execution
@@ -251,13 +251,13 @@ public class WasteService {
             record.setMonetaryLoss(monetaryLoss);
 
             if (record.getWasteDate() == null) {
-                record.setWasteDate(LocalDateTime.now(java.time.ZoneOffset.UTC));
+                record.setWasteDate(com.foodwasteai.util.AppTime.utcNow());
             }
 
             long newId = wasteIdGen.incrementAndGet();
             record.setId(newId);
             record.setUserId(userId);
-            record.setCreatedAt(LocalDateTime.now(java.time.ZoneOffset.UTC));
+            record.setCreatedAt(com.foodwasteai.util.AppTime.utcNow());
             memoryWaste.put(newId, record);
 
             // Deduct stock in memory store

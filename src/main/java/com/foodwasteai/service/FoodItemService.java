@@ -206,7 +206,7 @@ public class FoodItemService {
                 BigDecimal currentQty = existing.getQuantity() != null ? existing.getQuantity() : BigDecimal.ZERO;
                 BigDecimal newQty = currentQty.add(addedQty);
                 existing.setQuantity(newQty);
-                existing.setUpdatedAt(LocalDateTime.now(java.time.ZoneOffset.UTC));
+                existing.setUpdatedAt(com.foodwasteai.util.AppTime.utcNow());
                 computeStatus(existing);
 
                 InventoryTransaction tx = new InventoryTransaction(
@@ -218,7 +218,7 @@ public class FoodItemService {
                         userId
                 );
                 tx.setId((long) (memoryTransactions.size() + 1));
-                tx.setCreatedAt(LocalDateTime.now(java.time.ZoneOffset.UTC));
+                tx.setCreatedAt(com.foodwasteai.util.AppTime.utcNow());
                 memoryTransactions.add(tx);
 
                 computeMemoryTotalQuantity(existing);
@@ -237,8 +237,8 @@ public class FoodItemService {
         item.setTotalQuantity(addedQty);
         item.setUnit(normUnit);
         item.setPricePerUnit(price);
-        item.setCreatedAt(LocalDateTime.now(java.time.ZoneOffset.UTC));
-        item.setUpdatedAt(LocalDateTime.now(java.time.ZoneOffset.UTC));
+        item.setCreatedAt(com.foodwasteai.util.AppTime.utcNow());
+        item.setUpdatedAt(com.foodwasteai.util.AppTime.utcNow());
         computeStatus(item);
         memoryStore.put(newId, item);
 
@@ -251,7 +251,7 @@ public class FoodItemService {
                 userId
         );
         tx.setId((long) (memoryTransactions.size() + 1));
-        tx.setCreatedAt(LocalDateTime.now(java.time.ZoneOffset.UTC));
+        tx.setCreatedAt(com.foodwasteai.util.AppTime.utcNow());
         memoryTransactions.add(tx);
 
         logger.info("Created new food item #{} in-memory with initial stock {}", newId, addedQty);
@@ -288,8 +288,8 @@ public class FoodItemService {
         item.setUserId(userId);
         item.setRemainingQuantity(item.getQuantity());
         item.setTotalQuantity(item.getQuantity());
-        item.setCreatedAt(LocalDateTime.now(java.time.ZoneOffset.UTC));
-        item.setUpdatedAt(LocalDateTime.now(java.time.ZoneOffset.UTC));
+        item.setCreatedAt(com.foodwasteai.util.AppTime.utcNow());
+        item.setUpdatedAt(com.foodwasteai.util.AppTime.utcNow());
         memoryStore.put(newId, item);
 
         InventoryTransaction tx = new InventoryTransaction(
@@ -301,7 +301,7 @@ public class FoodItemService {
                 userId
         );
         tx.setId((long) (memoryTransactions.size() + 1));
-        tx.setCreatedAt(LocalDateTime.now(java.time.ZoneOffset.UTC));
+        tx.setCreatedAt(com.foodwasteai.util.AppTime.utcNow());
         memoryTransactions.add(tx);
         return item;
     }
@@ -383,7 +383,7 @@ public class FoodItemService {
         if (memoryStore.containsKey(item.getId())) {
             FoodItem existing = memoryStore.get(item.getId());
             item.setUserId(existing != null ? existing.getUserId() : userId);
-            item.setUpdatedAt(LocalDateTime.now(java.time.ZoneOffset.UTC));
+            item.setUpdatedAt(com.foodwasteai.util.AppTime.utcNow());
             memoryStore.put(item.getId(), item);
 
             InventoryTransaction tx = new InventoryTransaction(
@@ -395,7 +395,7 @@ public class FoodItemService {
                     userId
             );
             tx.setId((long) (memoryTransactions.size() + 1));
-            tx.setCreatedAt(LocalDateTime.now(java.time.ZoneOffset.UTC));
+            tx.setCreatedAt(com.foodwasteai.util.AppTime.utcNow());
             memoryTransactions.add(tx);
             return true;
         }
@@ -455,7 +455,7 @@ public class FoodItemService {
         } else {
             item.setQuantity(newQty);
             item.setRemainingQuantity(newQty);
-            item.setUpdatedAt(LocalDateTime.now(java.time.ZoneOffset.UTC));
+            item.setUpdatedAt(com.foodwasteai.util.AppTime.utcNow());
             computeMemoryTotalQuantity(item);
             memoryStore.put(foodItemId, item);
         }

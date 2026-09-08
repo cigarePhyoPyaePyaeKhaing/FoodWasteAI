@@ -48,7 +48,7 @@ import java.time.temporal.ChronoUnit;
  */
 public class ExpiryStatusResolver {
 
-    public static final ZoneId ZONE_YANGON = ZoneId.of("Asia/Yangon");
+    public static final ZoneId ZONE_YANGON = AppTime.APP_ZONE;
 
     public enum ExpiryState {
         EXPIRED,
@@ -67,7 +67,7 @@ public class ExpiryStatusResolver {
      * Gets the current date in Asia/Yangon timezone (MMT, UTC+06:30).
      */
     public static LocalDate getToday() {
-        return LocalDate.now(ZONE_YANGON);
+        return AppTime.today();
     }
 
     /**

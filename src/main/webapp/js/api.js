@@ -4,6 +4,11 @@
  */
 const API = {
   baseUrl: '',
+  timeZone: 'Asia/Yangon',
+  now() {
+    return new Date(this.serverInstant == null ? Date.now() : this.serverInstant + (performance.now() - this.serverTick));
+  },
+  today() { return this.formatTimestamp(this.now().toISOString()).date; },
   // Event timestamps are UTC; pickupTime is a scheduled Yangon wall time.
   formatTimestamp(value, scheduled = false) {
     if (!value) return {date: '-', time: '', text: '-'};
@@ -11,7 +16,7 @@ const API = {
     if (!/(Z|[+-]\d{2}:\d{2})$/.test(iso)) iso += scheduled ? '+06:30' : 'Z';
     const date = new Date(iso);
     if (Number.isNaN(date.getTime())) return {date: '-', time: '', text: '-'};
-    const parts = Object.fromEntries(new Intl.DateTimeFormat('en-GB', {timeZone:'Asia/Yangon', year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(date).map(p=>[p.type,p.value]));
+    const parts = Object.fromEntries(new Intl.DateTimeFormat('en-GB', {timeZone:this.timeZone, year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(date).map(p=>[p.type,p.value]));
     const day = `${parts.year}-${parts.month}-${parts.day}`, time = `${parts.hour}:${parts.minute}`;
     return {date:day,time,text:`${day} ${time} (Yangon)`};
   },
@@ -44,6 +49,10 @@ const API = {
     try {
       const response = await fetch(this.baseUrl + endpoint, config);
       const data = await response.json().catch(() => null);
+      if (data?.timestamp && Number.isFinite(Date.parse(data.timestamp))) {
+        this.serverInstant = Date.parse(data.timestamp);
+        this.serverTick = performance.now();
+      }
 
       if (!response.ok) {
         if (response.status === 401 && !window.location.pathname.includes('login') && !window.location.pathname.includes('register')) {

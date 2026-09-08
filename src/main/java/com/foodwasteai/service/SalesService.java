@@ -93,7 +93,7 @@ public class SalesService {
         List<Sale> list = new ArrayList<>();
         for (Sale s : all) {
             if (s.getSaleDate() != null) {
-                LocalDate d = s.getSaleDate().toLocalDate();
+                LocalDate d = com.foodwasteai.util.AppTime.businessDate(s.getSaleDate());
                 if (!d.isBefore(start) && !d.isAfter(end)) {
                     list.add(s);
                 }
@@ -206,12 +206,12 @@ public class SalesService {
                 sale.setTotalAmount(sale.getUnitPrice().multiply(requestedQty).setScale(2, java.math.RoundingMode.HALF_UP));
             }
             if (sale.getSaleDate() == null) {
-                sale.setSaleDate(LocalDateTime.now(java.time.ZoneOffset.UTC));
+                sale.setSaleDate(com.foodwasteai.util.AppTime.utcNow());
             }
 
             long newId = salesIdGen.incrementAndGet();
             sale.setId(newId);
-            sale.setCreatedAt(LocalDateTime.now(java.time.ZoneOffset.UTC));
+            sale.setCreatedAt(com.foodwasteai.util.AppTime.utcNow());
             memorySales.put(newId, sale);
 
             // Deduct stock in memory store

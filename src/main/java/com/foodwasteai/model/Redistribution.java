@@ -25,6 +25,7 @@ public class Redistribution implements Serializable {
     private String recipientName; // Joined
     private BigDecimal quantity;
     private String unit;
+    @com.google.gson.annotations.JsonAdapter(com.foodwasteai.util.LocalDateTimeJsonAdapter.Scheduled.class)
     private LocalDateTime pickupTime;
     private Status status;
     private String notes;
