@@ -139,10 +139,24 @@ public abstract class BaseServlet extends HttpServlet {
     }
 
     protected com.foodwasteai.model.User getAuthenticatedUser(HttpServletRequest req) {
+        Long userId = getAuthenticatedUserId(req);
+        if (userId != null) {
+            try {
+                return new com.foodwasteai.service.UserService().findById(userId).orElse(null);
+            } catch (Exception ignored) {}
+        }
         return null;
     }
 
     protected Long getAuthenticatedUserId(HttpServletRequest req) {
+        if (req == null) return null;
+        jakarta.servlet.http.HttpSession session = req.getSession(false);
+        if (session != null && session.getAttribute("user_id") != null) {
+            Object id = session.getAttribute("user_id");
+            if (id instanceof Number) {
+                return ((Number) id).longValue();
+            }
+        }
         return null;
     }
 }

@@ -27,9 +27,10 @@ public class WasteServlet extends BaseServlet {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         try {
+            Long userId = getAuthenticatedUserId(req);
             Long id = parseIdFromPath(req);
             if (id != null) {
-                Optional<WasteRecord> wasteOpt = wasteService.getWasteRecordById(id);
+                Optional<WasteRecord> wasteOpt = wasteService.getWasteRecordById(id, userId);
                 if (wasteOpt.isPresent()) {
                     sendSuccess(resp, wasteOpt.get());
                 } else {
@@ -45,13 +46,13 @@ public class WasteServlet extends BaseServlet {
             List<WasteRecord> records;
             if (foodItemIdParam != null && !foodItemIdParam.trim().isEmpty()) {
                 Long foodId = Long.parseLong(foodItemIdParam.trim());
-                records = wasteService.getWasteByFoodItemId(foodId);
+                records = wasteService.getWasteByFoodItemId(foodId, userId);
             } else if (startDateParam != null && endDateParam != null) {
                 LocalDate start = LocalDate.parse(startDateParam);
                 LocalDate end = LocalDate.parse(endDateParam);
-                records = wasteService.getWasteByDateRange(start, end);
+                records = wasteService.getWasteByDateRange(start, end, userId);
             } else {
-                records = wasteService.getAllWasteRecords();
+                records = wasteService.getAllWasteRecords(userId);
             }
 
             sendSuccess(resp, records);
@@ -90,7 +91,8 @@ public class WasteServlet extends BaseServlet {
                 return;
             }
 
-            boolean deleted = wasteService.deleteWasteRecord(id);
+            Long userId = getAuthenticatedUserId(req);
+            boolean deleted = wasteService.deleteWasteRecord(id, userId);
             if (deleted) {
                 sendSuccess(resp, "Waste record #" + id + " deleted successfully", null);
             } else {

@@ -14,6 +14,61 @@ public class ValidationUtils {
     private static final Pattern EMAIL_PATTERN =
             Pattern.compile("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
 
+    private static final Pattern GMAIL_PATTERN =
+            Pattern.compile("^[A-Za-z0-9][A-Za-z0-9._%+-]*@gmail\\.com$", Pattern.CASE_INSENSITIVE);
+
+    public static boolean isGmailAddress(String email) {
+        if (email == null) return false;
+        String trimmed = email.trim();
+        return GMAIL_PATTERN.matcher(trimmed).matches();
+    }
+
+    public static void validateGmail(String email) {
+        if (email == null || email.trim().isEmpty()) {
+            throw new IllegalArgumentException("Email address is required");
+        }
+        String trimmed = email.trim();
+        int atIndex = trimmed.lastIndexOf('@');
+        if (atIndex == -1 || !trimmed.substring(atIndex).equalsIgnoreCase("@gmail.com")) {
+            throw new IllegalArgumentException("Only @gmail.com email addresses are allowed. Other domains are rejected.");
+        }
+        if (!isGmailAddress(trimmed)) {
+            throw new IllegalArgumentException("Invalid Gmail format");
+        }
+    }
+
+    public static void validatePasswordStrength(String password) {
+        if (password == null || password.length() < 8) {
+            throw new IllegalArgumentException("Password must be at least 8 characters long");
+        }
+        if (!Pattern.compile("[A-Z]").matcher(password).find()) {
+            throw new IllegalArgumentException("Password must contain at least 1 uppercase letter");
+        }
+        if (!Pattern.compile("[a-z]").matcher(password).find()) {
+            throw new IllegalArgumentException("Password must contain at least 1 lowercase letter");
+        }
+        if (!Pattern.compile("[0-9]").matcher(password).find()) {
+            throw new IllegalArgumentException("Password must contain at least 1 number");
+        }
+        if (!Pattern.compile("[^A-Za-z0-9]").matcher(password).find()) {
+            throw new IllegalArgumentException("Password must contain at least 1 special character");
+        }
+    }
+
+    public static void validateRegistration(String email, String password, String confirmPassword) {
+        validateGmail(email);
+        if (password == null || password.isEmpty()) {
+            throw new IllegalArgumentException("Password is required");
+        }
+        if (confirmPassword == null || confirmPassword.isEmpty()) {
+            throw new IllegalArgumentException("Password confirmation is required");
+        }
+        if (!password.equals(confirmPassword)) {
+            throw new IllegalArgumentException("Passwords do not match");
+        }
+        validatePasswordStrength(password);
+    }
+
     public static void validateUser(User user) {
         if (user == null) {
             throw new IllegalArgumentException("User object cannot be null");

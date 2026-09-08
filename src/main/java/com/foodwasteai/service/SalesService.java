@@ -45,28 +45,59 @@ public class SalesService {
     }
 
     public List<Sale> getAllSales() throws SQLException {
+        return getAllSales(null);
+    }
+
+    public List<Sale> getAllSales(Long userId) throws SQLException {
         if (DatabaseConfig.isAvailable()) {
-            return salesDao.findAll();
+            return salesDao.findAll(userId);
         }
-        List<Sale> list = new ArrayList<>(memorySales.values());
+        List<Sale> list = new ArrayList<>();
+        for (Sale s : memorySales.values()) {
+            if (userId != null) {
+                if (s.getUserId() == null) {
+                    if (!Long.valueOf(1).equals(userId)) continue;
+                } else if (!s.getUserId().equals(userId)) {
+                    continue;
+                }
+            }
+            list.add(s);
+        }
         list.sort(Comparator.comparing(Sale::getSaleDate, Comparator.nullsLast(Comparator.reverseOrder())));
         return list;
     }
 
     public Optional<Sale> getSaleById(Long id) throws SQLException {
+        return getSaleById(id, null);
+    }
+
+    public Optional<Sale> getSaleById(Long id, Long userId) throws SQLException {
         if (id == null) return Optional.empty();
+        Optional<Sale> opt;
         if (DatabaseConfig.isAvailable()) {
-            return salesDao.findById(id);
+            opt = salesDao.findById(id);
+        } else {
+            opt = Optional.ofNullable(memorySales.get(id));
         }
-        return Optional.ofNullable(memorySales.get(id));
+        if (opt.isPresent() && userId != null) {
+            Sale s = opt.get();
+            if (s.getUserId() == null) {
+                if (!Long.valueOf(1).equals(userId)) return Optional.empty();
+            } else if (!s.getUserId().equals(userId)) {
+                return Optional.empty();
+            }
+        }
+        return opt;
     }
 
     public List<Sale> getSalesByFoodItemId(Long foodItemId) throws SQLException {
-        if (DatabaseConfig.isAvailable()) {
-            return salesDao.findByFoodItemId(foodItemId);
-        }
+        return getSalesByFoodItemId(foodItemId, null);
+    }
+
+    public List<Sale> getSalesByFoodItemId(Long foodItemId, Long userId) throws SQLException {
+        List<Sale> all = getAllSales(userId);
         List<Sale> list = new ArrayList<>();
-        for (Sale s : memorySales.values()) {
+        for (Sale s : all) {
             if (s.getFoodItemId() != null && s.getFoodItemId().equals(foodItemId)) {
                 list.add(s);
             }
@@ -75,11 +106,13 @@ public class SalesService {
     }
 
     public List<Sale> getSalesByDateRange(LocalDate start, LocalDate end) throws SQLException {
-        if (DatabaseConfig.isAvailable()) {
-            return salesDao.findByDateRange(start, end);
-        }
+        return getSalesByDateRange(start, end, null);
+    }
+
+    public List<Sale> getSalesByDateRange(LocalDate start, LocalDate end, Long userId) throws SQLException {
+        List<Sale> all = getAllSales(userId);
         List<Sale> list = new ArrayList<>();
-        for (Sale s : memorySales.values()) {
+        for (Sale s : all) {
             if (s.getSaleDate() != null) {
                 LocalDate d = s.getSaleDate().toLocalDate();
                 if (!d.isBefore(start) && !d.isAfter(end)) {
@@ -96,6 +129,9 @@ public class SalesService {
 
     public Sale recordSale(Sale sale, Long userId) throws SQLException {
         ValidationUtils.validateSale(sale);
+        if (sale != null) {
+            sale.setUserId(userId);
+        }
 
         // Idempotency check with in-flight lock: if a clientRequestId is provided, ensure strictly one execution
         if (sale.getClientRequestId() != null && !sale.getClientRequestId().trim().isEmpty()) {
@@ -145,7 +181,7 @@ public class SalesService {
     private Sale recordSaleInMemory(Sale sale, Long userId) throws SQLException {
         // Memory Store Fallback with strict thread-safe synchronization
         synchronized (memoryLock) {
-            Optional<FoodItem> foodOpt = foodItemService.getFoodItemById(sale.getFoodItemId());
+            Optional<FoodItem> foodOpt = foodItemService.getFoodItemById(sale.getFoodItemId(), userId);
             if (foodOpt.isEmpty()) {
                 throw new IllegalArgumentException("Food item #" + sale.getFoodItemId() + " does not exist");
             }
@@ -215,9 +251,19 @@ public class SalesService {
     }
 
     public boolean deleteSale(Long id) throws SQLException {
+        return deleteSale(id, null);
+    }
+
+    public boolean deleteSale(Long id, Long userId) throws SQLException {
         if (id == null) return false;
         if (DatabaseConfig.isAvailable()) {
             return salesDao.delete(id);
+        }
+        Sale existing = memorySales.get(id);
+        if (existing != null && userId != null) {
+            if (existing.getUserId() != null && !existing.getUserId().equals(userId)) {
+                return false;
+            }
         }
         return memorySales.remove(id) != null;
     }

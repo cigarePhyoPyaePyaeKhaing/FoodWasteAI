@@ -30,10 +30,11 @@ public class PredictionServlet extends BaseServlet {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         try {
+            Long userId = getAuthenticatedUserId(req);
             String pathInfo = req.getPathInfo();
             String tomorrowParam = req.getParameter("tomorrow");
             if ("true".equalsIgnoreCase(tomorrowParam) || (pathInfo != null && pathInfo.equalsIgnoreCase("/tomorrow"))) {
-                List<FoodItem> currentInventory = foodItemService.getAllFoodItems();
+                List<FoodItem> currentInventory = foodItemService.getAllFoodItems(userId);
                 List<Map<String, Object>> tomorrowBatches = predictionService.assessTomorrowBatches(currentInventory);
                 sendSuccess(resp, tomorrowBatches);
                 return;
@@ -41,7 +42,7 @@ public class PredictionServlet extends BaseServlet {
 
             Long foodId = parseIdFromPath(req);
             if (foodId != null) {
-                Optional<PrologAssessment> assessmentOpt = predictionService.assessFoodItemById(foodId);
+                Optional<PrologAssessment> assessmentOpt = predictionService.assessFoodItemById(foodId, userId);
                 if (assessmentOpt.isPresent()) {
                     sendSuccess(resp, assessmentOpt.get());
                 } else {
@@ -55,9 +56,9 @@ public class PredictionServlet extends BaseServlet {
             String evaluate = req.getParameter("evaluate");
             Map<String, Object> report;
             if ("true".equalsIgnoreCase(refresh) || "true".equalsIgnoreCase(evaluate)) {
-                report = predictionService.assessAllInventory();
+                report = predictionService.assessAllInventory(userId);
             } else {
-                report = predictionService.getLatestPredictionReport();
+                report = predictionService.getLatestPredictionReport(userId);
             }
             sendSuccess(resp, report);
         } catch (Exception e) {
@@ -69,8 +70,9 @@ public class PredictionServlet extends BaseServlet {
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         try {
+            Long userId = getAuthenticatedUserId(req);
             // Run fresh evaluation
-            Map<String, Object> report = predictionService.assessAllInventory();
+            Map<String, Object> report = predictionService.assessAllInventory(userId);
             sendSuccess(resp, "7-day evaluation completed.", report);
         } catch (Exception e) {
             logger.error("Error in PredictionServlet POST: {}", e.getMessage(), e);

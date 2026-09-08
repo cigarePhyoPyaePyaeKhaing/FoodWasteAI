@@ -71,6 +71,12 @@ public class ProtectedPageServlet extends BaseServlet {
             return;
         }
 
+        // Verify authenticated session
+        if (getAuthenticatedUserId(req) == null) {
+            resp.sendRedirect("/login.html");
+            return;
+        }
+
         // Apply strict no-cache headers
         applyNoCacheHeaders(resp);
 

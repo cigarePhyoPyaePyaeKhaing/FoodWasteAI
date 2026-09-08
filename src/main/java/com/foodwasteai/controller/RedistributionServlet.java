@@ -73,7 +73,8 @@ public class RedistributionServlet extends BaseServlet {
                 return;
             }
 
-            Redistribution saved = redistributionService.scheduleDispatch(dispatch, 1L);
+            Long userId = getAuthenticatedUserId(req);
+            Redistribution saved = redistributionService.scheduleDispatch(dispatch, userId != null ? userId : 1L);
             sendCreated(resp, "Surplus food dispatch scheduled successfully", saved);
         } catch (IllegalArgumentException e) {
             sendBadRequest(resp, e.getMessage());

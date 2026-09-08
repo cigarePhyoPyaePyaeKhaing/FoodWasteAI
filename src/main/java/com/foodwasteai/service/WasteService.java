@@ -48,11 +48,25 @@ public class WasteService {
     }
 
     public List<WasteRecord> getAllWasteRecords() throws SQLException {
+        return getAllWasteRecords(null);
+    }
+
+    public List<WasteRecord> getAllWasteRecords(Long userId) throws SQLException {
         List<WasteRecord> persisted;
         if (DatabaseConfig.isAvailable()) {
-            persisted = wasteDao.findAll();
+            persisted = wasteDao.findAll(userId);
         } else {
-            persisted = new ArrayList<>(memoryWaste.values());
+            persisted = new ArrayList<>();
+            for (WasteRecord w : memoryWaste.values()) {
+                if (userId != null) {
+                    if (w.getUserId() == null) {
+                        if (!Long.valueOf(1).equals(userId)) continue;
+                    } else if (!w.getUserId().equals(userId)) {
+                        continue;
+                    }
+                }
+                persisted.add(w);
+            }
         }
 
         // Single Date Rule: Products that reach the end of their usable life TODAY (expiry_date == today, quantity > 0)
@@ -70,7 +84,7 @@ public class WasteService {
 
         List<WasteRecord> result = new ArrayList<>(persisted);
         try {
-            List<FoodItem> inventory = foodItemService.getAllFoodItems();
+            List<FoodItem> inventory = foodItemService.getAllFoodItems(userId);
             for (FoodItem item : inventory) {
                 if (item.getQuantity() != null && item.getQuantity().compareTo(BigDecimal.ZERO) > 0) {
                     if (item.getExpiryDate() != null && !item.getExpiryDate().isAfter(today)) {
@@ -88,6 +102,7 @@ public class WasteService {
                             autoWaste.setReason(WasteRecord.Reason.EXPIRED);
                             autoWaste.setNotes("Usable life ended on " + today + " (unsold inventory stock)");
                             autoWaste.setCreatedAt(today.atStartOfDay());
+                            autoWaste.setUserId(userId);
                             result.add(autoWaste);
                         }
                     }
@@ -102,19 +117,36 @@ public class WasteService {
     }
 
     public Optional<WasteRecord> getWasteRecordById(Long id) throws SQLException {
+        return getWasteRecordById(id, null);
+    }
+
+    public Optional<WasteRecord> getWasteRecordById(Long id, Long userId) throws SQLException {
         if (id == null) return Optional.empty();
+        Optional<WasteRecord> opt;
         if (DatabaseConfig.isAvailable()) {
-            return wasteDao.findById(id);
+            opt = wasteDao.findById(id);
+        } else {
+            opt = Optional.ofNullable(memoryWaste.get(id));
         }
-        return Optional.ofNullable(memoryWaste.get(id));
+        if (opt.isPresent() && userId != null) {
+            WasteRecord w = opt.get();
+            if (w.getUserId() == null) {
+                if (!Long.valueOf(1).equals(userId)) return Optional.empty();
+            } else if (!w.getUserId().equals(userId)) {
+                return Optional.empty();
+            }
+        }
+        return opt;
     }
 
     public List<WasteRecord> getWasteByFoodItemId(Long foodItemId) throws SQLException {
-        if (DatabaseConfig.isAvailable()) {
-            return wasteDao.findByFoodItemId(foodItemId);
-        }
+        return getWasteByFoodItemId(foodItemId, null);
+    }
+
+    public List<WasteRecord> getWasteByFoodItemId(Long foodItemId, Long userId) throws SQLException {
+        List<WasteRecord> all = getAllWasteRecords(userId);
         List<WasteRecord> list = new ArrayList<>();
-        for (WasteRecord w : memoryWaste.values()) {
+        for (WasteRecord w : all) {
             if (w.getFoodItemId() != null && w.getFoodItemId().equals(foodItemId)) {
                 list.add(w);
             }
@@ -123,11 +155,13 @@ public class WasteService {
     }
 
     public List<WasteRecord> getWasteByDateRange(LocalDate start, LocalDate end) throws SQLException {
-        if (DatabaseConfig.isAvailable()) {
-            return wasteDao.findByDateRange(start, end);
-        }
+        return getWasteByDateRange(start, end, null);
+    }
+
+    public List<WasteRecord> getWasteByDateRange(LocalDate start, LocalDate end, Long userId) throws SQLException {
+        List<WasteRecord> all = getAllWasteRecords(userId);
         List<WasteRecord> list = new ArrayList<>();
-        for (WasteRecord w : memoryWaste.values()) {
+        for (WasteRecord w : all) {
             if (w.getWasteDate() != null) {
                 LocalDate d = w.getWasteDate().toLocalDate();
                 if (!d.isBefore(start) && !d.isAfter(end)) {
@@ -140,6 +174,9 @@ public class WasteService {
 
     public WasteRecord recordWaste(WasteRecord record, Long userId) throws SQLException {
         ValidationUtils.validateWasteRecord(record);
+        if (record != null) {
+            record.setUserId(userId);
+        }
 
         // Guarantee Requirement 9: Waste Record date/time must be when the waste was actually recorded, never expiry date
         if (record.getWasteDate() == null) {
@@ -194,7 +231,7 @@ public class WasteService {
     private WasteRecord recordWasteInMemory(WasteRecord record, Long userId) throws SQLException {
         // Memory Store Fallback with strict thread-safe synchronization
         synchronized (memoryLock) {
-            Optional<FoodItem> foodOpt = foodItemService.getFoodItemById(record.getFoodItemId());
+            Optional<FoodItem> foodOpt = foodItemService.getFoodItemById(record.getFoodItemId(), userId);
             if (foodOpt.isEmpty()) {
                 throw new IllegalArgumentException("Food item #" + record.getFoodItemId() + " does not exist");
             }
@@ -240,6 +277,7 @@ public class WasteService {
 
             long newId = wasteIdGen.incrementAndGet();
             record.setId(newId);
+            record.setUserId(userId);
             record.setCreatedAt(LocalDateTime.now(java.time.ZoneOffset.UTC));
             memoryWaste.put(newId, record);
 
@@ -273,7 +311,7 @@ public class WasteService {
      */
     public synchronized List<WasteRecord> convertExpiredInventoryToWaste(Long userId) throws SQLException {
         LocalDate today = com.foodwasteai.util.ExpiryStatusResolver.getToday();
-        List<FoodItem> inventory = foodItemService.getAllFoodItems();
+        List<FoodItem> inventory = foodItemService.getAllFoodItems(userId);
         List<WasteRecord> converted = new ArrayList<>();
 
         for (FoodItem item : inventory) {
@@ -292,7 +330,7 @@ public class WasteService {
                         if (saved != null) {
                             converted.add(saved);
                             logger.info("Automatically converted expired inventory item #{} ('{}') to confirmed waste: {} {} (Stock -> 0)",
-                                    item.getId(), item.getName(), item.getQuantity(), item.getUnit());
+                                     item.getId(), item.getName(), item.getQuantity(), item.getUnit());
                         }
                     } catch (Exception e) {
                         logger.error("Failed to convert expired item #{} ('{}') to waste: {}",
@@ -305,9 +343,19 @@ public class WasteService {
     }
 
     public boolean deleteWasteRecord(Long id) throws SQLException {
+        return deleteWasteRecord(id, null);
+    }
+
+    public boolean deleteWasteRecord(Long id, Long userId) throws SQLException {
         if (id == null) return false;
         if (DatabaseConfig.isAvailable()) {
             return wasteDao.delete(id);
+        }
+        WasteRecord existing = memoryWaste.get(id);
+        if (existing != null && userId != null) {
+            if (existing.getUserId() != null && !existing.getUserId().equals(userId)) {
+                return false;
+            }
         }
         return memoryWaste.remove(id) != null;
     }

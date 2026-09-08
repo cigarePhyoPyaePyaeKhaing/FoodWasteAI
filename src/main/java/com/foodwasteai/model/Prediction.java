@@ -26,6 +26,7 @@ public class Prediction implements Serializable {
     private BigDecimal estimatedMoneyLost;
     private BigDecimal potentialSavings;
     private Status status;
+    private Long userId;
     private LocalDateTime createdAt;
     private List<PredictionItem> items = new ArrayList<>();
 
@@ -102,5 +103,13 @@ public class Prediction implements Serializable {
 
     public void setItems(List<PredictionItem> items) {
         this.items = items;
+    }
+
+    public Long getUserId() {
+        return userId;
+    }
+
+    public void setUserId(Long userId) {
+        this.userId = userId;
     }
 }

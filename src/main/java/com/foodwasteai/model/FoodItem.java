@@ -29,6 +29,7 @@ public class FoodItem implements Serializable {
     private Integer expiryDaysRemaining; // negative, 0, positive
     private String expiryReason; // English standard reason
     private String expiryReasonMy; // Myanmar standard reason
+    private Long userId; // Multi-tenant user ownership
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -237,5 +238,13 @@ public class FoodItem implements Serializable {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public Long getUserId() {
+        return userId;
+    }
+
+    public void setUserId(Long userId) {
+        this.userId = userId;
     }
 }

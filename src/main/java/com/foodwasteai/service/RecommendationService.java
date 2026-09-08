@@ -42,23 +42,44 @@ public class RecommendationService {
     }
 
     public List<Recommendation> getAllRecommendations() throws SQLException {
+        return getAllRecommendations(null);
+    }
+
+    public List<Recommendation> getAllRecommendations(Long userId) throws SQLException {
         if (DatabaseConfig.isAvailable()) {
-            List<Recommendation> list = recommendationDao.findAll();
+            List<Recommendation> list = recommendationDao.findAll(userId);
             if (list.isEmpty()) {
-                return generateRecommendationsFromProlog();
+                return generateRecommendationsFromProlog(userId);
             }
             return list;
         }
         if (memoryRecs.isEmpty()) {
-            return generateRecommendationsFromProlog();
+            return generateRecommendationsFromProlog(userId);
         }
-        List<Recommendation> list = new ArrayList<>(memoryRecs.values());
+        List<Recommendation> list = new ArrayList<>();
+        for (Recommendation r : memoryRecs.values()) {
+            if (userId != null) {
+                if (r.getUserId() == null) {
+                    if (!Long.valueOf(1).equals(userId)) continue;
+                } else if (!r.getUserId().equals(userId)) {
+                    continue;
+                }
+            }
+            list.add(r);
+        }
+        if (list.isEmpty()) {
+            return generateRecommendationsFromProlog(userId);
+        }
         list.sort(Comparator.comparing(Recommendation::getCategory).thenComparing(Recommendation::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder())));
         return list;
     }
 
     public List<Recommendation> getRecommendationsByCategory(Recommendation.Category category) throws SQLException {
-        List<Recommendation> all = getAllRecommendations();
+        return getRecommendationsByCategory(category, null);
+    }
+
+    public List<Recommendation> getRecommendationsByCategory(Recommendation.Category category, Long userId) throws SQLException {
+        List<Recommendation> all = getAllRecommendations(userId);
         if (category == null) return all;
         List<Recommendation> filtered = new ArrayList<>();
         for (Recommendation r : all) {
@@ -70,11 +91,13 @@ public class RecommendationService {
     }
 
     public List<Recommendation> getRecommendationsByStatus(Recommendation.Status status) throws SQLException {
-        if (DatabaseConfig.isAvailable()) {
-            return recommendationDao.findByStatus(status);
-        }
+        return getRecommendationsByStatus(status, null);
+    }
+
+    public List<Recommendation> getRecommendationsByStatus(Recommendation.Status status, Long userId) throws SQLException {
+        List<Recommendation> all = getAllRecommendations(userId);
         List<Recommendation> filtered = new ArrayList<>();
-        for (Recommendation r : memoryRecs.values()) {
+        for (Recommendation r : all) {
             if (r.getStatus() == status) {
                 filtered.add(r);
             }
@@ -83,12 +106,19 @@ public class RecommendationService {
     }
 
     public boolean updateRecommendationStatus(Long id, Recommendation.Status status) throws SQLException {
+        return updateRecommendationStatus(id, status, null);
+    }
+
+    public boolean updateRecommendationStatus(Long id, Recommendation.Status status, Long userId) throws SQLException {
         if (id == null || status == null) return false;
         if (DatabaseConfig.isAvailable()) {
-            return recommendationDao.updateStatus(id, status);
+            return recommendationDao.updateStatus(id, status, userId);
         }
         Recommendation r = memoryRecs.get(id);
         if (r != null) {
+            if (userId != null && r.getUserId() != null && !r.getUserId().equals(userId)) {
+                return false;
+            }
             r.setStatus(status);
             r.setUpdatedAt(LocalDateTime.now());
             return true;
@@ -102,16 +132,27 @@ public class RecommendationService {
      * synchronizes estimated savings with PredictionService, and excludes zero-stock items.
      */
     public List<Recommendation> generateRecommendationsFromProlog() throws SQLException {
-        // 1. Run SWI-Prolog prediction assessment across all inventory items
-        Map<String, Object> predictionReport = predictionService.assessAllInventory();
+        return generateRecommendationsFromProlog(null);
+    }
 
-        List<FoodItem> items = foodItemService.getAllFoodItems();
+    public List<Recommendation> generateRecommendationsFromProlog(Long userId) throws SQLException {
+        // 1. Run SWI-Prolog prediction assessment across all inventory items
+        Map<String, Object> predictionReport = predictionService.assessAllInventory(userId);
+
+        List<FoodItem> items = foodItemService.getAllFoodItems(userId);
         List<Recommendation> generated = new ArrayList<>();
 
         if (DatabaseConfig.isAvailable()) {
-            recommendationDao.clearPendingRecommendations();
+            recommendationDao.clearPendingRecommendations(userId);
         } else {
-            memoryRecs.clear();
+            if (userId != null) {
+                memoryRecs.entrySet().removeIf(e -> {
+                    Long u = e.getValue().getUserId();
+                    return Objects.equals(u, userId) || (u == null && Long.valueOf(1).equals(userId));
+                });
+            } else {
+                memoryRecs.clear();
+            }
         }
 
         TranslationService translator = TranslationService.getInstance();
@@ -122,7 +163,7 @@ public class RecommendationService {
                 continue;
             }
 
-            Optional<PrologAssessment> opt = predictionService.assessFoodItemById(item.getId());
+            Optional<PrologAssessment> opt = predictionService.assessFoodItemById(item.getId(), userId);
             if (opt.isPresent()) {
                 PrologAssessment assessment = opt.get();
                 String unit = item.getUnit() != null ? item.getUnit() : "kg";
@@ -155,7 +196,7 @@ public class RecommendationService {
                     rec.setReasoningDetailsEn(rec.getReasoningDetails());
                     rec.setReasoningDetailsMy(translator.translateToMyanmar(rec.getReasoningDetails()));
                     rec.setEstimatedSavings(BigDecimal.ZERO);
-                    saveRecommendation(rec);
+                    saveRecommendation(rec, userId);
                     generated.add(rec);
                 }
                 // 2. HIGH RISK ACTIVE ITEM
@@ -181,7 +222,7 @@ public class RecommendationService {
                     rProd.setReasoningDetailsEn(rProd.getReasoningDetails());
                     rProd.setReasoningDetailsMy(translator.translateToMyanmar(rProd.getReasoningDetails()));
                     rProd.setEstimatedSavings(BigDecimal.valueOf(itemSavings).setScale(2, RoundingMode.HALF_UP));
-                    saveRecommendation(rProd);
+                    saveRecommendation(rProd, userId);
                     generated.add(rProd);
 
                     // Action 2: Redistribute excess inventory (if surplus is actionable)
@@ -204,7 +245,7 @@ public class RecommendationService {
                         rRedist.setReasoningDetailsEn(rRedist.getReasoningDetails());
                         rRedist.setReasoningDetailsMy(translator.translateToMyanmar(rRedist.getReasoningDetails()));
                         rRedist.setEstimatedSavings(BigDecimal.ZERO);
-                        saveRecommendation(rRedist);
+                        saveRecommendation(rRedist, userId);
                         generated.add(rRedist);
                     }
 
@@ -228,7 +269,7 @@ public class RecommendationService {
                         rUsage.setReasoningDetailsEn(rUsage.getReasoningDetails());
                         rUsage.setReasoningDetailsMy(translator.translateToMyanmar(rUsage.getReasoningDetails()));
                         rUsage.setEstimatedSavings(BigDecimal.ZERO);
-                        saveRecommendation(rUsage);
+                        saveRecommendation(rUsage, userId);
                         generated.add(rUsage);
                     }
                 }
@@ -255,7 +296,7 @@ public class RecommendationService {
                     rMon.setReasoningDetailsEn(rMon.getReasoningDetails());
                     rMon.setReasoningDetailsMy(translator.translateToMyanmar(rMon.getReasoningDetails()));
                     rMon.setEstimatedSavings(BigDecimal.valueOf(itemSavings).setScale(2, RoundingMode.HALF_UP));
-                    saveRecommendation(rMon);
+                    saveRecommendation(rMon, userId);
                     generated.add(rMon);
 
                     // Action 2: Adjust preparation quantity
@@ -277,7 +318,7 @@ public class RecommendationService {
                     rAdj.setReasoningDetailsEn(rAdj.getReasoningDetails());
                     rAdj.setReasoningDetailsMy(translator.translateToMyanmar(rAdj.getReasoningDetails()));
                     rAdj.setEstimatedSavings(BigDecimal.ZERO);
-                    saveRecommendation(rAdj);
+                    saveRecommendation(rAdj, userId);
                     generated.add(rAdj);
 
                     // Action 3: Promote usage
@@ -299,7 +340,7 @@ public class RecommendationService {
                     rProm.setReasoningDetailsEn(rProm.getReasoningDetails());
                     rProm.setReasoningDetailsMy(translator.translateToMyanmar(rProm.getReasoningDetails()));
                     rProm.setEstimatedSavings(BigDecimal.ZERO);
-                    saveRecommendation(rProm);
+                    saveRecommendation(rProm, userId);
                     generated.add(rProm);
                 }
                 // 4. LOW RISK ACTIVE ITEM
@@ -322,7 +363,7 @@ public class RecommendationService {
                     rec.setReasoningDetailsEn(rec.getReasoningDetails());
                     rec.setReasoningDetailsMy(translator.translateToMyanmar(rec.getReasoningDetails()));
                     rec.setEstimatedSavings(BigDecimal.ZERO);
-                    saveRecommendation(rec);
+                    saveRecommendation(rec, userId);
                     generated.add(rec);
                 }
             }
@@ -331,6 +372,13 @@ public class RecommendationService {
     }
 
     private void saveRecommendation(Recommendation r) throws SQLException {
+        saveRecommendation(r, null);
+    }
+
+    private void saveRecommendation(Recommendation r, Long userId) throws SQLException {
+        if (r.getUserId() == null) {
+            r.setUserId(userId);
+        }
         TranslationService translator = TranslationService.getInstance();
         if (r.getTitleEn() == null && r.getTitle() != null) {
             r.setTitleEn(r.getTitle());

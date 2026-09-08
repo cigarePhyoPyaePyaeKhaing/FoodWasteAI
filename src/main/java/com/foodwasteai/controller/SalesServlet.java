@@ -27,9 +27,10 @@ public class SalesServlet extends BaseServlet {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         try {
+            Long userId = getAuthenticatedUserId(req);
             Long id = parseIdFromPath(req);
             if (id != null) {
-                Optional<Sale> saleOpt = salesService.getSaleById(id);
+                Optional<Sale> saleOpt = salesService.getSaleById(id, userId);
                 if (saleOpt.isPresent()) {
                     sendSuccess(resp, saleOpt.get());
                 } else {
@@ -45,13 +46,13 @@ public class SalesServlet extends BaseServlet {
             List<Sale> sales;
             if (foodItemIdParam != null && !foodItemIdParam.trim().isEmpty()) {
                 Long foodId = Long.parseLong(foodItemIdParam.trim());
-                sales = salesService.getSalesByFoodItemId(foodId);
+                sales = salesService.getSalesByFoodItemId(foodId, userId);
             } else if (startDateParam != null && endDateParam != null) {
                 LocalDate start = LocalDate.parse(startDateParam);
                 LocalDate end = LocalDate.parse(endDateParam);
-                sales = salesService.getSalesByDateRange(start, end);
+                sales = salesService.getSalesByDateRange(start, end, userId);
             } else {
-                sales = salesService.getAllSales();
+                sales = salesService.getAllSales(userId);
             }
 
             sendSuccess(resp, sales);
@@ -90,7 +91,8 @@ public class SalesServlet extends BaseServlet {
                 return;
             }
 
-            boolean deleted = salesService.deleteSale(id);
+            Long userId = getAuthenticatedUserId(req);
+            boolean deleted = salesService.deleteSale(id, userId);
             if (deleted) {
                 sendSuccess(resp, "Sale record #" + id + " deleted successfully", null);
             } else {

@@ -44,12 +44,23 @@ public class FoodItemService {
     }
 
     public List<FoodItem> getAllFoodItems() throws SQLException {
+        return getAllFoodItems(null);
+    }
+
+    public List<FoodItem> getAllFoodItems(Long userId) throws SQLException {
         if (DatabaseConfig.isAvailable()) {
-            return foodItemDao.findAll();
+            return foodItemDao.findAll(userId);
         }
         logger.debug("Serving food items from in-memory fallback");
         List<FoodItem> list = new ArrayList<>();
         for (FoodItem item : memoryStore.values()) {
+            if (userId != null) {
+                if (item.getUserId() == null) {
+                    if (!Long.valueOf(1).equals(userId)) continue;
+                } else if (!item.getUserId().equals(userId)) {
+                    continue;
+                }
+            }
             item.updateComputedExpiryFields();
             computeMemoryTotalQuantity(item);
             list.add(item);
@@ -59,12 +70,23 @@ public class FoodItemService {
     }
 
     public Optional<FoodItem> getFoodItemById(Long id) throws SQLException {
+        return getFoodItemById(id, null);
+    }
+
+    public Optional<FoodItem> getFoodItemById(Long id, Long userId) throws SQLException {
         if (id == null) return Optional.empty();
         if (DatabaseConfig.isAvailable()) {
-            return foodItemDao.findById(id);
+            return foodItemDao.findById(id, userId);
         }
         FoodItem item = memoryStore.get(id);
         if (item != null) {
+            if (userId != null) {
+                if (item.getUserId() == null) {
+                    if (!Long.valueOf(1).equals(userId)) return Optional.empty();
+                } else if (!item.getUserId().equals(userId)) {
+                    return Optional.empty();
+                }
+            }
             item.updateComputedExpiryFields();
             computeMemoryTotalQuantity(item);
         }
@@ -72,11 +94,22 @@ public class FoodItemService {
     }
 
     public List<FoodItem> getFoodItemsByCategory(String category) throws SQLException {
+        return getFoodItemsByCategory(category, null);
+    }
+
+    public List<FoodItem> getFoodItemsByCategory(String category, Long userId) throws SQLException {
         if (DatabaseConfig.isAvailable()) {
-            return foodItemDao.findByCategory(category);
+            return foodItemDao.findByCategory(category, userId);
         }
         List<FoodItem> list = new ArrayList<>();
         for (FoodItem item : memoryStore.values()) {
+            if (userId != null) {
+                if (item.getUserId() == null) {
+                    if (!Long.valueOf(1).equals(userId)) continue;
+                } else if (!item.getUserId().equals(userId)) {
+                    continue;
+                }
+            }
             item.updateComputedExpiryFields();
             computeMemoryTotalQuantity(item);
             if (category == null || category.trim().isEmpty() || item.getCategory().equalsIgnoreCase(category.trim())) {
@@ -88,12 +121,23 @@ public class FoodItemService {
     }
 
     public List<FoodItem> getNearExpiryItems(int daysThreshold) throws SQLException {
+        return getNearExpiryItems(daysThreshold, null);
+    }
+
+    public List<FoodItem> getNearExpiryItems(int daysThreshold, Long userId) throws SQLException {
         if (DatabaseConfig.isAvailable()) {
-            return foodItemDao.findNearExpiry(daysThreshold);
+            return foodItemDao.findNearExpiry(daysThreshold, userId);
         }
         LocalDate cutoff = com.foodwasteai.util.ExpiryStatusResolver.getToday().plusDays(daysThreshold);
         List<FoodItem> list = new ArrayList<>();
         for (FoodItem item : memoryStore.values()) {
+            if (userId != null) {
+                if (item.getUserId() == null) {
+                    if (!Long.valueOf(1).equals(userId)) continue;
+                } else if (!item.getUserId().equals(userId)) {
+                    continue;
+                }
+            }
             item.updateComputedExpiryFields();
             computeMemoryTotalQuantity(item);
             if (!item.getExpiryDate().isAfter(cutoff) && item.getQuantity().compareTo(BigDecimal.ZERO) > 0) {
@@ -125,15 +169,24 @@ public class FoodItemService {
     }
 
     public List<FoodItem> getLowStockItems() throws SQLException {
+        return getLowStockItems(null);
+    }
+
+    public List<FoodItem> getLowStockItems(Long userId) throws SQLException {
         return new ArrayList<>();
     }
+
 
     /**
      * Retrieves all expired inventory items that still have remaining stock (> 0)
      * requiring explicit user disposal confirmation.
      */
     public List<FoodItem> getExpiredItemsRequiringDisposal() throws SQLException {
-        List<FoodItem> allItems = getAllFoodItems();
+        return getExpiredItemsRequiringDisposal(null);
+    }
+
+    public List<FoodItem> getExpiredItemsRequiringDisposal(Long userId) throws SQLException {
+        List<FoodItem> allItems = getAllFoodItems(userId);
         List<FoodItem> expiredWithStock = new ArrayList<>();
         for (FoodItem item : allItems) {
             item.updateComputedExpiryFields();
@@ -168,6 +221,9 @@ public class FoodItemService {
         BigDecimal addedQty = item.getQuantity() != null ? item.getQuantity() : BigDecimal.ZERO;
 
         for (FoodItem existing : memoryStore.values()) {
+            if (userId != null && !Objects.equals(existing.getUserId(), userId)) {
+                continue;
+            }
             String exNorm = existing.getName() != null ? existing.getName().trim() : "";
             String exUnit = existing.getUnit() != null ? existing.getUnit().trim() : "kg";
             BigDecimal exPrice = existing.getPricePerUnit() != null ? existing.getPricePerUnit().setScale(2, java.math.RoundingMode.HALF_UP) : BigDecimal.ZERO;
@@ -206,6 +262,7 @@ public class FoodItemService {
         // New Item in Memory
         long newId = idGenerator.incrementAndGet();
         item.setId(newId);
+        item.setUserId(userId);
         item.setQuantity(addedQty);
         item.setRemainingQuantity(addedQty);
         item.setTotalQuantity(addedQty);
@@ -234,6 +291,7 @@ public class FoodItemService {
 
     public FoodItem createFoodItem(FoodItem item, Long userId) throws SQLException {
         ValidationUtils.validateFoodItem(item);
+        item.setUserId(userId);
         computeStatus(item);
 
         if (DatabaseConfig.isAvailable()) {
@@ -258,6 +316,7 @@ public class FoodItemService {
         // Memory Store Fallback
         long newId = idGenerator.incrementAndGet();
         item.setId(newId);
+        item.setUserId(userId);
         item.setRemainingQuantity(item.getQuantity());
         item.setTotalQuantity(item.getQuantity());
         item.setCreatedAt(LocalDateTime.now(java.time.ZoneOffset.UTC));
@@ -298,7 +357,7 @@ public class FoodItemService {
         // If category or unit is omitted in update payload, preserve existing values
         if (item.getCategory() == null || item.getCategory().trim().isEmpty() ||
             item.getUnit() == null || item.getUnit().trim().isEmpty()) {
-            Optional<FoodItem> existingOpt = getFoodItemById(item.getId());
+            Optional<FoodItem> existingOpt = getFoodItemById(item.getId(), userId);
             if (existingOpt.isPresent()) {
                 FoodItem existing = existingOpt.get();
                 if (item.getCategory() == null || item.getCategory().trim().isEmpty()) {
@@ -335,6 +394,11 @@ public class FoodItemService {
 
         // Memory Store Fallback
         if (memoryStore.containsKey(item.getId())) {
+            FoodItem existing = memoryStore.get(item.getId());
+            if (userId != null && existing != null && existing.getUserId() != null && !existing.getUserId().equals(userId)) {
+                return false;
+            }
+            item.setUserId(existing != null ? existing.getUserId() : userId);
             item.setUpdatedAt(LocalDateTime.now(java.time.ZoneOffset.UTC));
             memoryStore.put(item.getId(), item);
             return true;
@@ -343,9 +407,19 @@ public class FoodItemService {
     }
 
     public boolean deleteFoodItem(Long id) throws SQLException {
+        return deleteFoodItem(id, null);
+    }
+
+    public boolean deleteFoodItem(Long id, Long userId) throws SQLException {
         if (id == null) return false;
         if (DatabaseConfig.isAvailable()) {
-            return foodItemDao.delete(id);
+            return foodItemDao.delete(id, userId);
+        }
+        FoodItem existing = memoryStore.get(id);
+        if (existing != null && userId != null) {
+            if (existing.getUserId() != null && !existing.getUserId().equals(userId)) {
+                return false;
+            }
         }
         return memoryStore.remove(id) != null;
     }

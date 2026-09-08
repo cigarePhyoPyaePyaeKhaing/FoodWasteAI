@@ -36,15 +36,32 @@ public class WasteRecordDao extends BaseDao {
     }
 
     public List<WasteRecord> findAll() throws SQLException {
+        return findAll(null);
+    }
+
+    public List<WasteRecord> findAll(Long userId) throws SQLException {
         List<WasteRecord> list = new ArrayList<>();
-        String sql = "SELECT w.id, w.food_item_id, f.name AS food_name, f.unit AS food_unit, w.quantity_wasted, w.reason, " +
-                     "w.monetary_loss, w.waste_date, w.notes, w.created_at " +
-                     "FROM waste_records w JOIN food_items f ON w.food_item_id = f.id ORDER BY w.waste_date DESC";
+        String sql;
+        if (userId != null) {
+            sql = "SELECT w.id, w.food_item_id, f.name AS food_name, f.unit AS food_unit, w.quantity_wasted, w.reason, " +
+                  "w.monetary_loss, w.waste_date, w.notes, w.created_at, w.user_id " +
+                  "FROM waste_records w JOIN food_items f ON w.food_item_id = f.id " +
+                  "WHERE (w.user_id = ? OR (w.user_id IS NULL AND ? = 1)) ORDER BY w.waste_date DESC";
+        } else {
+            sql = "SELECT w.id, w.food_item_id, f.name AS food_name, f.unit AS food_unit, w.quantity_wasted, w.reason, " +
+                  "w.monetary_loss, w.waste_date, w.notes, w.created_at, w.user_id " +
+                  "FROM waste_records w JOIN food_items f ON w.food_item_id = f.id ORDER BY w.waste_date DESC";
+        }
         try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql);
-             ResultSet rs = stmt.executeQuery()) {
-            while (rs.next()) {
-                list.add(mapResultSetToWasteRecord(rs));
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            if (userId != null) {
+                stmt.setLong(1, userId);
+                stmt.setLong(2, userId);
+            }
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapResultSetToWasteRecord(rs));
+                }
             }
         }
         return list;
@@ -126,8 +143,8 @@ public class WasteRecordDao extends BaseDao {
 
         String selectFoodSql = "SELECT id, name, category, quantity, unit, price_per_unit, expiry_date, status " +
                                "FROM food_items WHERE id = ? FOR UPDATE";
-        String insertWasteSql = "INSERT INTO waste_records (food_item_id, quantity_wasted, reason, monetary_loss, waste_date, notes) " +
-                                "VALUES (?, ?, ?, ?, ?, ?)";
+        String insertWasteSql = "INSERT INTO waste_records (food_item_id, quantity_wasted, reason, monetary_loss, waste_date, notes, user_id) " +
+                                "VALUES (?, ?, ?, ?, ?, ?, ?)";
         String updateFoodQtySql = "UPDATE food_items SET quantity = ?, status = CASE " +
                                   "WHEN expiry_date < CURDATE() THEN 'EXPIRED' " +
                                   "WHEN expiry_date <= DATE_ADD(CURDATE(), INTERVAL 2 DAY) THEN 'NEAR_EXPIRY' " +
@@ -209,6 +226,9 @@ public class WasteRecordDao extends BaseDao {
                 record.setWasteDate(LocalDateTime.now(java.time.ZoneOffset.UTC));
             }
 
+            Long validUserId = resolveValidUserId(conn, userId);
+            record.setUserId(validUserId != null ? validUserId : userId);
+
             // 5. Insert waste record
             try (PreparedStatement insertStmt = conn.prepareStatement(insertWasteSql, Statement.RETURN_GENERATED_KEYS)) {
                 insertStmt.setLong(1, record.getFoodItemId());
@@ -217,6 +237,11 @@ public class WasteRecordDao extends BaseDao {
                 insertStmt.setBigDecimal(4, record.getMonetaryLoss());
                 insertStmt.setObject(5, record.getWasteDate());
                 insertStmt.setString(6, record.getNotes());
+                if (validUserId != null) {
+                    insertStmt.setLong(7, validUserId);
+                } else {
+                    insertStmt.setNull(7, Types.BIGINT);
+                }
 
                 int affected = insertStmt.executeUpdate();
                 if (affected > 0) {
@@ -236,7 +261,6 @@ public class WasteRecordDao extends BaseDao {
             }
 
             // 7. Insert inventory transaction audit log
-            Long validUserId = resolveValidUserId(conn, userId);
             try (PreparedStatement txStmt = conn.prepareStatement(insertTxSql)) {
                 txStmt.setLong(1, foodItem.getId());
                 txStmt.setBigDecimal(2, requestedQty);
@@ -306,6 +330,13 @@ public class WasteRecordDao extends BaseDao {
 
         java.time.LocalDateTime created = rs.getObject("created_at", java.time.LocalDateTime.class);
         if (created != null) record.setCreatedAt(created);
+
+        try {
+            long uid = rs.getLong("user_id");
+            if (!rs.wasNull()) {
+                record.setUserId(uid);
+            }
+        } catch (SQLException ignored) {}
 
         return record;
     }

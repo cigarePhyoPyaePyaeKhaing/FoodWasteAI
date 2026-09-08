@@ -69,9 +69,10 @@ public class InventoryServlet extends BaseServlet {
                 }
             }
 
+            Long userId = getAuthenticatedUserId(req);
             Long id = parseIdFromPath(req);
             if (id != null) {
-                Optional<FoodItem> itemOpt = foodItemService.getFoodItemById(id);
+                Optional<FoodItem> itemOpt = foodItemService.getFoodItemById(id, userId);
                 if (itemOpt.isPresent()) {
                     attachRedistributionStatus(itemOpt.get());
                     sendSuccess(resp, itemOpt.get());
@@ -90,15 +91,15 @@ public class InventoryServlet extends BaseServlet {
 
             List<FoodItem> items;
             if ("true".equalsIgnoreCase(expiredReview)) {
-                items = foodItemService.getExpiredItemsRequiringDisposal();
+                items = foodItemService.getExpiredItemsRequiringDisposal(userId);
             } else if ("true".equalsIgnoreCase(nearExpiry)) {
-                items = foodItemService.getNearExpiryItems(2);
+                items = foodItemService.getNearExpiryItems(2, userId);
             } else if ("true".equalsIgnoreCase(lowStock)) {
-                items = foodItemService.getLowStockItems();
+                items = foodItemService.getLowStockItems(userId);
             } else if (category != null && !category.trim().isEmpty()) {
-                items = foodItemService.getFoodItemsByCategory(category.trim());
+                items = foodItemService.getFoodItemsByCategory(category.trim(), userId);
             } else {
-                items = foodItemService.getAllFoodItems();
+                items = foodItemService.getAllFoodItems(userId);
             }
 
             // Optional keyword search filter
@@ -179,7 +180,8 @@ public class InventoryServlet extends BaseServlet {
                 return;
             }
 
-            boolean deleted = foodItemService.deleteFoodItem(id);
+            Long userId = getAuthenticatedUserId(req);
+            boolean deleted = foodItemService.deleteFoodItem(id, userId);
             if (deleted) {
                 sendSuccess(resp, "Food item #" + id + " deleted successfully", null);
             } else {

@@ -25,18 +25,19 @@ public class RecommendationsServlet extends BaseServlet {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         try {
+            Long userId = getAuthenticatedUserId(req);
             String categoryParam = req.getParameter("category");
             String statusParam = req.getParameter("status");
 
             List<Recommendation> list;
             if (categoryParam != null && !categoryParam.trim().isEmpty() && !categoryParam.equalsIgnoreCase("ALL")) {
                 Recommendation.Category cat = Recommendation.Category.valueOf(categoryParam.trim().toUpperCase());
-                list = recommendationService.getRecommendationsByCategory(cat);
+                list = recommendationService.getRecommendationsByCategory(cat, userId);
             } else if (statusParam != null && !statusParam.trim().isEmpty()) {
                 Recommendation.Status st = Recommendation.Status.valueOf(statusParam.trim().toUpperCase());
-                list = recommendationService.getRecommendationsByStatus(st);
+                list = recommendationService.getRecommendationsByStatus(st, userId);
             } else {
-                list = recommendationService.getAllRecommendations();
+                list = recommendationService.getAllRecommendations(userId);
             }
 
             sendSuccess(resp, list);
@@ -51,9 +52,10 @@ public class RecommendationsServlet extends BaseServlet {
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         try {
+            Long userId = getAuthenticatedUserId(req);
             String path = req.getPathInfo();
             if (path != null && path.contains("generate")) {
-                List<Recommendation> generated = recommendationService.generateRecommendationsFromProlog();
+                List<Recommendation> generated = recommendationService.generateRecommendationsFromProlog(userId);
                 sendSuccess(resp, "Generated fresh recommendations from SWI-Prolog expert reasoning", generated);
                 return;
             }
@@ -77,7 +79,8 @@ public class RecommendationsServlet extends BaseServlet {
             Recommendation.Status newStatus = payload != null && payload.getStatus() != null ?
                     payload.getStatus() : Recommendation.Status.ACCEPTED;
 
-            boolean updated = recommendationService.updateRecommendationStatus(id, newStatus);
+            Long userId = getAuthenticatedUserId(req);
+            boolean updated = recommendationService.updateRecommendationStatus(id, newStatus, userId);
             if (updated) {
                 sendSuccess(resp, "Recommendation #" + id + " marked as " + newStatus, null);
             } else {

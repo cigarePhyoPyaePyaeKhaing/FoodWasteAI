@@ -46,6 +46,10 @@ const API = {
       const data = await response.json().catch(() => null);
 
       if (!response.ok) {
+        if (response.status === 401 && !window.location.pathname.includes('login') && !window.location.pathname.includes('register')) {
+          window.location.replace('/login.html');
+          return null;
+        }
         const errorMsg = data && data.message ? data.message : `HTTP Error ${response.status}: ${response.statusText}`;
         const err = new Error(errorMsg);
         err.status = response.status;
@@ -59,6 +63,12 @@ const API = {
       this.showToast(err.message, 'error');
       throw err;
     }
+  },
+
+  logout() {
+    fetch('/api/auth/logout', { method: 'POST' }).finally(() => {
+      window.location.replace('/login.html');
+    });
   },
 
   get(endpoint, params = {}) {
@@ -128,3 +138,8 @@ const API = {
     }, 3500);
   }
 };
+
+window.Auth = {
+  logout: () => API.logout()
+};
+

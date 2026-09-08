@@ -30,6 +30,7 @@ public class WasteRecord implements Serializable {
     private LocalDateTime wasteDate;
     private String notes;
     private LocalDateTime createdAt;
+    private Long userId;
     private String clientRequestId; // Idempotency token to prevent duplicate waste submissions
 
     public WasteRecord() {}
@@ -140,5 +141,13 @@ public class WasteRecord implements Serializable {
 
     public void setClientRequestId(String clientRequestId) {
         this.clientRequestId = clientRequestId;
+    }
+
+    public Long getUserId() {
+        return userId;
+    }
+
+    public void setUserId(Long userId) {
+        this.userId = userId;
     }
 }

@@ -20,6 +20,7 @@ public class Sale implements Serializable {
     private Integer customerCount;
     private LocalDateTime saleDate;
     private LocalDateTime createdAt;
+    private Long userId;
     private String clientRequestId; // Idempotency token to prevent duplicate transactions
 
     public Sale() {}
@@ -130,5 +131,13 @@ public class Sale implements Serializable {
 
     public void setClientRequestId(String clientRequestId) {
         this.clientRequestId = clientRequestId;
+    }
+
+    public Long getUserId() {
+        return userId;
+    }
+
+    public void setUserId(Long userId) {
+        this.userId = userId;
     }
 }

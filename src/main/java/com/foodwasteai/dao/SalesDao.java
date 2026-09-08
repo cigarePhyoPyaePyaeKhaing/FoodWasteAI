@@ -35,15 +35,32 @@ public class SalesDao extends BaseDao {
     }
 
     public List<Sale> findAll() throws SQLException {
+        return findAll(null);
+    }
+
+    public List<Sale> findAll(Long userId) throws SQLException {
         List<Sale> list = new ArrayList<>();
-        String sql = "SELECT s.id, s.food_item_id, f.name AS food_name, f.unit AS food_unit, s.quantity_sold, s.unit_price, " +
-                     "s.total_amount, s.customer_count, s.sale_date, s.created_at " +
-                     "FROM sales s JOIN food_items f ON s.food_item_id = f.id ORDER BY s.sale_date DESC";
+        String sql;
+        if (userId != null) {
+            sql = "SELECT s.id, s.food_item_id, f.name AS food_name, f.unit AS food_unit, s.quantity_sold, s.unit_price, " +
+                  "s.total_amount, s.customer_count, s.sale_date, s.created_at, s.user_id " +
+                  "FROM sales s JOIN food_items f ON s.food_item_id = f.id " +
+                  "WHERE (s.user_id = ? OR (s.user_id IS NULL AND ? = 1)) ORDER BY s.sale_date DESC";
+        } else {
+            sql = "SELECT s.id, s.food_item_id, f.name AS food_name, f.unit AS food_unit, s.quantity_sold, s.unit_price, " +
+                  "s.total_amount, s.customer_count, s.sale_date, s.created_at, s.user_id " +
+                  "FROM sales s JOIN food_items f ON s.food_item_id = f.id ORDER BY s.sale_date DESC";
+        }
         try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql);
-             ResultSet rs = stmt.executeQuery()) {
-            while (rs.next()) {
-                list.add(mapResultSetToSale(rs));
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            if (userId != null) {
+                stmt.setLong(1, userId);
+                stmt.setLong(2, userId);
+            }
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapResultSetToSale(rs));
+                }
             }
         }
         return list;
@@ -112,8 +129,8 @@ public class SalesDao extends BaseDao {
 
         String selectFoodSql = "SELECT id, name, category, quantity, unit, price_per_unit, expiry_date, status " +
                                "FROM food_items WHERE id = ? FOR UPDATE";
-        String insertSaleSql = "INSERT INTO sales (food_item_id, quantity_sold, unit_price, total_amount, customer_count, sale_date) " +
-                               "VALUES (?, ?, ?, ?, ?, ?)";
+        String insertSaleSql = "INSERT INTO sales (food_item_id, quantity_sold, unit_price, total_amount, customer_count, sale_date, user_id) " +
+                               "VALUES (?, ?, ?, ?, ?, ?, ?)";
         String updateFoodQtySql = "UPDATE food_items SET quantity = ?, status = CASE " +
                                   "WHEN expiry_date < CURDATE() THEN 'EXPIRED' " +
                                   "WHEN expiry_date <= DATE_ADD(CURDATE(), INTERVAL 2 DAY) THEN 'NEAR_EXPIRY' " +
@@ -201,6 +218,9 @@ public class SalesDao extends BaseDao {
                 sale.setSaleDate(LocalDateTime.now(java.time.ZoneOffset.UTC));
             }
 
+            Long validUserId = resolveValidUserId(conn, userId);
+            sale.setUserId(validUserId != null ? validUserId : userId);
+
             // 5. Insert sales record
             try (PreparedStatement insertStmt = conn.prepareStatement(insertSaleSql, Statement.RETURN_GENERATED_KEYS)) {
                 insertStmt.setLong(1, sale.getFoodItemId());
@@ -209,6 +229,11 @@ public class SalesDao extends BaseDao {
                 insertStmt.setBigDecimal(4, sale.getTotalAmount());
                 insertStmt.setInt(5, sale.getCustomerCount() != null ? sale.getCustomerCount() : 1);
                 insertStmt.setObject(6, sale.getSaleDate());
+                if (validUserId != null) {
+                    insertStmt.setLong(7, validUserId);
+                } else {
+                    insertStmt.setNull(7, Types.BIGINT);
+                }
 
                 int affected = insertStmt.executeUpdate();
                 if (affected > 0) {
@@ -228,7 +253,6 @@ public class SalesDao extends BaseDao {
             }
 
             // 7. Insert inventory transaction audit log
-            Long validUserId = resolveValidUserId(conn, userId);
             try (PreparedStatement txStmt = conn.prepareStatement(insertTxSql)) {
                 txStmt.setLong(1, foodItem.getId());
                 txStmt.setBigDecimal(2, requestedQty);
@@ -297,6 +321,13 @@ public class SalesDao extends BaseDao {
 
         java.time.LocalDateTime created = rs.getObject("created_at", java.time.LocalDateTime.class);
         if (created != null) sale.setCreatedAt(created);
+
+        try {
+            long uid = rs.getLong("user_id");
+            if (!rs.wasNull()) {
+                sale.setUserId(uid);
+            }
+        } catch (SQLException ignored) {}
 
         return sale;
     }

@@ -94,8 +94,12 @@ public class PredictionService {
      * Assesses a specific food item by its ID, pulling real data from the database/inventory.
      */
     public Optional<PrologAssessment> assessFoodItemById(Long foodItemId) throws SQLException {
+        return assessFoodItemById(foodItemId, null);
+    }
+
+    public Optional<PrologAssessment> assessFoodItemById(Long foodItemId, Long userId) throws SQLException {
         if (foodItemId == null) return Optional.empty();
-        Optional<FoodItem> itemOpt = foodItemService.getFoodItemById(foodItemId);
+        Optional<FoodItem> itemOpt = foodItemService.getFoodItemById(foodItemId, userId);
         if (itemOpt.isEmpty()) {
             return Optional.empty();
         }
@@ -654,18 +658,22 @@ public class PredictionService {
      * Evaluates all items in the inventory and returns a comprehensive batch AI prediction report.
      */
     public Map<String, Object> assessAllInventory() throws SQLException {
+        return assessAllInventory(null);
+    }
+
+    public Map<String, Object> assessAllInventory(Long userId) throws SQLException {
         // Automatic expiry-driven transition:
         // Convert any unsold expired inventory (expiry_date <= today and quantity > 0)
         // into confirmed waste records and deduct inventory to exactly 0.00 atomically.
         if (wasteService != null) {
             try {
-                wasteService.convertExpiredInventoryToWaste(1L);
+                wasteService.convertExpiredInventoryToWaste(userId != null ? userId : 1L);
             } catch (Exception e) {
                 logger.warn("Could not automatically convert expired inventory to waste: {}", e.getMessage());
             }
         }
 
-        List<FoodItem> items = foodItemService.getAllFoodItems();
+        List<FoodItem> items = foodItemService.getAllFoodItems(userId);
         Map<String, Object> report = assessInventory(items);
 
         // Persist tomorrow's forecast under tomorrow's prediction date, while the
@@ -697,6 +705,7 @@ public class PredictionService {
                 pred.setEstimatedMoneyLost(BigDecimal.valueOf(estimatedMoneyLost).setScale(2, RoundingMode.HALF_UP));
                 pred.setPotentialSavings(BigDecimal.valueOf(potentialSavings).setScale(2, RoundingMode.HALF_UP));
                 pred.setStatus(Prediction.Status.GENERATED);
+                pred.setUserId(userId);
                 Prediction savedPred = predictionDao.savePrediction(pred);
                 savedId = savedPred.getId();
                 if (savedPred.getCreatedAt() != null) {
@@ -746,12 +755,16 @@ public class PredictionService {
      * If no prediction exists yet or DB is not available, executes a fresh 7-day evaluation.
      */
     public Map<String, Object> getLatestPredictionReport() throws SQLException {
-        List<FoodItem> currentInventory = foodItemService.getAllFoodItems();
+        return getLatestPredictionReport(null);
+    }
+
+    public Map<String, Object> getLatestPredictionReport(Long userId) throws SQLException {
+        List<FoodItem> currentInventory = foodItemService.getAllFoodItems(userId);
 
         Map<String, Object> freshForecast = assessInventory(currentInventory);
 
         if (DatabaseConfig.isAvailable()) {
-            Optional<Prediction> latestOpt = predictionDao.findLatestPrediction();
+            Optional<Prediction> latestOpt = predictionDao.findLatestPrediction(userId);
             if (latestOpt.isPresent()) {
                 freshForecast.put("id", latestOpt.get().getId());
                 if (latestOpt.get().getCreatedAt() != null) {

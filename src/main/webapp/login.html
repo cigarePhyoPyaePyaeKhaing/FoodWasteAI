@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FoodWaste AI - Sign In</title>
+  <script>
+    (function() {
+      try {
+        var saved = localStorage.getItem('foodwaste_theme') || 'system';
+        var resolved = saved;
+        if (saved === 'system') {
+          resolved = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+        }
+        document.documentElement.setAttribute('data-theme', resolved);
+        document.documentElement.setAttribute('data-theme-mode', saved);
+      } catch(e) {}
+    })();
+  </script>
+  <link rel="icon" type="image/svg+xml" href="/img/logo.svg">
+  <link rel="stylesheet" href="/css/variables.css">
+  <link rel="stylesheet" href="/css/theme.css?v=1">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="/css/styles.css">
+  <style>
+    .auth-wrapper {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: var(--bg-canvas, #F4F8FC);
+    }
+    .auth-card {
+      width: 100%;
+      max-width: 440px;
+      background: var(--bg-surface, #FFFFFF);
+      border: 1px solid var(--border-subtle, rgba(226, 232, 240, 0.8));
+      border-radius: 20px;
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.08);
+      padding: 36px 32px;
+      backdrop-filter: blur(12px);
+    }
+    .auth-header {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+    .auth-logo {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 14px;
+    }
+    .auth-title {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--text-primary, #0F172A);
+      margin: 0 0 6px 0;
+    }
+    .auth-subtitle {
+      font-size: 14px;
+      color: var(--text-secondary, #64748B);
+      margin: 0;
+    }
+    .auth-form {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .form-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-secondary, #334155);
+    }
+    .form-input {
+      width: 100%;
+      padding: 12px 14px;
+      font-size: 14px;
+      border: 1px solid var(--border-subtle, #CBD5E1);
+      border-radius: 10px;
+      background: var(--bg-input, #F8FAFC);
+      color: var(--text-primary, #0F172A);
+      transition: all 0.2s ease;
+      box-sizing: border-box;
+    }
+    .form-input:focus {
+      outline: none;
+      border-color: #2563EB;
+      background: var(--bg-surface, #FFFFFF);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+    }
+    .btn-auth-submit {
+      width: 100%;
+      padding: 12px;
+      font-size: 15px;
+      font-weight: 600;
+      border: none;
+      border-radius: 10px;
+      background: #2563EB;
+      color: #FFFFFF;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      margin-top: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .btn-auth-submit:hover {
+      background: #1D4ED8;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+    }
+    .btn-auth-submit:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+    }
+    .auth-footer {
+      text-align: center;
+      margin-top: 24px;
+      font-size: 13px;
+      color: var(--text-secondary, #64748B);
+    }
+    .auth-link {
+      color: #2563EB;
+      text-decoration: none;
+      font-weight: 600;
+    }
+    .auth-link:hover {
+      text-decoration: underline;
+    }
+    .alert-banner {
+      padding: 12px 14px;
+      border-radius: 10px;
+      font-size: 13px;
+      margin-bottom: 16px;
+      display: none;
+    }
+    .alert-error {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #DC2626;
+    }
+    .alert-success {
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: #059669;
+    }
+  </style>
+</head>
+<body>
+
+<div class="auth-wrapper">
+  <div class="auth-card">
+    <div class="auth-header">
+      <div class="auth-logo">
+        <svg width="56" height="56" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <defs>
+            <linearGradient id="bodyGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="#34D399"/>
+              <stop offset="100%" stop-color="#059669"/>
+            </linearGradient>
+            <linearGradient id="plateGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#FBBF24"/>
+              <stop offset="100%" stop-color="#D97706"/>
+            </linearGradient>
+          </defs>
+          <ellipse cx="100" cy="173" rx="58" ry="14" fill="url(#plateGradient)"/>
+          <ellipse cx="100" cy="171" rx="46" ry="9" fill="#FDE68A" opacity="0.6"/>
+          <ellipse cx="75" cy="163" rx="9" ry="6" fill="#059669"/>
+          <ellipse cx="125" cy="163" rx="9" ry="6" fill="#059669"/>
+          <path d="M 100 48 C 132 58 148 94 142 124 C 137 154 118 168 100 168 C 82 168 63 154 58 124 C 52 94 68 58 100 48 Z" fill="url(#bodyGradient)"/>
+          <circle cx="84" cy="108" r="11" fill="#FFFFFF"/>
+          <circle cx="116" cy="108" r="11" fill="#FFFFFF"/>
+          <circle cx="86" cy="110" r="5" fill="#064E3B"/>
+          <circle cx="114" cy="110" r="5" fill="#064E3B"/>
+          <path d="M 86 128 Q 100 140 114 128" stroke="#064E3B" stroke-width="3" stroke-linecap="round" fill="none"/>
+        </svg>
+      </div>
+      <h1 class="auth-title">Welcome Back</h1>
+      <p class="auth-subtitle">Sign in to FoodWaste AI Operations</p>
+    </div>
+
+    <div id="alert-box" class="alert-banner"></div>
+
+    <form id="login-form" class="auth-form" onsubmit="handleLogin(event)">
+      <div class="form-group">
+        <label for="email" class="form-label">Email Address</label>
+        <input type="email" id="email" class="form-input" placeholder="name@gmail.com" required autocomplete="email" autofocus>
+      </div>
+
+      <div class="form-group">
+        <label for="password" class="form-label">Password</label>
+        <input type="password" id="password" class="form-input" placeholder="Enter your password" required autocomplete="current-password">
+      </div>
+
+      <button type="submit" id="submit-btn" class="btn-auth-submit">
+        <span>Sign In</span>
+      </button>
+    </form>
+
+    <div class="auth-footer">
+      <span>Don't have an account?</span>
+      <a href="/register.html" class="auth-link">Register with Gmail</a>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Display success message from registration redirect if present
+  window.addEventListener('DOMContentLoaded', () => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('registered') === 'true') {
+      showAlert('Account created successfully! Please sign in with your credentials.', 'success');
+    }
+  });
+
+  function showAlert(message, type = 'error') {
+    const box = document.getElementById('alert-box');
+    box.textContent = message;
+    box.className = 'alert-banner ' + (type === 'success' ? 'alert-success' : 'alert-error');
+    box.style.display = 'block';
+  }
+
+  function hideAlert() {
+    const box = document.getElementById('alert-box');
+    box.style.display = 'none';
+  }
+
+  async function handleLogin(e) {
+    e.preventDefault();
+    hideAlert();
+
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    const btn = document.getElementById('submit-btn');
+
+    if (!email || !password) {
+      showAlert('Please enter both email and password.');
+      return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = '<span>Signing in...</span>';
+
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({ email, password })
+      });
+
+      const data = await response.json().catch(() => null);
+
+      if (response.ok && data && data.success) {
+        window.location.replace(data.data?.redirect || '/dashboard.html');
+      } else {
+        showAlert(data?.message || 'Invalid email or password. Please try again.');
+        btn.disabled = false;
+        btn.innerHTML = '<span>Sign In</span>';
+      }
+    } catch (err) {
+      showAlert('Connection error. Please verify the server is reachable.');
+      btn.disabled = false;
+      btn.innerHTML = '<span>Sign In</span>';
+    }
+  }
+</script>
+</body>
+</html>

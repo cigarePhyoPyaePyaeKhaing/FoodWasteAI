@@ -15,7 +15,7 @@ public class PredictionDao extends BaseDao {
 
     public Prediction savePrediction(Prediction pred) throws SQLException {
         String sql = "INSERT INTO predictions (prediction_date, overall_risk_score, expected_total_waste_kg, " +
-                     "estimated_money_lost, potential_savings, status) VALUES (?, ?, ?, ?, ?, ?)";
+                     "estimated_money_lost, potential_savings, status, user_id) VALUES (?, ?, ?, ?, ?, ?, ?)";
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             stmt.setDate(1, Date.valueOf(pred.getPredictionDate() != null ? pred.getPredictionDate() : java.time.LocalDate.now()));
@@ -24,6 +24,11 @@ public class PredictionDao extends BaseDao {
             stmt.setBigDecimal(4, pred.getEstimatedMoneyLost());
             stmt.setBigDecimal(5, pred.getPotentialSavings());
             stmt.setString(6, pred.getStatus() != null ? pred.getStatus().name() : Prediction.Status.GENERATED.name());
+            if (pred.getUserId() != null) {
+                stmt.setLong(7, pred.getUserId());
+            } else {
+                stmt.setNull(7, Types.BIGINT);
+            }
 
             int affected = stmt.executeUpdate();
             if (affected > 0) {
@@ -91,25 +96,45 @@ public class PredictionDao extends BaseDao {
     }
 
     public Optional<Prediction> findLatestPrediction() throws SQLException {
-        String sql = "SELECT id, prediction_date, overall_risk_score, expected_total_waste_kg, " +
-                     "estimated_money_lost, potential_savings, status, created_at " +
-                     "FROM predictions ORDER BY id DESC LIMIT 1";
+        return findLatestPrediction(null);
+    }
+
+    public Optional<Prediction> findLatestPrediction(Long userId) throws SQLException {
+        String sql;
+        if (userId != null) {
+            sql = "SELECT id, prediction_date, overall_risk_score, expected_total_waste_kg, " +
+                  "estimated_money_lost, potential_savings, status, created_at, user_id " +
+                  "FROM predictions WHERE (user_id = ? OR (user_id IS NULL AND ? = 1)) ORDER BY id DESC LIMIT 1";
+        } else {
+            sql = "SELECT id, prediction_date, overall_risk_score, expected_total_waste_kg, " +
+                  "estimated_money_lost, potential_savings, status, created_at, user_id " +
+                  "FROM predictions ORDER BY id DESC LIMIT 1";
+        }
 
         try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql);
-             ResultSet rs = stmt.executeQuery()) {
-            if (rs.next()) {
-                Prediction p = new Prediction();
-                p.setId(rs.getLong("id"));
-                p.setPredictionDate(rs.getDate("prediction_date").toLocalDate());
-                p.setOverallRiskScore(rs.getBigDecimal("overall_risk_score"));
-                p.setExpectedTotalWasteKg(rs.getBigDecimal("expected_total_waste_kg"));
-                p.setEstimatedMoneyLost(rs.getBigDecimal("estimated_money_lost"));
-                p.setPotentialSavings(rs.getBigDecimal("potential_savings"));
-                p.setStatus(Prediction.Status.valueOf(rs.getString("status")));
-                Timestamp ct = rs.getTimestamp("created_at");
-                if (ct != null) p.setCreatedAt(ct.toLocalDateTime());
-                return Optional.of(p);
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            if (userId != null) {
+                stmt.setLong(1, userId);
+                stmt.setLong(2, userId);
+            }
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    Prediction p = new Prediction();
+                    p.setId(rs.getLong("id"));
+                    p.setPredictionDate(rs.getDate("prediction_date").toLocalDate());
+                    p.setOverallRiskScore(rs.getBigDecimal("overall_risk_score"));
+                    p.setExpectedTotalWasteKg(rs.getBigDecimal("expected_total_waste_kg"));
+                    p.setEstimatedMoneyLost(rs.getBigDecimal("estimated_money_lost"));
+                    p.setPotentialSavings(rs.getBigDecimal("potential_savings"));
+                    p.setStatus(Prediction.Status.valueOf(rs.getString("status")));
+                    Timestamp ct = rs.getTimestamp("created_at");
+                    if (ct != null) p.setCreatedAt(ct.toLocalDateTime());
+                    try {
+                        long uid = rs.getLong("user_id");
+                        if (!rs.wasNull()) p.setUserId(uid);
+                    } catch (SQLException ignored) {}
+                    return Optional.of(p);
+                }
             }
         }
         return Optional.empty();

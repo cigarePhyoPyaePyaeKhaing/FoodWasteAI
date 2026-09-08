@@ -93,6 +93,20 @@ public class App {
         corsFilterMap.setDispatcher(DispatcherType.ASYNC.name());
         ctx.addFilterMap(corsFilterMap);
 
+        // Register Auth Filter
+        FilterDef authFilterDef = new FilterDef();
+        authFilterDef.setFilterName("AuthFilter");
+        authFilterDef.setFilterClass(com.foodwasteai.filter.AuthFilter.class.getName());
+        ctx.addFilterDef(authFilterDef);
+
+        FilterMap authFilterMap = new FilterMap();
+        authFilterMap.setFilterName("AuthFilter");
+        authFilterMap.addURLPattern("/*");
+        authFilterMap.setDispatcher(DispatcherType.REQUEST.name());
+        authFilterMap.setDispatcher(DispatcherType.FORWARD.name());
+        authFilterMap.setDispatcher(DispatcherType.ASYNC.name());
+        ctx.addFilterMap(authFilterMap);
+
         // Register Core API Servlets
         registerServlets(ctx);
 
@@ -170,6 +184,8 @@ public class App {
 
             List<String> staticFiles = Arrays.asList(
                 "index.html",
+                "login.html",
+                "register.html",
                 "WEB-INF/protected/dashboard.html",
                 "WEB-INF/protected/inventory.html",
                 "WEB-INF/protected/redistribution.html",
@@ -229,6 +245,11 @@ public class App {
         for (String route : protectedRoutes) {
             ctx.addServletMappingDecoded(route, "ProtectedPageServlet");
         }
+
+        // Authentication & Session Servlet
+        Tomcat.addServlet(ctx, "AuthServlet", new AuthServlet());
+        ctx.addServletMappingDecoded("/api/auth/*", "AuthServlet");
+        ctx.addServletMappingDecoded("/logout", "AuthServlet");
 
         // Version & Build Diagnostic Servlet
         Tomcat.addServlet(ctx, "VersionServlet", new VersionServlet());
