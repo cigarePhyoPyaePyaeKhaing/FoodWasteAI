@@ -17,7 +17,13 @@ $mysqlBin = 'C:\Program Files\MySQL\MySQL Server 8.0\bin'
 $artifactDirectory = Join-Path $PSScriptRoot ('..\scratch\production-' + (Get-Date -Format 'yyyyMMdd-HHmmss'))
 New-Item -ItemType Directory -Path $artifactDirectory | Out-Null
 $tables = @('users','food_items','sales','waste_records','inventory_transactions','predictions','prediction_items','recommendations','redistributions','redistribution_recipients')
-$connectionArguments = @('--host=' + $settings['DB_HOST'], '--port=' + $settings['DB_PORT'], '--user=' + $settings['DB_USER'], '--ssl-mode=REQUIRED', '--default-character-set=utf8mb4')
+$connectionArguments = @(
+    ('--host=' + $settings['DB_HOST'])
+    ('--port=' + $settings['DB_PORT'])
+    ('--user=' + $settings['DB_USER'])
+    '--ssl-mode=REQUIRED'
+    '--default-character-set=utf8mb4'
+)
 $previousPassword = $env:MYSQL_PWD
 try {
     $env:MYSQL_PWD = $settings['DB_PASSWORD']
