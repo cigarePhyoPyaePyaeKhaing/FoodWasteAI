@@ -87,8 +87,8 @@ body {
 }
 
 .brand-bubble-logo {
-  width: 44px;
-  height: 44px;
+  width: 72px;
+  height: 72px;
   background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
   border-radius: 20px;
   display: flex;
@@ -103,6 +103,13 @@ body {
 
 .brand-bubble-logo:hover {
   transform: scale(1.05) rotate(5deg);
+}
+
+.brand-bubble-logo > svg,
+.brand-bubble-logo > img {
+  width: 68px;
+  height: 68px;
+  object-fit: contain;
 }
 
 .brand-title-group {
