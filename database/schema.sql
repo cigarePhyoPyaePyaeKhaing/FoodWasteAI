@@ -83,6 +83,8 @@ CREATE TABLE IF NOT EXISTS waste_records (
     notes VARCHAR(255),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (food_item_id) REFERENCES food_items(id) ON DELETE CASCADE,
+    request_key CHAR(64) NULL,
+    UNIQUE KEY uq_waste_request (food_item_id, request_key),
     INDEX idx_waste_reason (reason),
     INDEX idx_waste_date (waste_date),
     INDEX idx_waste_food (food_item_id)

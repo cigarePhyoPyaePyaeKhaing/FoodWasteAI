@@ -159,4 +159,40 @@ class PrivateWorkspaceIntegrationTest {
         assertTrue(new com.foodwasteai.dao.PredictionDao().findItemsByPredictionId(predictionId,bobId).isEmpty());
         assertFalse(new com.foodwasteai.dao.PredictionDao().findItemsByPredictionId(predictionId,aliceId).isEmpty());
     }
+    @Test void expiredInventoryNeedsExplicitOwnerConfirmation() throws Exception {
+        var body = json("{\"name\":\"Expired confirmation fixture\",\"category\":\"Seafood\",\"quantity\":10,\"unit\":\"kg\",\"pricePerUnit\":1000}");
+        body.addProperty("expiryDate", com.foodwasteai.util.AppTime.today().minusDays(1).toString());
+        var created = request(alice,"POST","/api/inventory",body);
+        assertEquals(201,created.statusCode(),created.body());
+        long id=json(created.body()).getAsJsonObject("data").get("id").getAsLong();
+        for (String path : new String[]{"/api/prediction", "/api/prediction/evaluate"}) {
+            assertEquals(200,request(alice,path.endsWith("evaluate")?"POST":"GET",path,null).statusCode());
+            var item=json(request(alice,"GET","/api/inventory/"+id,null).body()).getAsJsonObject("data");
+            assertEquals(10,item.get("quantity").getAsDouble());
+            assertEquals("EXPIRED",item.get("status").getAsString());
+            assertEquals(0,json(request(alice,"GET","/api/waste?foodItemId="+id,null).body()).getAsJsonArray("data").size());
+        }
+        try(var c=DatabaseConfig.getConnection();var s=c.prepareStatement("SELECT COUNT(*) FROM inventory_transactions WHERE food_item_id=? AND transaction_type='WASTE_ADJUSTMENT'")) {
+            s.setLong(1,id);try(var rs=s.executeQuery()){rs.next();assertEquals(0,rs.getInt(1));}
+        }
+        var disposal=json("{\"quantityWasted\":6,\"reason\":\"EXPIRED\"}");
+        disposal.addProperty("foodItemId",id);disposal.addProperty("userId",aliceId);disposal.addProperty("clientRequestId",UUID.randomUUID().toString());
+        assertEquals(404,request(bob,"POST","/api/waste",disposal).statusCode());
+        disposal.addProperty("quantityWasted",11);
+        assertEquals(400,request(alice,"POST","/api/waste",disposal).statusCode());
+        disposal.addProperty("quantityWasted",6);
+        var first=request(alice,"POST","/api/waste",disposal);assertEquals(201,first.statusCode(),first.body());
+        var retry=request(alice,"POST","/api/waste",disposal);assertEquals(201,retry.statusCode(),retry.body());
+        assertEquals(json(first.body()).getAsJsonObject("data").get("id"),json(retry.body()).getAsJsonObject("data").get("id"));
+        assertEquals(6000,json(first.body()).getAsJsonObject("data").get("monetaryLoss").getAsDouble());
+        var partial=json(request(alice,"GET","/api/inventory/"+id,null).body()).getAsJsonObject("data");
+        assertEquals(4,partial.get("quantity").getAsDouble());assertEquals("EXPIRED",partial.get("status").getAsString());
+        disposal.addProperty("quantityWasted",4);disposal.addProperty("clientRequestId",UUID.randomUUID().toString());
+        assertEquals(201,request(alice,"POST","/api/waste",disposal).statusCode());
+        assertEquals(0,json(request(alice,"GET","/api/inventory/"+id,null).body()).getAsJsonObject("data").get("quantity").getAsDouble());
+        assertEquals(2,json(request(alice,"GET","/api/waste?foodItemId="+id,null).body()).getAsJsonArray("data").size());
+        try(var c=DatabaseConfig.getConnection();var s=c.prepareStatement("SELECT COUNT(*) FROM inventory_transactions WHERE food_item_id=? AND transaction_type='WASTE_ADJUSTMENT'")) {
+            s.setLong(1,id);try(var rs=s.executeQuery()){rs.next();assertEquals(2,rs.getInt(1));}
+        }
+    }
 }

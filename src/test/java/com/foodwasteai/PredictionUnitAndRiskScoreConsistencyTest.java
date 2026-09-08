@@ -482,7 +482,7 @@ public class PredictionUnitAndRiskScoreConsistencyTest {
     }
 
     @Test
-    @DisplayName("20. Pork and Sugar expiring today are excluded from tomorrow prediction but captured in todayActualWaste")
+    @DisplayName("20. Pork and Sugar expiring today are excluded from tomorrow prediction and never counted as confirmed waste")
     public void testPorkAndSugarExpiringTodayExcludedFromTomorrowPrediction() throws Exception {
         LocalDate today = com.foodwasteai.util.ExpiryStatusResolver.getToday();
         LocalDate tomorrow = today.plusDays(1);
@@ -520,15 +520,15 @@ public class PredictionUnitAndRiskScoreConsistencyTest {
 
         @SuppressWarnings("unchecked")
         List<Map<String, Object>> actualItems = (List<Map<String, Object>>) todayActual.get("items");
-        assertEquals(2, actualItems.size(), "Today actual waste should have 2 items (pork, sugar)");
+        assertEquals(0, actualItems.size(), "Inventory alone cannot establish confirmed waste");
 
         // Check monetary loss: 12 * 20000 + 12 * 1500 = 240000 + 18000 = 258000 MMK
         double loss = (Double) todayActual.get("totalLoss");
-        assertEquals(258000.0, loss, 0.01, "Total financial loss must be 258,000 MMK");
+        assertEquals(0.0, loss, 0.01, "Unconfirmed stock has no confirmed financial loss");
 
         // Check carbon: 24 kg * 2.5 = 60.0 kg CO2e
         double carbon = (Double) todayActual.get("carbonKg");
-        assertEquals(60.0, carbon, 0.01, "Carbon impact must be 60.0 kg CO2e");
+        assertEquals(0.0, carbon, 0.01, "No confirmed disposal impact");
 
         // AssessInventory report test
         Map<String, Object> report = predictionService.assessInventory(inventory);

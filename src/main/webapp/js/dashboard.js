@@ -512,7 +512,7 @@ const Dashboard = {
         this.renderKPIs();
         this.renderHighRiskList();
 
-        // Evaluation may confirm newly expired stock; refresh the recorded-waste totals too.
+        // Refresh independently confirmed waste totals alongside the forecast.
         await this.fetchLiveDashboardData();
         this.renderRecommendations();
 

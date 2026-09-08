@@ -59,49 +59,7 @@ public class WasteService {
             persisted = new ArrayList<>(memoryWaste.values());
         }
 
-        // Single Date Rule: Products that reach the end of their usable life TODAY (expiry_date == today, quantity > 0)
-        // or past expired are handled as TODAY'S ACTUAL / CONFIRMED WASTE.
-        // Remaining unsold quantity -> today's actual waste.
-        LocalDate today = com.foodwasteai.util.ExpiryStatusResolver.getToday();
-        Set<Long> recordedFoodItemIdsToday = new HashSet<>();
-        for (WasteRecord w : persisted) {
-            if (w.getFoodItemId() != null && w.getWasteDate() != null) {
-                if (com.foodwasteai.util.AppTime.businessDate(w.getWasteDate()).isEqual(today)) {
-                    recordedFoodItemIdsToday.add(w.getFoodItemId());
-                }
-            }
-        }
-
         List<WasteRecord> result = new ArrayList<>(persisted);
-        try {
-            List<FoodItem> inventory = foodItemService.getAllFoodItems(userId);
-            for (FoodItem item : inventory) {
-                if (item.getQuantity() != null && item.getQuantity().compareTo(BigDecimal.ZERO) > 0) {
-                    if (item.getExpiryDate() != null && !item.getExpiryDate().isAfter(today)) {
-                        if (!recordedFoodItemIdsToday.contains(item.getId())) {
-                            // Synthesize actual waste record in memory without mutating database
-                            WasteRecord autoWaste = new WasteRecord();
-                            autoWaste.setId(-item.getId()); // Virtual non-conflicting negative ID
-                            autoWaste.setFoodItemId(item.getId());
-                            autoWaste.setFoodItemName(item.getName());
-                            autoWaste.setQuantityWasted(item.getQuantity());
-                            autoWaste.setUnit(item.getUnit());
-                            BigDecimal price = item.getPricePerUnit() != null ? item.getPricePerUnit() : BigDecimal.ZERO;
-                            autoWaste.setMonetaryLoss(price.multiply(item.getQuantity()).setScale(2, RoundingMode.HALF_UP));
-                            autoWaste.setWasteDate(com.foodwasteai.util.AppTime.startOfDayUtc(today));
-                            autoWaste.setReason(WasteRecord.Reason.EXPIRED);
-                            autoWaste.setNotes("Usable life ended on " + today + " (unsold inventory stock)");
-                            autoWaste.setCreatedAt(com.foodwasteai.util.AppTime.startOfDayUtc(today));
-                            autoWaste.setUserId(userId);
-                            result.add(autoWaste);
-                        }
-                    }
-                }
-            }
-        } catch (Exception e) {
-            logger.warn("Could not append today's actual waste to waste records: {}", e.getMessage());
-        }
-
         result.sort(Comparator.comparing(WasteRecord::getWasteDate, Comparator.nullsLast(Comparator.reverseOrder())));
         return result;
     }
@@ -162,6 +120,9 @@ public class WasteService {
             record.setWasteDate(com.foodwasteai.util.AppTime.utcNow());
         }
 
+        if (DatabaseConfig.isAvailable()) return wasteDao.recordWasteWithStockDeduction(record, userId);
+
+        // Development fallback only. Database-backed requests use durable idempotency.
         // Idempotency check with in-flight lock: if a clientRequestId is provided, ensure strictly one execution
         if (record.getClientRequestId() != null && !record.getClientRequestId().trim().isEmpty()) {
             String token = userId + ":" + record.getClientRequestId().trim();
@@ -273,52 +234,6 @@ public class WasteService {
                     newId, foodItem.getName(), requestedQty, foodItem.getUnit(), monetaryLoss);
             return record;
         }
-    }
-
-    /**
-     * Converts all inventory items that have reached or passed their expiration date
-     * (expiry_date <= today and quantity > 0) into confirmed waste records atomically,
-     * deducting the entire remaining unsold inventory so that its quantity becomes exactly 0.
-     *
-     * Prevents double deduction:
-     * - Only items with quantity > 0 are converted.
-     * - Once converted, inventory is 0, so subsequent calls safely skip them.
-     * - Uses idempotent clientRequestId tokens and atomic stock deduction.
-     *
-     * @param userId authenticated user ID or system default (1L)
-     * @return list of newly created confirmed waste records
-     */
-    public synchronized List<WasteRecord> convertExpiredInventoryToWaste(Long userId) throws SQLException {
-        LocalDate today = com.foodwasteai.util.ExpiryStatusResolver.getToday();
-        List<FoodItem> inventory = foodItemService.getAllFoodItems(userId);
-        List<WasteRecord> converted = new ArrayList<>();
-
-        for (FoodItem item : inventory) {
-            if (item.getQuantity() != null && item.getQuantity().compareTo(BigDecimal.ZERO) > 0) {
-                if (item.getExpiryDate() != null && !item.getExpiryDate().isAfter(today)) {
-                    WasteRecord record = new WasteRecord();
-                    record.setFoodItemId(item.getId());
-                    record.setQuantityWasted(item.getQuantity());
-                    record.setUnit(item.getUnit());
-                    record.setReason(WasteRecord.Reason.EXPIRED);
-                    record.setNotes("Confirmed waste: usable life ended on " + today + " (unsold inventory stock)");
-                    record.setClientRequestId("auto_expiry_waste_" + item.getId() + "_" + today);
-
-                    try {
-                        WasteRecord saved = recordWaste(record, userId);
-                        if (saved != null) {
-                            converted.add(saved);
-                            logger.info("Automatically converted expired inventory item #{} ('{}') to confirmed waste: {} {} (Stock -> 0)",
-                                     item.getId(), item.getName(), item.getQuantity(), item.getUnit());
-                        }
-                    } catch (Exception e) {
-                        logger.error("Failed to convert expired item #{} ('{}') to waste: {}",
-                                item.getId(), item.getName(), e.getMessage(), e);
-                    }
-                }
-            }
-        }
-        return converted;
     }
 
     public boolean deleteWasteRecord(Long id) throws SQLException {

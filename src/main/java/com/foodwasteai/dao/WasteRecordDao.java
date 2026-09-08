@@ -160,8 +160,8 @@ public class WasteRecordDao extends BaseDao {
 
         String selectFoodSql = "SELECT id, name, category, quantity, unit, price_per_unit, expiry_date, status " +
                                "FROM food_items WHERE id = ? AND user_id = ? FOR UPDATE";
-        String insertWasteSql = "INSERT INTO waste_records (food_item_id, quantity_wasted, reason, monetary_loss, waste_date, notes) " +
-                                "VALUES (?, ?, ?, ?, ?, ?)";
+        String insertWasteSql = "INSERT INTO waste_records (food_item_id, quantity_wasted, reason, monetary_loss, waste_date, notes, request_key) " +
+                                "VALUES (?, ?, ?, ?, ?, ?, ?)";
         String updateFoodQtySql = "UPDATE food_items SET quantity = ?, status = CASE " +
                                   "WHEN expiry_date < " + com.foodwasteai.util.AppTime.SQL_TODAY + " THEN 'EXPIRED' " +
                                   "WHEN expiry_date <= DATE_ADD(" + com.foodwasteai.util.AppTime.SQL_TODAY + ", INTERVAL 2 DAY) THEN 'NEAR_EXPIRY' " +
@@ -169,6 +169,13 @@ public class WasteRecordDao extends BaseDao {
         String insertTxSql = "INSERT INTO inventory_transactions (food_item_id, transaction_type, quantity, unit, notes, created_by) " +
                              "VALUES (?, 'WASTE_ADJUSTMENT', ?, ?, ?, ?)";
 
+        String requestKey = null;
+        if (record.getClientRequestId() != null && !record.getClientRequestId().isBlank()) {
+            try {
+                requestKey = java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256")
+                        .digest((userId + ":" + record.getClientRequestId().trim()).getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+            } catch (java.security.NoSuchAlgorithmException e) { throw new IllegalStateException(e); }
+        }
         Connection conn = null;
         boolean originalAutoCommit = true;
         try {
@@ -202,6 +209,20 @@ public class WasteRecordDao extends BaseDao {
                 throw new IllegalArgumentException("Food item #" + record.getFoodItemId() + " does not exist");
             }
 
+            // The owner-scoped food lock serializes retries across processes and restarts.
+            if (requestKey != null) {
+                try (PreparedStatement retry = conn.prepareStatement("SELECT w.*, f.name AS food_name, f.unit AS food_unit, f.user_id FROM waste_records w JOIN food_items f ON f.id=w.food_item_id WHERE w.food_item_id=? AND w.request_key=? AND f.user_id=? FOR UPDATE")) {
+                    retry.setLong(1, record.getFoodItemId()); retry.setString(2, requestKey); retry.setLong(3, userId);
+                    try (ResultSet rs = retry.executeQuery()) {
+                        if (rs.next()) {
+                            WasteRecord existing = mapResultSetToWasteRecord(rs);
+                            if (existing.getQuantityWasted().compareTo(record.getQuantityWasted()) != 0 || existing.getReason() != record.getReason())
+                                throw new IllegalArgumentException("This confirmation token was already used for a different waste quantity or reason");
+                            conn.commit(); return existing;
+                        }
+                    }
+                }
+            }
             record.setFoodItemName(foodItem.getName());
             record.setUnit(foodItem.getUnit());
 
@@ -255,6 +276,7 @@ public class WasteRecordDao extends BaseDao {
                 insertStmt.setBigDecimal(4, record.getMonetaryLoss());
                 insertStmt.setObject(5, record.getWasteDate());
                 insertStmt.setString(6, record.getNotes());
+                insertStmt.setString(7, requestKey);
 
                 int affected = insertStmt.executeUpdate();
                 if (affected > 0) {

@@ -240,6 +240,8 @@ public class DatabaseConfig {
 
     private static void applyBilingualMigrations(Connection conn) {
         String[] migrations = {
+            "ALTER TABLE waste_records ADD COLUMN request_key CHAR(64) NULL",
+            "ALTER TABLE waste_records ADD UNIQUE KEY uq_waste_request (food_item_id, request_key)",
             "ALTER TABLE prediction_items ADD COLUMN reasoning_text_en TEXT",
             "ALTER TABLE prediction_items ADD COLUMN reasoning_text_my TEXT",
             "ALTER TABLE recommendations ADD COLUMN title_en VARCHAR(200)",

@@ -386,7 +386,7 @@ public class PredictionService {
 
         String predictionTime = LocalDateTime.ofInstant(clock.instant(), com.foodwasteai.util.AppTime.APP_ZONE).format(DateTimeFormatter.ofPattern("MMM d, yyyy, h:mm a", Locale.US));
 
-        Map<String, Object> todayActualWaste = calculateTodayActualWaste(items);
+        Map<String, Object> todayActualWaste = calculateConfirmedWaste(Collections.emptyList());
 
         Map<String, Object> report = new LinkedHashMap<>();
         report.put("generatedAt", clock.instant().toString());
@@ -489,13 +489,12 @@ public class PredictionService {
         return report;
     }
 
-    /**
-     * Calculates Today's Actual / Confirmed Waste according to the project's expiry rule:
-     * For products that reach the end of their usable life TODAY (expiry_date == today, quantity > 0):
-     * remaining unsold quantity -> today's actual waste.
-     * Past expired items (expiry_date < today, quantity > 0) are also treated as actual waste.
-     */
+    /** Inventory alone cannot establish confirmed waste. Retained for API compatibility. */
     public Map<String, Object> calculateTodayActualWaste(List<FoodItem> items) {
+        return calculateConfirmedWaste(Collections.emptyList());
+    }
+
+    public Map<String, Object> calculateConfirmedWaste(List<com.foodwasteai.model.WasteRecord> items) {
         Map<String, Object> result = new LinkedHashMap<>();
         LocalDate today = com.foodwasteai.util.AppTime.today(clock);
         String todayStr = today.toString();
@@ -515,25 +514,21 @@ public class PredictionService {
             return result;
         }
 
-        // Select items reaching end of usable life today (or past expired with remaining stock)
-        List<FoodItem> todayWasteItems = items.stream()
-                .filter(Objects::nonNull)
-                .filter(i -> i.getQuantity() != null && i.getQuantity().compareTo(BigDecimal.ZERO) > 0)
-                .filter(i -> i.getExpiryDate() != null && !i.getExpiryDate().isAfter(today))
-                .toList();
+        List<com.foodwasteai.model.WasteRecord> todayWasteItems = items.stream()
+                .filter(i -> i.getWasteDate() != null && com.foodwasteai.util.AppTime.businessDate(i.getWasteDate()).equals(today)).toList();
 
         Map<String, Double> unitTotals = new LinkedHashMap<>();
         double totalMonetaryLoss = 0.0;
         double totalKgForCarbon = 0.0;
 
         List<Map<String, Object>> itemOutputs = new ArrayList<>();
-        for (FoodItem fi : todayWasteItems) {
-            double qty = fi.getQuantity().doubleValue();
+        for (com.foodwasteai.model.WasteRecord fi : todayWasteItems) {
+            double qty = fi.getQuantityWasted().doubleValue();
             String unit = fi.getUnit() != null && !fi.getUnit().trim().isEmpty() ? fi.getUnit().trim() : "units";
             unitTotals.put(unit, unitTotals.getOrDefault(unit, 0.0) + qty);
 
-            double price = fi.getPricePerUnit() != null ? fi.getPricePerUnit().doubleValue() : 0.0;
-            double loss = qty * price;
+            double loss = fi.getMonetaryLoss() == null ? 0 : fi.getMonetaryLoss().doubleValue();
+            double price = qty == 0 ? 0 : loss / qty;
             totalMonetaryLoss += loss;
 
             String lowerUnit = unit.toLowerCase();
@@ -547,12 +542,12 @@ public class PredictionService {
 
             Map<String, Object> out = new LinkedHashMap<>();
             out.put("id", fi.getId());
-            out.put("name", fi.getName());
+            out.put("name", fi.getFoodItemName());
             out.put("quantity", qty);
             out.put("unit", unit);
             out.put("pricePerUnit", price);
             out.put("monetaryLoss", Math.round(loss * 100.0) / 100.0);
-            out.put("expiryDate", fi.getExpiryDate().toString());
+            out.put("wasteDate", fi.getWasteDate().toString());
             itemOutputs.add(out);
         }
 
@@ -663,19 +658,10 @@ public class PredictionService {
     }
 
     public Map<String, Object> assessAllInventory(Long userId) throws SQLException {
-        // Automatic expiry-driven transition:
-        // Convert any unsold expired inventory (expiry_date <= today and quantity > 0)
-        // into confirmed waste records and deduct inventory to exactly 0.00 atomically.
-        if (wasteService != null) {
-            try {
-                wasteService.convertExpiredInventoryToWaste(userId);
-            } catch (Exception e) {
-                logger.warn("Could not automatically convert expired inventory to waste: {}", e.getMessage());
-            }
-        }
-
+        // Expiry is reasoning/status only; evaluation never confirms disposal.
         List<FoodItem> items = foodItemService.getAllFoodItems(userId);
         Map<String, Object> report = assessInventory(items);
+        report.put("todayActualWaste", calculateConfirmedWaste(wasteService.getAllWasteRecords(userId)));
 
         // Persist tomorrow's forecast under tomorrow's prediction date, while the
         // response's top-level items remain current Dashboard assessments.

@@ -1476,3 +1476,5 @@ body {
   font-weight: 800;
   border-radius: var(--radius-pill);
 }
+
+.expired-review-warning { max-width: 20rem; white-space: normal; text-align: left; color: var(--risk-high-text); font-size: .8rem; margin: .4rem 0; }

@@ -200,7 +200,9 @@ const Inventory = {
             <span class="badge-bubble ${badgeClass}">${statusText}</span>
             ${secondaryBadge ? `<div>${secondaryBadge}</div>` : ''}
           </td>
-          <td style="text-align:right; white-space:nowrap;">
+          <td style="text-align:right;">
+            ${days < 0 && remainingStock > 0 ? `<p class="expired-review-warning">${isMm ? 'ဤအစားအစာသည် သက်တမ်းကုန်သွားပြီး စစ်ဆေးရန် လိုအပ်ပါသည်။' : 'This food item has expired and requires review.'}</p><button class="btn-bubble btn-yellow btn-sm-bubble" onclick="Inventory.openDisposalModal(${item.id})">${isMm ? 'အလေအလွင့်အဖြစ် အတည်ပြုမည်' : 'Confirm as Waste'}</button>` : ''}
+
             <button class="btn-bubble btn-glass-subtle btn-sm-bubble" title="${isMm ? 'မှတ်တမ်းကြည့်ရန်' : 'View History'}" onclick="Inventory.openHistoryModal(${item.id})" style="margin-right:0.25rem;">📋</button>
             <button class="btn-bubble btn-glass-subtle btn-sm-bubble" onclick="Inventory.openEditModal(${item.id})">${editBtnText}</button>
             <button class="btn-bubble btn-glass-subtle btn-sm-bubble" style="color:var(--risk-high-text); margin-left:0.25rem;" onclick="Inventory.deleteItem(${item.id})">🗑️</button>
@@ -512,7 +514,7 @@ const Inventory = {
 
   openDisposalModal(id) {
     const item = this.items.find(i => i.id === id);
-    if (!item) return;
+    if (!item || Number(item.quantity) <= 0 || Number(item.expiryDaysRemaining) >= 0) return;
 
     this.disposalItem = item;
     const isMm = typeof I18n !== 'undefined' && I18n.getLanguage() === 'mm';
@@ -525,14 +527,18 @@ const Inventory = {
     if (promptEl) {
       const qtyStr = `${Number(item.quantity || 0).toFixed(1)} ${item.unit || 'kg'}`;
       promptEl.textContent = isMm ?
-        `${item.name} သည် သက်တမ်းကုန်ဆုံးသွားပြီး ${qtyStr} ကျန်ရှိနေပါသည်။ မည်သို့ဆောင်ရွက်လိုပါသလဲ?` :
-        `${item.name} has expired with ${qtyStr} remaining. How would you like to handle it?`;
+        `${item.name} — လက်ရှိလက်ကျန်: ${qtyStr}။ ရွေးချယ်ထားသော ပမာဏကို အတည်ပြုအလေအလွင့်အဖြစ် မှတ်တမ်းတင်ပြီး လက်ကျန်မှ နုတ်ယူကာ ငွေကြေးဆုံးရှုံးမှုတွင် ထည့်သွင်းမည်။` :
+        `${item.name} — Current Stock: ${qtyStr}. This will record the selected quantity as confirmed food waste, deduct it from inventory, and include its value in confirmed financial loss.`;
     }
     if (qtyInput) {
       qtyInput.value = item.quantity || 0;
       qtyInput.max = item.quantity || 0;
     }
 
+    const pending = sessionStorage.getItem('waste-confirmation-' + item.id);
+    this.disposalRequest = pending ? JSON.parse(pending) : null;
+    if (qtyInput) { qtyInput.readOnly = !!this.disposalRequest; if (this.disposalRequest) qtyInput.value = this.disposalRequest.quantityWasted; }
+    document.getElementById('disposal-reason').value = isMm ? 'သက်တမ်းကုန်' : 'Expired';
     this.updateDisposalFinancialLoss();
 
     const modal = document.getElementById('disposal-modal');
@@ -572,8 +578,8 @@ const Inventory = {
     const qtyInput = document.getElementById('disposal-qty');
     const qty = parseFloat(qtyInput?.value) || 0;
 
-    if (qty <= 0) {
-      API.showToast(isMm ? 'စွန့်ပစ်မည့် ပမာဏကို ထည့်သွင်းပါ' : 'Please enter a valid disposal quantity', 'warning');
+    if (!Number.isFinite(qty) || qty <= 0 || (!this.disposalRequest && qty > Number(item.quantity))) {
+      API.showToast(isMm ? 'စွန့်ပစ်မည့် ပမာဏကို ထည့်သွင်းပါ' : 'Enter a quantity greater than zero and no more than current stock', 'warning');
       return;
     }
 
@@ -581,7 +587,7 @@ const Inventory = {
     const modal = document.getElementById('disposal-modal');
     if (modal) modal.style.pointerEvents = 'none';
 
-    const payload = {
+    const payload = this.disposalRequest || {
       foodItemId: item.id,
       quantityWasted: qty,
       unit: item.unit || 'kg',
@@ -590,57 +596,24 @@ const Inventory = {
       clientRequestId: 'disposal_waste_' + item.id + '_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9)
     };
 
+    this.disposalRequest = payload;
+    sessionStorage.setItem('waste-confirmation-' + item.id, JSON.stringify(payload));
     try {
       await API.post('/api/waste', payload);
-      API.showToast(isMm ? `'${item.name}' အား စွန့်ပစ်ပစ္စည်းအဖြစ် အောင်မြင်စွာ မှတ်တမ်းတင်ပြီးပါပြီ` : `Logged ${qty} ${item.unit} '${item.name}' as waste!`, 'success');
+      sessionStorage.removeItem('waste-confirmation-' + item.id);
+      this.disposalRequest = null;
+      API.showToast(isMm ? 'အလေအလွင့်ကို အောင်မြင်စွာ မှတ်တမ်းတင်ပြီးပါပြီ။' : 'Waste recorded successfully.', 'success');
       this.closeDisposalModal();
       await this.fetchItems();
     } catch (err) {
       console.error('Error logging disposal waste:', err);
-      API.showToast(isMm ? ('မှတ်တမ်းတင်ရန် မအောင်မြင်ပါ: ' + err.message) : ('Failed to record waste: ' + err.message), 'error');
-    } finally {
-      this.submittingDisposal = false;
-      if (modal) modal.style.pointerEvents = '';
-    }
-  },
-
-  async confirmAlreadyDisposed() {
-    if (this.submittingDisposal) {
-      console.warn('[Inventory] Disposal submission already in progress.');
-      return;
-    }
-    if (!this.disposalItem) return;
-    const item = this.disposalItem;
-    const isMm = typeof I18n !== 'undefined' && I18n.getLanguage() === 'mm';
-    const confirmPrompt = isMm ?
-      `'${item.name}' အား စွန့်ပစ်ပြီးဖြစ်ကြောင်း အတည်ပြုပါသလား? ၎င်းသည် ကုန်ပစ္စည်းလက်ကျန်ကို နုတ်ယူပြီး စာရင်းစစ်မှတ်တမ်း ရေးသွင်းပါမည်။` :
-      `Confirm that '${item.name}' was already discarded? This will clear remaining stock and log the disposal.`;
-
-    if (!confirm(confirmPrompt)) {
-      return;
-    }
-
-    this.submittingDisposal = true;
-    const modal = document.getElementById('disposal-modal');
-    if (modal) modal.style.pointerEvents = 'none';
-
-    const payload = {
-      foodItemId: item.id,
-      quantityWasted: item.quantity,
-      unit: item.unit || 'kg',
-      reason: 'EXPIRED',
-      notes: 'Confirmed as already disposed',
-      clientRequestId: 'disposal_already_' + item.id + '_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9)
-    };
-
-    try {
-      await API.post('/api/waste', payload);
-      API.showToast(isMm ? `'${item.name}' အား စွန့်ပစ်ပြီးအဖြစ် စာရင်းပြုစုပြီးပါပြီ` : `Recorded '${item.name}' as already disposed!`, 'success');
-      this.closeDisposalModal();
-      await this.fetchItems();
-    } catch (err) {
-      console.error('Error confirming already disposed:', err);
-      API.showToast(isMm ? ('ဆောင်ရွက်ရန် မအောင်မြင်ပါ: ' + err.message) : ('Failed to record disposal: ' + err.message), 'error');
+      if (err.status >= 400 && err.status < 500) {
+        sessionStorage.removeItem('waste-confirmation-' + item.id); this.disposalRequest = null;
+        API.showToast(isMm ? 'အလေအလွင့် မှတ်တမ်းတင်ရန် မအောင်မြင်ပါ။ လက်ကျန်ကို မပြောင်းလဲထားပါ။' : 'Unable to record the waste. No inventory changes were made.', 'error');
+      } else {
+        qtyInput.readOnly = true;
+        API.showToast(isMm ? 'အတည်ပြုမှု အခြေအနေ မရရှိပါ။ ထပ်မံအတည်ပြု၍ တူညီသော တောင်းဆိုမှုကို ပြန်စစ်ပါ။' : 'Confirmation status unavailable. Retry the same confirmation to safely check the result.', 'error');
+      }
     } finally {
       this.submittingDisposal = false;
       if (modal) modal.style.pointerEvents = '';

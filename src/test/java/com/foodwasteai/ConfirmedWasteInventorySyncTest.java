@@ -285,39 +285,20 @@ public class ConfirmedWasteInventorySyncTest {
     }
 
     @Test
-    @DisplayName("10. Automatic expiry-driven transition and Repeated Run Evaluation never double-deducts")
-    public void testAutomaticExpiryTransition_AndRepeatedRunEvaluation() throws SQLException {
-        LocalDate today = ExpiryStatusResolver.getToday();
-
-        // Create expired item with unsold stock (12.00 kg)
-        FoodItem expiredPork = foodItemService.createFoodItem(
-                new OwnedFoodItemFixture(null, "Auto Expired Pork " + System.currentTimeMillis(), "Meat",
-                        new BigDecimal("12.00"), "kg", new BigDecimal("18000.00"),
-                        today.minusDays(1), new BigDecimal("1.00")), 1L
-        );
-        Long porkId = expiredPork.getId();
-
-        // Run Evaluation #1 (triggers convertExpiredInventoryToWaste)
-        List<WasteRecord> convertedFirstRun = wasteService.convertExpiredInventoryToWaste(1L);
-        assertFalse(convertedFirstRun.isEmpty(), "First run must convert the expired item");
-
-        FoodItem afterRun1 = foodItemService.getFoodItemById(porkId, 1L).orElseThrow();
-        assertEquals(0, BigDecimal.ZERO.compareTo(afterRun1.getQuantity()), "Stock must be exactly 0.00 after Run Evaluation");
-
-        List<WasteRecord> wasteAfterRun1 = wasteService.getWasteByFoodItemId(porkId, 1L);
-        assertEquals(1, wasteAfterRun1.size(), "Exactly 1 waste record must exist");
-        assertEquals(0, new BigDecimal("12.00").compareTo(wasteAfterRun1.get(0).getQuantityWasted()));
-
-        // Repeated Run Evaluation (e.g. 5 repeated evaluations)
-        for (int i = 0; i < 5; i++) {
-            List<WasteRecord> repeated = wasteService.convertExpiredInventoryToWaste(1L);
-            assertTrue(repeated.isEmpty(), "Subsequent evaluation must NOT re-convert the 0-stock item");
-        }
-
-        // Inventory must remain 0.00 kg, and waste records must remain exactly 1
-        FoodItem afterRepeated = foodItemService.getFoodItemById(porkId, 1L).orElseThrow();
-        assertEquals(0, BigDecimal.ZERO.compareTo(afterRepeated.getQuantity()), "Stock must remain 0.00 kg");
-        List<WasteRecord> wasteAfterRepeated = wasteService.getWasteByFoodItemId(porkId, 1L);
-        assertEquals(1, wasteAfterRepeated.size(), "Must NOT have duplicate waste records");
+    @DisplayName("Expiry and repeated evaluation never confirm waste")
+    public void expiryRequiresConfirmation() throws Exception {
+        var item = foodItemService.createFoodItem(new OwnedFoodItemFixture(null, "Expired review " + System.nanoTime(), "Meat",
+                new BigDecimal("12"), "kg", new BigDecimal("18000"), ExpiryStatusResolver.getToday().minusDays(1), BigDecimal.ONE), 1L);
+        for (int i=0;i<2;i++) new com.foodwasteai.service.PredictionService().assessAllInventory(1L);
+        assertEquals(0, new BigDecimal("12").compareTo(foodItemService.getFoodItemById(item.getId(),1L).orElseThrow().getQuantity()));
+        assertTrue(wasteService.getWasteByFoodItemId(item.getId(),1L).isEmpty());
+        var request = new WasteRecord(item.getId(), new BigDecimal("6"), WasteRecord.Reason.EXPIRED, null, null, "Explicit partial confirmation");
+        request.setClientRequestId(java.util.UUID.randomUUID().toString());
+        var first = wasteService.recordWaste(request,1L);
+        var retried = new com.foodwasteai.dao.WasteRecordDao().recordWasteWithStockDeduction(request,1L);
+        assertEquals(first.getId(),retried.getId());
+        assertEquals(0,new BigDecimal("6").compareTo(foodItemService.getFoodItemById(item.getId(),1L).orElseThrow().getQuantity()));
+        assertEquals(1,wasteService.getWasteByFoodItemId(item.getId(),1L).size());
+        assertEquals(0,new BigDecimal("108000").compareTo(first.getMonetaryLoss()));
     }
 }
