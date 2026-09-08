@@ -72,6 +72,9 @@ public class WasteServlet extends BaseServlet {
             }
 
             Long userId = getAuthenticatedUserId(req);
+            if (record.getFoodItemId() != null && new com.foodwasteai.service.FoodItemService().getFoodItemById(record.getFoodItemId(), userId).isEmpty()) {
+                sendNotFound(resp, "Food item not found"); return;
+            }
             WasteRecord saved = wasteService.recordWaste(record, userId);
             sendCreated(resp, "Waste recorded successfully and stock adjusted", saved);
         } catch (IllegalArgumentException e) {

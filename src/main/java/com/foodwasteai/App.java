@@ -67,6 +67,15 @@ public class App {
         logger.info("Serving webapp from docBase: {}", docBase);
 
         Context ctx = tomcat.addContext("", docBase);
+        ctx.setUseHttpOnly(true);
+        org.apache.tomcat.util.http.Rfc6265CookieProcessor cookieProcessor = new org.apache.tomcat.util.http.Rfc6265CookieProcessor();
+        cookieProcessor.setSameSiteCookies("lax");
+        ctx.setCookieProcessor(cookieProcessor);
+        ctx.addServletContainerInitializer((classes, context) -> {
+            context.getSessionCookieConfig().setHttpOnly(true);
+            context.getSessionCookieConfig().setSecure(AppConfig.isProduction());
+            context.setSessionTrackingModes(java.util.Set.of(jakarta.servlet.SessionTrackingMode.COOKIE));
+        }, null);
 
         // Add DefaultServlet for static file serving (HTML, CSS, JS, Images, Fonts)
         Tomcat.addServlet(ctx, "default", new DefaultServlet());

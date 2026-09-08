@@ -39,24 +39,24 @@ public class RecommendationRedistributionTest {
     @DisplayName("Should retrieve and filter recommendations by category and status")
     public void testRecommendationRetrieval() throws SQLException {
         foodItemService.createFoodItem(
-                new FoodItem(null, "Test Urgent Item " + System.currentTimeMillis(), "Poultry",
+                new OwnedFoodItemFixture(null, "Test Urgent Item " + System.currentTimeMillis(), "Poultry",
                         new BigDecimal("50.00"), "kg", new BigDecimal("6500.00"),
                         LocalDate.now().plusDays(1), new BigDecimal("10.00")), 1L
         );
-        recommendationService.generateRecommendationsFromProlog();
-        List<Recommendation> all = recommendationService.getAllRecommendations();
+        recommendationService.generateRecommendationsFromProlog(1L);
+        List<Recommendation> all = recommendationService.getAllRecommendations(1L);
         assertFalse(all.isEmpty(), "Recommendations should not be empty");
 
-        List<Recommendation> urgent = recommendationService.getRecommendationsByCategory(Recommendation.Category.URGENT);
+        List<Recommendation> urgent = recommendationService.getRecommendationsByCategory(Recommendation.Category.URGENT, 1L);
         assertFalse(urgent.isEmpty());
         assertEquals(Recommendation.Category.URGENT, urgent.get(0).getCategory());
 
         // Test status update (Accept / Dismiss)
         Long recId = all.get(0).getId();
-        boolean accepted = recommendationService.updateRecommendationStatus(recId, Recommendation.Status.ACCEPTED);
+        boolean accepted = recommendationService.updateRecommendationStatus(recId, Recommendation.Status.ACCEPTED, 1L);
         assertTrue(accepted);
 
-        List<Recommendation> acceptedList = recommendationService.getRecommendationsByStatus(Recommendation.Status.ACCEPTED);
+        List<Recommendation> acceptedList = recommendationService.getRecommendationsByStatus(Recommendation.Status.ACCEPTED, 1L);
         assertTrue(acceptedList.stream().anyMatch(r -> r.getId().equals(recId)));
     }
 
@@ -64,11 +64,11 @@ public class RecommendationRedistributionTest {
     @DisplayName("Should generate fresh recommendations from Prolog reasoning")
     public void testGenerateFromProlog() throws SQLException {
         foodItemService.createFoodItem(
-                new FoodItem(null, "Test Urgent Prolog Item " + System.currentTimeMillis(), "Poultry",
+                new OwnedFoodItemFixture(null, "Test Urgent Prolog Item " + System.currentTimeMillis(), "Poultry",
                         new BigDecimal("50.00"), "kg", new BigDecimal("6500.00"),
                         LocalDate.now().plusDays(1), new BigDecimal("10.00")), 1L
         );
-        List<Recommendation> generated = recommendationService.generateRecommendationsFromProlog();
+        List<Recommendation> generated = recommendationService.generateRecommendationsFromProlog(1L);
         assertNotNull(generated);
         assertFalse(generated.isEmpty());
         assertTrue(generated.stream().anyMatch(r -> r.getCategory() == Recommendation.Category.URGENT));
@@ -81,7 +81,7 @@ public class RecommendationRedistributionTest {
         assertFalse(recipients.isEmpty(), "Recipients list should not be empty");
 
         FoodItem targetItem = foodItemService.createFoodItem(
-                new FoodItem(null, "Test Redist Item " + System.currentTimeMillis(), "Dairy", new BigDecimal("30.00"), "kg", new BigDecimal("5000.00"), LocalDate.now().plusDays(2), new BigDecimal("5.00")), 1L
+                new OwnedFoodItemFixture(null, "Test Redist Item " + System.currentTimeMillis(), "Dairy", new BigDecimal("30.00"), "kg", new BigDecimal("5000.00"), LocalDate.now().plusDays(2), new BigDecimal("5.00")), 1L
         );
         Long itemId = targetItem.getId();
         BigDecimal initialQty = targetItem.getQuantity();
@@ -98,12 +98,12 @@ public class RecommendationRedistributionTest {
         assertNotNull(scheduled.getId());
 
         // Stock deduction check
-        Optional<FoodItem> itemAfter = foodItemService.getFoodItemById(itemId);
+        Optional<FoodItem> itemAfter = foodItemService.getFoodItemById(itemId, 1L);
         assertTrue(itemAfter.isPresent());
         assertEquals(0, initialQty.subtract(new BigDecimal("5.00")).compareTo(itemAfter.get().getQuantity()));
 
         // Mark collected
-        boolean collected = redistributionService.updateDispatchStatus(scheduled.getId(), Redistribution.Status.COLLECTED);
+        boolean collected = redistributionService.updateDispatchStatus(scheduled.getId(), Redistribution.Status.COLLECTED, 1L);
         assertTrue(collected);
     }
 }

@@ -35,7 +35,21 @@ public class AuthFilter implements Filter {
 
         // 2. Check authenticated session
         HttpSession session = req.getSession(false);
-        boolean authenticated = session != null && session.getAttribute("user_id") != null;
+        boolean authenticated = session != null && session.getAttribute("user_id") instanceof Long
+                && (Long) session.getAttribute("user_id") > 0;
+        if (authenticated) {
+            try {
+                authenticated = new com.foodwasteai.service.UserService()
+                        .findById((Long) session.getAttribute("user_id"))
+                        .filter(com.foodwasteai.model.User::isActive).isPresent();
+                if (!authenticated) session.invalidate();
+            } catch (java.sql.SQLException | IllegalStateException exception) {
+                resp.setStatus(503);
+                resp.setContentType("application/json;charset=UTF-8");
+                resp.getWriter().print("{\"success\":false,\"message\":\"Unable to complete the request. Please try again.\"}");
+                return;
+            }
+        }
 
         if (!authenticated) {
             // Protected API calls receive JSON 401 Unauthorized
@@ -43,7 +57,7 @@ public class AuthFilter implements Filter {
                 resp.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                 resp.setContentType("application/json;charset=UTF-8");
                 resp.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-                resp.getWriter().print("{\"success\":false,\"message\":\"Authentication required. Please log in.\"}");
+                resp.getWriter().print("{\"success\":false,\"error\":\"AUTHENTICATION_REQUIRED\",\"message\":\"Please sign in to continue.\"}");
                 resp.getWriter().flush();
                 return;
             }
@@ -53,24 +67,19 @@ public class AuthFilter implements Filter {
             return;
         }
 
+        resp.setHeader("Cache-Control", "no-store");
         chain.doFilter(request, response);
     }
 
     private boolean isPublicPath(String path) {
-        if (path == null || path.isEmpty() || "/".equals(path) || "/index.html".equals(path)) {
-            return true;
-        }
         if (path.equals("/login.html") || path.equals("/login") ||
             path.equals("/register.html") || path.equals("/register")) {
             return true;
         }
-        if (path.startsWith("/api/auth/") || path.equals("/api/health") || path.equals("/api/version") || path.equals("/logout")) {
+        if (path.equals("/api/auth/login") || path.equals("/api/auth/register")) {
             return true;
         }
-        if (path.startsWith("/css/") || path.startsWith("/js/") || path.startsWith("/img/") ||
-            path.endsWith(".ico") || path.endsWith(".svg") || path.endsWith(".png") ||
-            path.endsWith(".jpg") || path.endsWith(".jpeg") || path.endsWith(".css") ||
-            path.endsWith(".js") || path.endsWith(".woff2") || path.endsWith(".woff") || path.endsWith(".ttf")) {
+        if (path.startsWith("/css/") || path.startsWith("/js/") || path.startsWith("/img/") || path.startsWith("/fonts/") || path.equals("/favicon.ico")) {
             return true;
         }
         return false;

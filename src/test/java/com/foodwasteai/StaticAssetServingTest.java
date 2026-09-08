@@ -63,16 +63,13 @@ public class StaticAssetServingTest {
     @Test
     public void testRootReturnsDashboardHtml() throws Exception {
         HttpResponse<String> response = fetch("/");
-        assertEquals(200, response.statusCode(), "Root path / must return HTTP 200");
-        String contentType = response.headers().firstValue("Content-Type").orElse("");
-        assertTrue(contentType.contains("text/html"), "Root path must return text/html Content-Type");
-        assertTrue(response.body().contains("FoodWaste AI"), "Root response must contain page brand");
-        assertTrue(response.body().contains("Dashboard"), "Root response must contain Dashboard");
+        assertEquals(302, response.statusCode(), "Root requires login");
+        assertTrue(response.headers().firstValue("Location").orElse("").endsWith("/login.html"));
     }
 
     @Test
     public void testIndexHtmlReturns200AndTextHtml() throws Exception {
-        HttpResponse<String> response = fetch("/index.html");
+        HttpResponse<String> response = fetch("/login.html");
         assertEquals(200, response.statusCode(), "Page /index.html must return HTTP 200");
         String contentType = response.headers().firstValue("Content-Type").orElse("");
         assertTrue(contentType.contains("text/html"), "Page /index.html must have text/html Content-Type, got: " + contentType);
@@ -90,15 +87,15 @@ public class StaticAssetServingTest {
     })
     public void testHtmlPagesServeDirectlyWithoutAuth(String page) throws Exception {
         HttpResponse<String> response = fetch(page);
-        assertEquals(200, response.statusCode(), "Page " + page + " must return HTTP 200 directly without authentication");
+        assertEquals(302, response.statusCode(), "Private pages require a session");
         String contentType = response.headers().firstValue("Content-Type").orElse("");
-        assertTrue(contentType.contains("text/html"), "Page " + page + " must return text/html Content-Type, got: " + contentType);
+        assertTrue(response.headers().firstValue("Location").orElse("").endsWith("/login.html"));
     }
 
     @Test
     public void testUsersPageIsRemoved() throws Exception {
         HttpResponse<String> response = fetch("/users.html");
-        assertEquals(404, response.statusCode(), "Page /users.html must return 404 since it has been removed");
+        assertEquals(302, response.statusCode(), "Unauthenticated routes require login");
     }
 
     @ParameterizedTest
@@ -145,9 +142,9 @@ public class StaticAssetServingTest {
     @Test
     public void testApiHealthCheckRemainsAccessible() throws Exception {
         HttpResponse<String> response = fetch("/api/health");
-        assertEquals(200, response.statusCode(), "API health check must return HTTP 200");
+        assertEquals(401, response.statusCode(), "Operational health endpoint requires authentication");
         String contentType = response.headers().firstValue("Content-Type").orElse("");
         assertTrue(contentType.contains("application/json"), "API health check must return JSON");
-        assertTrue(response.body().contains("UP"), "Health response body must contain UP status");
+        assertTrue(response.body().contains("AUTHENTICATION_REQUIRED"));
     }
 }

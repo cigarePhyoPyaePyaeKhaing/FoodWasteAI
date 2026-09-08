@@ -43,7 +43,7 @@ public class RedistributionValidationTest {
     @DisplayName("Should reject redistribution creation with non-existent recipient ID")
     public void testRejectNonExistentRecipientId() throws SQLException {
         FoodItem item = foodItemService.createFoodItem(
-                new FoodItem(null, "Test Validation Milk " + System.currentTimeMillis(), "Dairy",
+                new OwnedFoodItemFixture(null, "Test Validation Milk " + System.currentTimeMillis(), "Dairy",
                         new BigDecimal("25.00"), "kg", new BigDecimal("4500.00"),
                         LocalDate.now().plusDays(2), new BigDecimal("5.00")), 1L
         );
@@ -67,7 +67,7 @@ public class RedistributionValidationTest {
     @DisplayName("Should reject redistribution creation with null recipient ID")
     public void testRejectNullRecipientId() throws SQLException {
         FoodItem item = foodItemService.createFoodItem(
-                new FoodItem(null, "Test Validation Bread " + System.currentTimeMillis(), "Bakery",
+                new OwnedFoodItemFixture(null, "Test Validation Bread " + System.currentTimeMillis(), "Bakery",
                         new BigDecimal("15.00"), "units", new BigDecimal("2000.00"),
                         LocalDate.now().plusDays(2), new BigDecimal("5.00")), 1L
         );
@@ -103,7 +103,7 @@ public class RedistributionValidationTest {
 
         // Create food item
         FoodItem item = foodItemService.createFoodItem(
-                new FoodItem(null, "Test Surplus Produce " + System.currentTimeMillis(), "Produce",
+                new OwnedFoodItemFixture(null, "Test Surplus Produce " + System.currentTimeMillis(), "Produce",
                         new BigDecimal("20.00"), "kg", new BigDecimal("3000.00"),
                         LocalDate.now().plusDays(1), new BigDecimal("4.00")), 1L
         );
@@ -122,7 +122,7 @@ public class RedistributionValidationTest {
         assertEquals(validRecipient.getName(), saved.getRecipientName());
 
         // Verify stock deducted
-        Optional<FoodItem> afterItem = foodItemService.getFoodItemById(item.getId());
+        Optional<FoodItem> afterItem = foodItemService.getFoodItemById(item.getId(), 1L);
         assertTrue(afterItem.isPresent());
         assertEquals(0, new BigDecimal("12.00").compareTo(afterItem.get().getQuantity()));
     }
@@ -156,7 +156,7 @@ public class RedistributionValidationTest {
     @DisplayName("Should reject redistribution creation with zero or negative quantity")
     public void testRejectZeroOrNegativeQuantity() throws SQLException {
         FoodItem item = foodItemService.createFoodItem(
-                new FoodItem(null, "Test Zero Qty Food " + System.currentTimeMillis(), "Bakery",
+                new OwnedFoodItemFixture(null, "Test Zero Qty Food " + System.currentTimeMillis(), "Bakery",
                         new BigDecimal("20.00"), "units", new BigDecimal("1500.00"),
                         LocalDate.now().plusDays(2), new BigDecimal("5.00")), 1L
         );
@@ -193,7 +193,7 @@ public class RedistributionValidationTest {
         assertNotNull(saved.getId());
 
         FoodItem item = foodItemService.createFoodItem(
-                new FoodItem(null, "Test Inactive Item " + System.currentTimeMillis(), "Meat",
+                new OwnedFoodItemFixture(null, "Test Inactive Item " + System.currentTimeMillis(), "Meat",
                         new BigDecimal("10.00"), "kg", new BigDecimal("8000.00"),
                         LocalDate.now().plusDays(1), new BigDecimal("2.00")), 1L
         );

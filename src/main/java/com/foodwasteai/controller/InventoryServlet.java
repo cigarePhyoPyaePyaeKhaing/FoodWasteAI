@@ -51,7 +51,10 @@ public class InventoryServlet extends BaseServlet {
             if (historyParam != null && !historyParam.trim().isEmpty()) {
                 try {
                     Long foodId = Long.parseLong(historyParam.trim());
-                    List<InventoryTransaction> history = foodItemService.getItemStockHistory(foodId);
+                    if (foodItemService.getFoodItemById(foodId, getAuthenticatedUserId(req)).isEmpty()) {
+                        sendNotFound(resp, "Food item not found"); return;
+                    }
+                    List<InventoryTransaction> history = foodItemService.getItemStockHistory(foodId, getAuthenticatedUserId(req));
                     sendSuccess(resp, history);
                     return;
                 } catch (NumberFormatException ignored) {}
@@ -62,7 +65,10 @@ public class InventoryServlet extends BaseServlet {
                 if (parts.length > 2 && ("history".equalsIgnoreCase(parts[2]) || "transactions".equalsIgnoreCase(parts[2]))) {
                     try {
                         Long foodId = Long.parseLong(parts[1].trim());
-                        List<InventoryTransaction> history = foodItemService.getItemStockHistory(foodId);
+                        if (foodItemService.getFoodItemById(foodId, getAuthenticatedUserId(req)).isEmpty()) {
+                            sendNotFound(resp, "Food item not found"); return;
+                        }
+                        List<InventoryTransaction> history = foodItemService.getItemStockHistory(foodId, getAuthenticatedUserId(req));
                         sendSuccess(resp, history);
                         return;
                     } catch (NumberFormatException ignored) {}

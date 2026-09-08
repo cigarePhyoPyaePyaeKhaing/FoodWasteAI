@@ -39,7 +39,7 @@ public class SalesValidationAndInventoryDeductionTest {
     @DisplayName("1. Stock = 20 liter, sell 5 -> success, remaining = 15 liter")
     public void testSellWithinStock_RemainingStockUpdated() throws SQLException {
         FoodItem milk = foodItemService.createFoodItem(
-                new FoodItem(null, "Fresh Milk " + System.currentTimeMillis(), "Dairy", new BigDecimal("20.00"), "liter",
+                new OwnedFoodItemFixture(null, "Fresh Milk " + System.currentTimeMillis(), "Dairy", new BigDecimal("20.00"), "liter",
                         new BigDecimal("2500.00"), LocalDate.now().plusDays(5), new BigDecimal("5.00")), 1L
         );
         Long milkId = milk.getId();
@@ -52,7 +52,7 @@ public class SalesValidationAndInventoryDeductionTest {
         assertEquals(0, new BigDecimal("5.00").compareTo(recorded.getQuantitySold()));
         assertEquals(0, new BigDecimal("12500.00").compareTo(recorded.getTotalAmount()));
 
-        Optional<FoodItem> after = foodItemService.getFoodItemById(milkId);
+        Optional<FoodItem> after = foodItemService.getFoodItemById(milkId, 1L);
         assertTrue(after.isPresent());
         assertEquals(0, new BigDecimal("15.00").compareTo(after.get().getQuantity()), "Remaining stock must be 15.00 liter");
     }
@@ -61,7 +61,7 @@ public class SalesValidationAndInventoryDeductionTest {
     @DisplayName("2. Stock = 20 liter, sell 20 -> success, remaining = 0 liter")
     public void testSellExactStock_StockBecomesZero() throws SQLException {
         FoodItem milk = foodItemService.createFoodItem(
-                new FoodItem(null, "Fresh Milk Exact " + System.currentTimeMillis(), "Dairy", new BigDecimal("20.00"), "liter",
+                new OwnedFoodItemFixture(null, "Fresh Milk Exact " + System.currentTimeMillis(), "Dairy", new BigDecimal("20.00"), "liter",
                         new BigDecimal("2500.00"), LocalDate.now().plusDays(5), new BigDecimal("5.00")), 1L
         );
         Long milkId = milk.getId();
@@ -72,7 +72,7 @@ public class SalesValidationAndInventoryDeductionTest {
         assertNotNull(recorded.getId());
         assertEquals(0, new BigDecimal("20.00").compareTo(recorded.getQuantitySold()));
 
-        Optional<FoodItem> after = foodItemService.getFoodItemById(milkId);
+        Optional<FoodItem> after = foodItemService.getFoodItemById(milkId, 1L);
         assertTrue(after.isPresent());
         assertEquals(0, BigDecimal.ZERO.compareTo(after.get().getQuantity()), "Remaining stock must be exactly 0.00 liter");
     }
@@ -81,7 +81,7 @@ public class SalesValidationAndInventoryDeductionTest {
     @DisplayName("3, 4, 5. Stock = 20 liter, sell 21 -> rejected, 0 sales row inserted, inventory unchanged")
     public void testSellExceedingStock_RejectedAndNoStateChange() throws SQLException {
         FoodItem milk = foodItemService.createFoodItem(
-                new FoodItem(null, "Fresh Milk Over " + System.currentTimeMillis(), "Dairy", new BigDecimal("20.00"), "liter",
+                new OwnedFoodItemFixture(null, "Fresh Milk Over " + System.currentTimeMillis(), "Dairy", new BigDecimal("20.00"), "liter",
                         new BigDecimal("2500.00"), LocalDate.now().plusDays(5), new BigDecimal("5.00")), 1L
         );
         Long milkId = milk.getId();
@@ -93,12 +93,12 @@ public class SalesValidationAndInventoryDeductionTest {
         assertTrue(ex.getMessage().contains("20") && ex.getMessage().contains("21"), "Message should mention available and requested quantities");
 
         // Verify inventory remained unchanged at 20.00 liter
-        Optional<FoodItem> after = foodItemService.getFoodItemById(milkId);
+        Optional<FoodItem> after = foodItemService.getFoodItemById(milkId, 1L);
         assertTrue(after.isPresent());
         assertEquals(0, new BigDecimal("20.00").compareTo(after.get().getQuantity()), "Inventory must remain 20.00 liter");
 
         // Verify no sale record was inserted
-        List<Sale> sales = salesService.getSalesByFoodItemId(milkId);
+        List<Sale> sales = salesService.getSalesByFoodItemId(milkId, 1L);
         assertTrue(sales.isEmpty(), "No sales records must exist for rejected transaction");
     }
 
@@ -106,7 +106,7 @@ public class SalesValidationAndInventoryDeductionTest {
     @DisplayName("6. Quantity = 0 -> rejected")
     public void testSellZeroQuantity_Rejected() throws SQLException {
         FoodItem item = foodItemService.createFoodItem(
-                new FoodItem(null, "Item Zero " + System.currentTimeMillis(), "Produce", new BigDecimal("10.00"), "kg",
+                new OwnedFoodItemFixture(null, "Item Zero " + System.currentTimeMillis(), "Produce", new BigDecimal("10.00"), "kg",
                         new BigDecimal("1000.00"), LocalDate.now().plusDays(5), new BigDecimal("2.00")), 1L
         );
 
@@ -118,7 +118,7 @@ public class SalesValidationAndInventoryDeductionTest {
     @DisplayName("7. Negative quantity -> rejected")
     public void testSellNegativeQuantity_Rejected() throws SQLException {
         FoodItem item = foodItemService.createFoodItem(
-                new FoodItem(null, "Item Neg " + System.currentTimeMillis(), "Produce", new BigDecimal("10.00"), "kg",
+                new OwnedFoodItemFixture(null, "Item Neg " + System.currentTimeMillis(), "Produce", new BigDecimal("10.00"), "kg",
                         new BigDecimal("1000.00"), LocalDate.now().plusDays(5), new BigDecimal("2.00")), 1L
         );
 
@@ -137,11 +137,11 @@ public class SalesValidationAndInventoryDeductionTest {
     @DisplayName("9. Correct unit returned and preserved across different item types")
     public void testUnitPreservation() throws SQLException {
         FoodItem rice = foodItemService.createFoodItem(
-                new FoodItem(null, "Basmati Rice " + System.currentTimeMillis(), "Grains", new BigDecimal("50.00"), "kg",
+                new OwnedFoodItemFixture(null, "Basmati Rice " + System.currentTimeMillis(), "Grains", new BigDecimal("50.00"), "kg",
                         new BigDecimal("4000.00"), LocalDate.now().plusDays(30), new BigDecimal("10.00")), 1L
         );
         FoodItem eggs = foodItemService.createFoodItem(
-                new FoodItem(null, "Organic Eggs " + System.currentTimeMillis(), "Produce", new BigDecimal("60.00"), "pieces",
+                new OwnedFoodItemFixture(null, "Organic Eggs " + System.currentTimeMillis(), "Produce", new BigDecimal("60.00"), "pieces",
                         new BigDecimal("500.00"), LocalDate.now().plusDays(10), new BigDecimal("12.00")), 1L
         );
 
@@ -156,7 +156,7 @@ public class SalesValidationAndInventoryDeductionTest {
     @DisplayName("10. Concurrent sales cannot oversell stock")
     public void testConcurrentSalesCannotOversellStock() throws Exception {
         FoodItem item = foodItemService.createFoodItem(
-                new FoodItem(null, "Concurrent Milk " + System.currentTimeMillis(), "Dairy", new BigDecimal("20.00"), "liter",
+                new OwnedFoodItemFixture(null, "Concurrent Milk " + System.currentTimeMillis(), "Dairy", new BigDecimal("20.00"), "liter",
                         new BigDecimal("2500.00"), LocalDate.now().plusDays(5), new BigDecimal("5.00")), 1L
         );
         Long itemId = item.getId();
@@ -195,7 +195,7 @@ public class SalesValidationAndInventoryDeductionTest {
         assertEquals(3, successCount.get(), "Exactly 3 sales of 6.00 liter must succeed");
         assertEquals(2, rejectCount.get(), "Remaining 2 sales must be rejected for insufficient stock");
 
-        Optional<FoodItem> after = foodItemService.getFoodItemById(itemId);
+        Optional<FoodItem> after = foodItemService.getFoodItemById(itemId, 1L);
         assertTrue(after.isPresent());
         assertEquals(0, new BigDecimal("2.00").compareTo(after.get().getQuantity()), "Remaining stock must be 2.00 liter (20 - 18)");
     }
@@ -205,7 +205,7 @@ public class SalesValidationAndInventoryDeductionTest {
     public void testExpiryValidation() throws SQLException {
         // Expired item (yesterday)
         FoodItem expiredItem = foodItemService.createFoodItem(
-                new FoodItem(null, "Past Milk " + System.currentTimeMillis(), "Dairy", new BigDecimal("10.00"), "liter",
+                new OwnedFoodItemFixture(null, "Past Milk " + System.currentTimeMillis(), "Dairy", new BigDecimal("10.00"), "liter",
                         new BigDecimal("2000.00"), LocalDate.now().minusDays(1), new BigDecimal("2.00")), 1L
         );
         Sale expiredSale = new Sale(expiredItem.getId(), new BigDecimal("2.00"), new BigDecimal("2000.00"), null, 1, LocalDateTime.now());
@@ -214,7 +214,7 @@ public class SalesValidationAndInventoryDeductionTest {
 
         // Same day item (today)
         FoodItem todayItem = foodItemService.createFoodItem(
-                new FoodItem(null, "Today Bread " + System.currentTimeMillis(), "Bakery", new BigDecimal("10.00"), "pieces",
+                new OwnedFoodItemFixture(null, "Today Bread " + System.currentTimeMillis(), "Bakery", new BigDecimal("10.00"), "pieces",
                         new BigDecimal("1500.00"), LocalDate.now(), new BigDecimal("2.00")), 1L
         );
         Sale todaySale = new Sale(todayItem.getId(), new BigDecimal("2.00"), new BigDecimal("1500.00"), null, 1, LocalDateTime.now());
@@ -226,7 +226,7 @@ public class SalesValidationAndInventoryDeductionTest {
     @DisplayName("13. Rapid double-submit with same clientRequestId creates exactly 1 record and deducts inventory once")
     public void testRapidDoubleSubmissionWithSameTokenCreatesOnlyOneRecord() throws SQLException {
         FoodItem noodles = foodItemService.createFoodItem(
-                new FoodItem(null, "Noodles Test " + System.currentTimeMillis(), "Grains", new BigDecimal("30.00"), "pack",
+                new OwnedFoodItemFixture(null, "Noodles Test " + System.currentTimeMillis(), "Grains", new BigDecimal("30.00"), "pack",
                         new BigDecimal("2500.00"), LocalDate.now().plusDays(5), new BigDecimal("10.00")), 1L
         );
         Long itemId = noodles.getId();
@@ -250,13 +250,13 @@ public class SalesValidationAndInventoryDeductionTest {
         assertEquals(firstRecorded.getId(), secondRecorded.getId(), "Duplicate submit must return the same sale record");
 
         // Inventory must be reduced ONLY ONCE (30.00 - 14.00 = 16.00, NOT 2.00)
-        Optional<FoodItem> after = foodItemService.getFoodItemById(itemId);
+        Optional<FoodItem> after = foodItemService.getFoodItemById(itemId, 1L);
         assertTrue(after.isPresent());
         assertEquals(0, new BigDecimal("16.00").compareTo(after.get().getQuantity()),
                 "Inventory must be deducted exactly once (30 - 14 = 16 pack)");
 
         // Total sales records for this item must be exactly 1
-        List<Sale> allSales = salesService.getSalesByFoodItemId(itemId);
+        List<Sale> allSales = salesService.getSalesByFoodItemId(itemId, 1L);
         assertEquals(1, allSales.size(), "Exactly ONE sales transaction must exist in database");
     }
 
@@ -264,7 +264,7 @@ public class SalesValidationAndInventoryDeductionTest {
     @DisplayName("14. Concurrent double-click requests with same clientRequestId deduplicate atomically")
     public void testConcurrentDoubleSubmitWithSameTokenCreatesOnlyOneRecord() throws Exception {
         FoodItem sugar = foodItemService.createFoodItem(
-                new FoodItem(null, "Sugar Test " + System.currentTimeMillis(), "Bakery", new BigDecimal("20.00"), "kg",
+                new OwnedFoodItemFixture(null, "Sugar Test " + System.currentTimeMillis(), "Bakery", new BigDecimal("20.00"), "kg",
                         new BigDecimal("4000.00"), LocalDate.now().plusDays(5), new BigDecimal("5.00")), 1L
         );
         Long itemId = sugar.getId();
@@ -300,14 +300,13 @@ public class SalesValidationAndInventoryDeductionTest {
         assertEquals(results.get(0).getId(), results.get(1).getId(), "Both calls must resolve to the exact same sale record ID");
 
         // Inventory must be reduced ONLY ONCE (20.00 - 2.00 = 18.00, NOT 16.00)
-        Optional<FoodItem> after = foodItemService.getFoodItemById(itemId);
+        Optional<FoodItem> after = foodItemService.getFoodItemById(itemId, 1L);
         assertTrue(after.isPresent());
         assertEquals(0, new BigDecimal("18.00").compareTo(after.get().getQuantity()),
                 "Inventory must be deducted exactly once (20 - 2 = 18 kg)");
 
         // Exactly one sales record in history
-        List<Sale> allSales = salesService.getSalesByFoodItemId(itemId);
+        List<Sale> allSales = salesService.getSalesByFoodItemId(itemId, 1L);
         assertEquals(1, allSales.size(), "Exactly ONE sales transaction must exist");
     }
 }
-

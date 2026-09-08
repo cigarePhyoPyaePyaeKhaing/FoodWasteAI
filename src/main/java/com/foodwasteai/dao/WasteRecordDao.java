@@ -21,12 +21,18 @@ import java.util.Optional;
 public class WasteRecordDao extends BaseDao {
 
     public Optional<WasteRecord> findById(Long id) throws SQLException {
-        String sql = "SELECT w.id, w.food_item_id, f.name AS food_name, f.unit AS food_unit, w.quantity_wasted, w.reason, " +
+        throw new IllegalArgumentException("Authenticated user is required");
+    }
+
+    public Optional<WasteRecord> findById(Long id, Long userId) throws SQLException {
+        requireUserId(userId);
+        String sql = "SELECT w.id, w.food_item_id, f.name AS food_name, f.unit AS food_unit, f.user_id, w.quantity_wasted, w.reason, " +
                      "w.monetary_loss, w.waste_date, w.notes, w.created_at " +
-                     "FROM waste_records w JOIN food_items f ON w.food_item_id = f.id WHERE w.id = ?";
+                     "FROM waste_records w JOIN food_items f ON w.food_item_id = f.id WHERE w.id = ? AND f.user_id = ?";
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setLong(1, id);
+            stmt.setLong(2, userId);
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
                     return Optional.of(mapResultSetToWasteRecord(rs));
@@ -42,28 +48,34 @@ public class WasteRecordDao extends BaseDao {
 
     public List<WasteRecord> findAll(Long userId) throws SQLException {
         List<WasteRecord> list = new ArrayList<>();
-        String sql = "SELECT w.id, w.food_item_id, f.name AS food_name, f.unit AS food_unit, w.quantity_wasted, w.reason, " +
+        String sql = "SELECT w.id, w.food_item_id, f.name AS food_name, f.unit AS food_unit, f.user_id, w.quantity_wasted, w.reason, " +
                      "w.monetary_loss, w.waste_date, w.notes, w.created_at " +
-                     "FROM waste_records w JOIN food_items f ON w.food_item_id = f.id ORDER BY w.waste_date DESC";
+                     "FROM waste_records w JOIN food_items f ON w.food_item_id = f.id WHERE f.user_id = ? ORDER BY w.waste_date DESC";
         try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql);
-             ResultSet rs = stmt.executeQuery()) {
-            while (rs.next()) {
-                list.add(mapResultSetToWasteRecord(rs));
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setLong(1, requireUserId(userId));
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) list.add(mapResultSetToWasteRecord(rs));
             }
         }
         return list;
     }
 
     public List<WasteRecord> findByFoodItemId(Long foodItemId) throws SQLException {
+        throw new IllegalArgumentException("Authenticated user is required");
+    }
+
+    public List<WasteRecord> findByFoodItemId(Long foodItemId, Long userId) throws SQLException {
+        requireUserId(userId);
         List<WasteRecord> list = new ArrayList<>();
-        String sql = "SELECT w.id, w.food_item_id, f.name AS food_name, f.unit AS food_unit, w.quantity_wasted, w.reason, " +
+        String sql = "SELECT w.id, w.food_item_id, f.name AS food_name, f.unit AS food_unit, f.user_id, w.quantity_wasted, w.reason, " +
                      "w.monetary_loss, w.waste_date, w.notes, w.created_at " +
                      "FROM waste_records w JOIN food_items f ON w.food_item_id = f.id " +
-                     "WHERE w.food_item_id = ? ORDER BY w.waste_date DESC";
+                     "WHERE w.food_item_id = ? AND f.user_id = ? ORDER BY w.waste_date DESC";
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setLong(1, foodItemId);
+            stmt.setLong(2, userId);
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
                     list.add(mapResultSetToWasteRecord(rs));
@@ -74,15 +86,21 @@ public class WasteRecordDao extends BaseDao {
     }
 
     public List<WasteRecord> findByDateRange(LocalDate start, LocalDate end) throws SQLException {
+        throw new IllegalArgumentException("Authenticated user is required");
+    }
+
+    public List<WasteRecord> findByDateRange(LocalDate start, LocalDate end, Long userId) throws SQLException {
+        requireUserId(userId);
         List<WasteRecord> list = new ArrayList<>();
-        String sql = "SELECT w.id, w.food_item_id, f.name AS food_name, f.unit AS food_unit, w.quantity_wasted, w.reason, " +
+        String sql = "SELECT w.id, w.food_item_id, f.name AS food_name, f.unit AS food_unit, f.user_id, w.quantity_wasted, w.reason, " +
                      "w.monetary_loss, w.waste_date, w.notes, w.created_at " +
                      "FROM waste_records w JOIN food_items f ON w.food_item_id = f.id " +
-                     "WHERE w.waste_date >= ? AND w.waste_date < ? ORDER BY w.waste_date DESC";
+                     "WHERE w.waste_date >= ? AND w.waste_date < ? AND f.user_id = ? ORDER BY w.waste_date DESC";
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setObject(1, start.atStartOfDay(com.foodwasteai.util.ExpiryStatusResolver.ZONE_YANGON).withZoneSameInstant(java.time.ZoneOffset.UTC).toLocalDateTime());
             stmt.setObject(2, end.plusDays(1).atStartOfDay(com.foodwasteai.util.ExpiryStatusResolver.ZONE_YANGON).withZoneSameInstant(java.time.ZoneOffset.UTC).toLocalDateTime());
+            stmt.setLong(3, userId);
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
                     list.add(mapResultSetToWasteRecord(rs));
@@ -95,19 +113,28 @@ public class WasteRecordDao extends BaseDao {
     public BigDecimal calculateHistoricalWasteRate(Long foodItemId, int pastDays) throws SQLException {
         return getHistoricalWasteRate(foodItemId, pastDays);
     }
+    public BigDecimal calculateHistoricalWasteRate(Long foodItemId, int pastDays, Long userId) throws SQLException {
+        return getHistoricalWasteRate(foodItemId, pastDays, userId);
+    }
 
     public BigDecimal getHistoricalWasteRate(Long foodItemId, int pastDays) throws SQLException {
+        throw new IllegalArgumentException("Authenticated user is required");
+    }
+
+    public BigDecimal getHistoricalWasteRate(Long foodItemId, int pastDays, Long userId) throws SQLException {
+        requireUserId(userId);
         String sql = "SELECT " +
                      "  IFNULL(SUM(w.quantity_wasted), 0) AS total_waste, " +
-                     "  IFNULL((SELECT SUM(s.quantity_sold) FROM sales s WHERE s.food_item_id = ? AND s.sale_date >= DATE_SUB(NOW(), INTERVAL ? DAY)), 0) AS total_sold " +
-                     "FROM waste_records w " +
-                     "WHERE w.food_item_id = ? AND w.waste_date >= DATE_SUB(NOW(), INTERVAL ? DAY)";
+                     "  IFNULL((SELECT SUM(s.quantity_sold) FROM sales s WHERE s.food_item_id = f.id AND s.sale_date >= DATE_SUB(NOW(), INTERVAL ? DAY) AND s.sale_date <= NOW()), 0) AS total_sold " +
+                     "FROM food_items f LEFT JOIN waste_records w ON w.food_item_id = f.id " +
+                     "AND w.waste_date >= DATE_SUB(NOW(), INTERVAL ? DAY) AND w.waste_date <= NOW() " +
+                     "WHERE f.id = ? AND f.user_id = ? GROUP BY f.id";
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setLong(1, foodItemId);
+            stmt.setInt(1, pastDays > 0 ? pastDays : 14);
             stmt.setInt(2, pastDays > 0 ? pastDays : 14);
             stmt.setLong(3, foodItemId);
-            stmt.setInt(4, pastDays > 0 ? pastDays : 14);
+            stmt.setLong(4, userId);
 
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
@@ -132,13 +159,13 @@ public class WasteRecordDao extends BaseDao {
         ValidationUtils.validateWasteRecord(record);
 
         String selectFoodSql = "SELECT id, name, category, quantity, unit, price_per_unit, expiry_date, status " +
-                               "FROM food_items WHERE id = ? FOR UPDATE";
+                               "FROM food_items WHERE id = ? AND user_id = ? FOR UPDATE";
         String insertWasteSql = "INSERT INTO waste_records (food_item_id, quantity_wasted, reason, monetary_loss, waste_date, notes) " +
                                 "VALUES (?, ?, ?, ?, ?, ?)";
         String updateFoodQtySql = "UPDATE food_items SET quantity = ?, status = CASE " +
                                   "WHEN expiry_date < CURDATE() THEN 'EXPIRED' " +
                                   "WHEN expiry_date <= DATE_ADD(CURDATE(), INTERVAL 2 DAY) THEN 'NEAR_EXPIRY' " +
-                                  "ELSE 'OK' END WHERE id = ?";
+                                  "ELSE 'OK' END WHERE id = ? AND user_id = ?";
         String insertTxSql = "INSERT INTO inventory_transactions (food_item_id, transaction_type, quantity, unit, notes, created_by) " +
                              "VALUES (?, 'WASTE_ADJUSTMENT', ?, ?, ?, ?)";
 
@@ -153,6 +180,7 @@ public class WasteRecordDao extends BaseDao {
             FoodItem foodItem = null;
             try (PreparedStatement stmt = conn.prepareStatement(selectFoodSql)) {
                 stmt.setLong(1, record.getFoodItemId());
+                stmt.setLong(2, requireUserId(userId));
                 try (ResultSet rs = stmt.executeQuery()) {
                     if (rs.next()) {
                         foodItem = new FoodItem();
@@ -242,6 +270,7 @@ public class WasteRecordDao extends BaseDao {
             try (PreparedStatement updateStmt = conn.prepareStatement(updateFoodQtySql)) {
                 updateStmt.setBigDecimal(1, newStock);
                 updateStmt.setLong(2, foodItem.getId());
+                updateStmt.setLong(3, userId);
                 updateStmt.executeUpdate();
             }
 
@@ -290,10 +319,16 @@ public class WasteRecordDao extends BaseDao {
     }
 
     public boolean delete(Long id) throws SQLException {
-        String sql = "DELETE FROM waste_records WHERE id = ?";
+        throw new IllegalArgumentException("Authenticated user is required");
+    }
+
+    public boolean delete(Long id, Long userId) throws SQLException {
+        requireUserId(userId);
+        String sql = "DELETE FROM waste_records WHERE id = ? AND food_item_id IN (SELECT id FROM food_items WHERE user_id = ?)";
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setLong(1, id);
+            stmt.setLong(2, userId);
             return stmt.executeUpdate() > 0;
         }
     }
@@ -301,6 +336,7 @@ public class WasteRecordDao extends BaseDao {
     private WasteRecord mapResultSetToWasteRecord(ResultSet rs) throws SQLException {
         WasteRecord record = new WasteRecord();
         record.setId(rs.getLong("id"));
+        record.setUserId(rs.getLong("user_id"));
         record.setFoodItemId(rs.getLong("food_item_id"));
         record.setFoodItemName(rs.getString("food_name"));
         record.setUnit(rs.getString("food_unit"));

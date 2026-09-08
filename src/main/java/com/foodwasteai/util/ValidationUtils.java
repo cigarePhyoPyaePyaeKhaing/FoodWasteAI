@@ -56,7 +56,12 @@ public class ValidationUtils {
     }
 
     public static void validateRegistration(String email, String password, String confirmPassword) {
-        validateGmail(email);
+        if (email == null || email.trim().length() > 100 || !EMAIL_PATTERN.matcher(email.trim()).matches()) {
+            throw new IllegalArgumentException("A valid email address is required.");
+        }
+        if (password != null && password.length() > 1024) {
+            throw new IllegalArgumentException("Password is too long.");
+        }
         if (password == null || password.isEmpty()) {
             throw new IllegalArgumentException("Password is required");
         }

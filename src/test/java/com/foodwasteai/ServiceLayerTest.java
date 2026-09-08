@@ -34,7 +34,7 @@ public class ServiceLayerTest {
     @Test
     @DisplayName("Should perform full CRUD on FoodItemService")
     public void testFoodItemCrud() throws SQLException {
-        FoodItem newItem = new FoodItem(null, "Test Mango", "Produce", new BigDecimal("20.00"), "kg",
+        FoodItem newItem = new OwnedFoodItemFixture(null, "Test Mango", "Produce", new BigDecimal("20.00"), "kg",
                 new BigDecimal("3000.00"), LocalDate.now().plusDays(5), new BigDecimal("5.00"));
 
         FoodItem created = foodItemService.createFoodItem(newItem, 1L);
@@ -42,7 +42,7 @@ public class ServiceLayerTest {
         assertEquals("Test Mango", created.getName());
         assertEquals("OK", created.getStatus());
 
-        Optional<FoodItem> found = foodItemService.getFoodItemById(created.getId());
+        Optional<FoodItem> found = foodItemService.getFoodItemById(created.getId(), 1L);
         assertTrue(found.isPresent());
 
         // Update
@@ -51,7 +51,7 @@ public class ServiceLayerTest {
         assertTrue(updated);
 
         // Delete
-        boolean deleted = foodItemService.deleteFoodItem(created.getId());
+        boolean deleted = foodItemService.deleteFoodItem(created.getId(), 1L);
         assertTrue(deleted);
     }
 
@@ -59,7 +59,7 @@ public class ServiceLayerTest {
     @DisplayName("Should record sale and deduct inventory stock")
     public void testSaleRecording() throws SQLException {
         FoodItem testItem = foodItemService.createFoodItem(
-                new FoodItem(null, "Test Chicken Sale " + System.currentTimeMillis(), "Poultry", new BigDecimal("50.00"), "kg", new BigDecimal("6500.00"), LocalDate.now().plusDays(5), new BigDecimal("5.00")), 1L
+                new OwnedFoodItemFixture(null, "Test Chicken Sale " + System.currentTimeMillis(), "Poultry", new BigDecimal("50.00"), "kg", new BigDecimal("6500.00"), LocalDate.now().plusDays(5), new BigDecimal("5.00")), 1L
         );
         Long itemId = testItem.getId();
         BigDecimal initialQty = testItem.getQuantity();
@@ -70,7 +70,7 @@ public class ServiceLayerTest {
         assertNotNull(recorded.getId());
         assertEquals(0, new BigDecimal("32500.00").compareTo(recorded.getTotalAmount()));
 
-        Optional<FoodItem> chickenAfter = foodItemService.getFoodItemById(itemId);
+        Optional<FoodItem> chickenAfter = foodItemService.getFoodItemById(itemId, 1L);
         assertTrue(chickenAfter.isPresent());
         assertEquals(0, initialQty.subtract(new BigDecimal("5.00")).compareTo(chickenAfter.get().getQuantity()));
     }
@@ -79,7 +79,7 @@ public class ServiceLayerTest {
     @DisplayName("Should record waste and calculate monetary loss accurately")
     public void testWasteRecording() throws SQLException {
         FoodItem testItem = foodItemService.createFoodItem(
-                new FoodItem(null, "Test Waste " + System.currentTimeMillis(), "Poultry", new BigDecimal("20.00"), "kg", new BigDecimal("6500.00"), LocalDate.now().plusDays(5), new BigDecimal("5.00")), 1L
+                new OwnedFoodItemFixture(null, "Test Waste " + System.currentTimeMillis(), "Poultry", new BigDecimal("20.00"), "kg", new BigDecimal("6500.00"), LocalDate.now().plusDays(5), new BigDecimal("5.00")), 1L
         );
 
         WasteRecord record = new WasteRecord(testItem.getId(), new BigDecimal("2.00"), WasteRecord.Reason.EXPIRED, null, java.time.LocalDateTime.now(), "Test spoilage");

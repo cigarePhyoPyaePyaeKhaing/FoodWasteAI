@@ -64,7 +64,7 @@ public class SalesService {
     public Optional<Sale> getSaleById(Long id, Long userId) throws SQLException {
         if (id == null) return Optional.empty();
         if (DatabaseConfig.isAvailable()) {
-            return salesDao.findById(id);
+            return salesDao.findById(id, userId);
         }
         return Optional.ofNullable(memorySales.get(id));
     }
@@ -114,7 +114,7 @@ public class SalesService {
 
         // Idempotency check with in-flight lock: if a clientRequestId is provided, ensure strictly one execution
         if (sale.getClientRequestId() != null && !sale.getClientRequestId().trim().isEmpty()) {
-            String token = sale.getClientRequestId().trim();
+            String token = userId + ":" + sale.getClientRequestId().trim();
             Sale existing = processedClientRequests.get(token);
             if (existing != null) {
                 logger.warn("Idempotent duplicate sale request blocked (token: '{}'). Returning existing sale record #{}.", token, existing.getId());
@@ -236,7 +236,7 @@ public class SalesService {
     public boolean deleteSale(Long id, Long userId) throws SQLException {
         if (id == null) return false;
         if (DatabaseConfig.isAvailable()) {
-            return salesDao.delete(id);
+            return salesDao.delete(id, userId);
         }
         return memorySales.remove(id) != null;
     }

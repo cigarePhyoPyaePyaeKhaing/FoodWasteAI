@@ -32,21 +32,21 @@ public class InventoryMergeAndStockHistoryTest {
         BigDecimal price = new BigDecimal("5000.00");
 
         // Initial: 10 liter
-        FoodItem item1 = new FoodItem(null, name, "Dairy", new BigDecimal("10.00"), "liter", price, expiry, BigDecimal.ZERO);
+        FoodItem item1 = new OwnedFoodItemFixture(null, name, "Dairy", new BigDecimal("10.00"), "liter", price, expiry, BigDecimal.ZERO);
         FoodItem saved1 = foodItemService.addFoodItem(item1, 1L);
         assertNotNull(saved1.getId(), "Initial item must have ID");
         Long initialId = saved1.getId();
         assertEquals(0, new BigDecimal("10.00").compareTo(saved1.getQuantity()));
 
         // Add 5 liter with exact same attributes
-        FoodItem item2 = new FoodItem(null, name, "Dairy", new BigDecimal("5.00"), "liter", price, expiry, BigDecimal.ZERO);
+        FoodItem item2 = new OwnedFoodItemFixture(null, name, "Dairy", new BigDecimal("5.00"), "liter", price, expiry, BigDecimal.ZERO);
         FoodItem saved2 = foodItemService.addFoodItem(item2, 1L);
 
         assertEquals(initialId, saved2.getId(), "Must merge into the same food item ID");
         assertEquals(0, new BigDecimal("15.00").compareTo(saved2.getQuantity()), "Quantity must become 15 liter");
 
         // Verify stock addition history
-        List<InventoryTransaction> history = foodItemService.getItemStockHistory(initialId);
+        List<InventoryTransaction> history = foodItemService.getItemStockHistory(initialId, 1L);
         assertTrue(history.size() >= 2, "Must have at least initial stock and addition transactions");
         assertEquals(0, new BigDecimal("5.00").compareTo(history.get(0).getQuantity()), "Newest transaction must be +5");
     }
@@ -59,11 +59,11 @@ public class InventoryMergeAndStockHistoryTest {
         LocalDate expiry = LocalDate.of(2026, 9, 1);
 
         // Initial: price 5000
-        FoodItem item1 = new FoodItem(null, name, "Dairy", new BigDecimal("10.00"), "liter", new BigDecimal("5000.00"), expiry, BigDecimal.ZERO);
+        FoodItem item1 = new OwnedFoodItemFixture(null, name, "Dairy", new BigDecimal("10.00"), "liter", new BigDecimal("5000.00"), expiry, BigDecimal.ZERO);
         FoodItem saved1 = foodItemService.addFoodItem(item1, 1L);
 
         // Add: price 5500
-        FoodItem item2 = new FoodItem(null, name, "Dairy", new BigDecimal("5.00"), "liter", new BigDecimal("5500.00"), expiry, BigDecimal.ZERO);
+        FoodItem item2 = new OwnedFoodItemFixture(null, name, "Dairy", new BigDecimal("5.00"), "liter", new BigDecimal("5500.00"), expiry, BigDecimal.ZERO);
         FoodItem saved2 = foodItemService.addFoodItem(item2, 1L);
 
         assertNotEquals(saved1.getId(), saved2.getId(), "Different price must create a NEW ID");
@@ -79,11 +79,11 @@ public class InventoryMergeAndStockHistoryTest {
         BigDecimal price = new BigDecimal("5000.00");
 
         // Initial: expiry 2026-09-01
-        FoodItem item1 = new FoodItem(null, name, "Dairy", new BigDecimal("10.00"), "liter", price, LocalDate.of(2026, 9, 1), BigDecimal.ZERO);
+        FoodItem item1 = new OwnedFoodItemFixture(null, name, "Dairy", new BigDecimal("10.00"), "liter", price, LocalDate.of(2026, 9, 1), BigDecimal.ZERO);
         FoodItem saved1 = foodItemService.addFoodItem(item1, 1L);
 
         // Add: expiry 2026-09-03
-        FoodItem item2 = new FoodItem(null, name, "Dairy", new BigDecimal("5.00"), "liter", price, LocalDate.of(2026, 9, 3), BigDecimal.ZERO);
+        FoodItem item2 = new OwnedFoodItemFixture(null, name, "Dairy", new BigDecimal("5.00"), "liter", price, LocalDate.of(2026, 9, 3), BigDecimal.ZERO);
         FoodItem saved2 = foodItemService.addFoodItem(item2, 1L);
 
         assertNotEquals(saved1.getId(), saved2.getId(), "Different expiry must create a NEW ID");
@@ -99,11 +99,11 @@ public class InventoryMergeAndStockHistoryTest {
         BigDecimal price = new BigDecimal("2500.00");
 
         // Initial: lowercase
-        FoodItem item1 = new FoodItem(null, baseName.toLowerCase(), "Bakery", new BigDecimal("8.00"), "pcs", price, expiry, BigDecimal.ZERO);
+        FoodItem item1 = new OwnedFoodItemFixture(null, baseName.toLowerCase(), "Bakery", new BigDecimal("8.00"), "pcs", price, expiry, BigDecimal.ZERO);
         FoodItem saved1 = foodItemService.addFoodItem(item1, 1L);
 
         // Add: uppercase with whitespace
-        FoodItem item2 = new FoodItem(null, "  " + baseName.toUpperCase() + "  ", "Bakery", new BigDecimal("4.00"), "pcs", price, expiry, BigDecimal.ZERO);
+        FoodItem item2 = new OwnedFoodItemFixture(null, "  " + baseName.toUpperCase() + "  ", "Bakery", new BigDecimal("4.00"), "pcs", price, expiry, BigDecimal.ZERO);
         FoodItem saved2 = foodItemService.addFoodItem(item2, 1L);
 
         assertEquals(saved1.getId(), saved2.getId(), "Case and whitespace differences must still match the same ID");
@@ -119,11 +119,11 @@ public class InventoryMergeAndStockHistoryTest {
         BigDecimal price = new BigDecimal("3000.00");
 
         // Initial: 10 liter
-        FoodItem item1 = new FoodItem(null, name, "Dairy", new BigDecimal("10.00"), "liter", price, expiry, BigDecimal.ZERO);
+        FoodItem item1 = new OwnedFoodItemFixture(null, name, "Dairy", new BigDecimal("10.00"), "liter", price, expiry, BigDecimal.ZERO);
         FoodItem saved1 = foodItemService.addFoodItem(item1, 1L);
 
         // Add: 5 pcs
-        FoodItem item2 = new FoodItem(null, name, "Dairy", new BigDecimal("5.00"), "pcs", price, expiry, BigDecimal.ZERO);
+        FoodItem item2 = new OwnedFoodItemFixture(null, name, "Dairy", new BigDecimal("5.00"), "pcs", price, expiry, BigDecimal.ZERO);
         FoodItem saved2 = foodItemService.addFoodItem(item2, 1L);
 
         assertNotEquals(saved1.getId(), saved2.getId(), "Incompatible units must create separate rows with different IDs");
@@ -141,18 +141,18 @@ public class InventoryMergeAndStockHistoryTest {
         BigDecimal price = new BigDecimal("4000.00");
 
         // Batch 1: ID A
-        FoodItem itemA = new FoodItem(null, name, "Produce", new BigDecimal("10.00"), "liter", price, expiry1, BigDecimal.ZERO);
+        FoodItem itemA = new OwnedFoodItemFixture(null, name, "Produce", new BigDecimal("10.00"), "liter", price, expiry1, BigDecimal.ZERO);
         FoodItem savedA = foodItemService.addFoodItem(itemA, 1L);
         // Add to Batch 1
-        FoodItem addA = new FoodItem(null, name, "Produce", new BigDecimal("5.00"), "liter", price, expiry1, BigDecimal.ZERO);
+        FoodItem addA = new OwnedFoodItemFixture(null, name, "Produce", new BigDecimal("5.00"), "liter", price, expiry1, BigDecimal.ZERO);
         foodItemService.addFoodItem(addA, 1L);
 
         // Batch 2: ID B
-        FoodItem itemB = new FoodItem(null, name, "Produce", new BigDecimal("20.00"), "liter", price, expiry2, BigDecimal.ZERO);
+        FoodItem itemB = new OwnedFoodItemFixture(null, name, "Produce", new BigDecimal("20.00"), "liter", price, expiry2, BigDecimal.ZERO);
         FoodItem savedB = foodItemService.addFoodItem(itemB, 1L);
 
-        List<InventoryTransaction> historyA = foodItemService.getItemStockHistory(savedA.getId());
-        List<InventoryTransaction> historyB = foodItemService.getItemStockHistory(savedB.getId());
+        List<InventoryTransaction> historyA = foodItemService.getItemStockHistory(savedA.getId(), 1L);
+        List<InventoryTransaction> historyB = foodItemService.getItemStockHistory(savedB.getId(), 1L);
 
         for (InventoryTransaction tx : historyA) {
             assertEquals(savedA.getId(), tx.getFoodItemId(), "History A must strictly contain only item A transactions");
@@ -174,10 +174,10 @@ public class InventoryMergeAndStockHistoryTest {
             LocalDate exp = LocalDate.now().plusDays(10 + i);
             BigDecimal price = new BigDecimal(3000 + (i * 1000));
             FoodItem initial = foodItemService.addFoodItem(
-                    new FoodItem(null, products[i], "Produce", new BigDecimal("10.00"), units[i], price, exp, BigDecimal.ZERO), 1L
+                    new OwnedFoodItemFixture(null, products[i], "Produce", new BigDecimal("10.00"), units[i], price, exp, BigDecimal.ZERO), 1L
             );
             FoodItem add = foodItemService.addFoodItem(
-                    new FoodItem(null, products[i], "Produce", new BigDecimal("6.00"), units[i], price, exp, BigDecimal.ZERO), 1L
+                    new OwnedFoodItemFixture(null, products[i], "Produce", new BigDecimal("6.00"), units[i], price, exp, BigDecimal.ZERO), 1L
             );
             assertEquals(initial.getId(), add.getId(), "Dynamic product " + products[i] + " must merge correctly");
             assertEquals(0, new BigDecimal("16.00").compareTo(add.getQuantity()));

@@ -1,0 +1,13 @@
+:root{font-family:Inter,"Noto Sans Myanmar",system-ui,sans-serif;color:#16372d;background:#f3f7f5;color-scheme:light}
+*{box-sizing:border-box}body{margin:0;min-height:100dvh;display:grid;place-items:center;padding:24px;line-height:1.65}
+main{width:100%;max-width:460px;background:white;padding:36px;border:1px solid #dce7e1;border-radius:20px;box-shadow:0 12px 40px #16372d0a}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:24px}.brand{font-weight:750;font-size:20px;color:#176344}
+h1{font-size:28px;line-height:1.5;margin:0 0 8px;overflow-wrap:anywhere}.subtitle{color:#586960;margin:0 0 24px;font-size:15px}
+label{display:block;font-size:14px;font-weight:600;margin:16px 0 6px}input,button,select{font:inherit}input{width:100%;min-width:0;min-height:48px;border:1px solid #b9cbc1;border-radius:9px;padding:10px 12px;background:#fff;color:#16372d}
+input:focus-visible,button:focus-visible,select:focus-visible,a:focus-visible{outline:3px solid #7dcaa4;outline-offset:3px}
+.password{display:flex;position:relative}.password input{padding-right:82px}.toggle{position:absolute;right:5px;top:5px;bottom:5px;border:0;background:transparent;color:#176344;border-radius:6px;padding:0 8px;cursor:pointer}
+select{max-width:145px;padding:6px;border:1px solid #b9cbc1;border-radius:7px;background:white;color:#16372d;font-size:13px}
+.primary{width:100%;min-height:48px;background:#176344;color:white;border:0;border-radius:9px;padding:12px;margin-top:24px;font-weight:650;cursor:pointer}.primary:disabled{opacity:.6;cursor:wait}
+.hint{font-size:12px;color:#586960;margin:8px 0 0}.foot{text-align:center;font-size:14px;margin:24px 0 0}a{color:#176344;font-weight:650}.message{padding:12px;border-radius:9px;background:#fff1ef;color:#943425;margin:16px 0;overflow-wrap:anywhere}.message.success{background:#eaf7ef;color:#176344}[hidden]{display:none!important}
+@media(max-width:480px){body{padding:16px}main{padding:24px 20px;border-radius:14px}h1{font-size:25px}.brand{font-size:18px}}
+@media(max-width:340px){body{padding:8px}main{padding:20px 14px}header{flex-wrap:wrap}}

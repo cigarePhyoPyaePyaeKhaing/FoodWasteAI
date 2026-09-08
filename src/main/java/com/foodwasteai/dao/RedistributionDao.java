@@ -14,18 +14,22 @@ import java.util.Optional;
 public class RedistributionDao extends BaseDao {
 
     public List<Redistribution> findAllDispatches() throws SQLException {
+        throw new IllegalArgumentException("Authenticated user is required");
+    }
+    public List<Redistribution> findAllDispatches(Long userId) throws SQLException {
+        requireUserId(userId);
         List<Redistribution> list = new ArrayList<>();
         String sql = "SELECT r.id, r.food_item_id, f.name AS food_name, r.recipient_id, rc.name AS recipient_name, " +
                      "r.quantity, r.unit, r.pickup_time, r.status, r.notes, r.notes_en, r.notes_my, r.created_at, r.updated_at " +
                      "FROM redistributions r " +
                      "JOIN food_items f ON r.food_item_id = f.id " +
                      "JOIN redistribution_recipients rc ON r.recipient_id = rc.id " +
-                     "ORDER BY r.pickup_time ASC";
+                     "WHERE f.user_id = ? ORDER BY r.pickup_time ASC";
         try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql);
-             ResultSet rs = stmt.executeQuery()) {
-            while (rs.next()) {
-                list.add(mapResultSetToRedistribution(rs));
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setLong(1, userId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) list.add(mapResultSetToRedistribution(rs));
             }
         }
         return list;
@@ -127,10 +131,26 @@ public class RedistributionDao extends BaseDao {
     }
 
     public Redistribution saveDispatch(Redistribution d) throws SQLException {
+        throw new IllegalArgumentException("Authenticated user is required");
+    }
+    public Redistribution saveDispatch(Redistribution d, Long userId) throws SQLException {
+        requireUserId(userId);
         String sql = "INSERT INTO redistributions (food_item_id, recipient_id, quantity, unit, pickup_time, status, notes, notes_en, notes_my) " +
-                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                     "SELECT ?, ?, ?, ?, ?, ?, ?, ?, ? FROM food_items WHERE id = ? AND user_id = ?";
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            boolean autoCommit = conn.getAutoCommit();
+            conn.setAutoCommit(false);
+            try {
+            try (PreparedStatement lock = conn.prepareStatement("SELECT quantity FROM food_items WHERE id = ? AND user_id = ? FOR UPDATE")) {
+                lock.setLong(1, d.getFoodItemId()); lock.setLong(2, userId);
+                try (ResultSet row = lock.executeQuery()) {
+                    if (!row.next()) throw new IllegalArgumentException("Food item not found");
+                    if (d.getQuantity() == null || d.getQuantity().signum() <= 0 || row.getBigDecimal(1).compareTo(d.getQuantity()) < 0) {
+                        throw new IllegalArgumentException("Insufficient stock");
+                    }
+                }
+            }
             stmt.setLong(1, d.getFoodItemId());
             stmt.setLong(2, d.getRecipientId());
             stmt.setBigDecimal(3, d.getQuantity());
@@ -140,6 +160,8 @@ public class RedistributionDao extends BaseDao {
             stmt.setString(7, d.getNotes());
             stmt.setString(8, d.getNotesEn());
             stmt.setString(9, d.getNotesMy());
+            stmt.setLong(10, d.getFoodItemId());
+            stmt.setLong(11, userId);
 
             int affected = stmt.executeUpdate();
             if (affected > 0) {
@@ -149,15 +171,33 @@ public class RedistributionDao extends BaseDao {
                     }
                 }
             }
+            if (affected != 1) throw new SQLException("Food item not found");
+            try (PreparedStatement deduct = conn.prepareStatement("UPDATE food_items SET quantity = quantity - ? WHERE id = ? AND user_id = ?")) {
+                deduct.setBigDecimal(1, d.getQuantity()); deduct.setLong(2, d.getFoodItemId()); deduct.setLong(3, userId);
+                if (deduct.executeUpdate() != 1) throw new SQLException("Food item not found");
+            }
+            try (PreparedStatement history = conn.prepareStatement("INSERT INTO inventory_transactions (food_item_id, transaction_type, quantity, unit, notes, created_by) VALUES (?, 'REDISTRIBUTION', ?, ?, ?, ?)")) {
+                history.setLong(1, d.getFoodItemId()); history.setBigDecimal(2, d.getQuantity()); history.setString(3, d.getUnit());
+                history.setString(4, "Redistribution dispatch #" + d.getId()); history.setLong(5, userId); history.executeUpdate();
+            }
+            conn.commit();
             return d;
+            } catch (SQLException | RuntimeException exception) {
+                conn.rollback(); throw exception;
+            } finally { conn.setAutoCommit(autoCommit); }
         }
     }
 
     public boolean updateStatus(Long id, Redistribution.Status status) throws SQLException {
-        String sql = "UPDATE redistributions SET status = ? WHERE id = ?";
+        throw new IllegalArgumentException("Authenticated user is required");
+    }
+    public boolean updateStatus(Long id, Redistribution.Status status, Long userId) throws SQLException {
+        requireUserId(userId);
+        String sql = "UPDATE redistributions SET status = ? WHERE id = ? AND food_item_id IN (SELECT id FROM food_items WHERE user_id = ?)";
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setLong(2, id);
+            stmt.setLong(3, userId);
             try {
                 stmt.setString(1, status.name());
                 return stmt.executeUpdate() > 0;

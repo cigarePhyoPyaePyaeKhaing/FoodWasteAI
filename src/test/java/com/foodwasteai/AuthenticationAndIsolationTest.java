@@ -77,6 +77,11 @@ public class AuthenticationAndIsolationTest {
     }
 
     private HttpResponse<String> postJson(HttpClient client, String path, String json) throws IOException, InterruptedException {
+        if (path.equals("/api/auth/register")) {
+            JsonObject registration = JsonParser.parseString(json).getAsJsonObject();
+            registration.addProperty("fullName", "Registration Test");
+            json = registration.toString();
+        }
         HttpRequest req = HttpRequest.newBuilder()
                 .uri(URI.create(baseUrl + path))
                 .header("Content-Type", "application/json")
@@ -117,12 +122,7 @@ public class AuthenticationAndIsolationTest {
     public void testRejectNonGmailRegistration() throws Exception {
         HttpClient client = createClientWithCookieJar();
         String[] invalidEmails = {
-                "user@yahoo.com",
-                "user@outlook.com",
-                "user@hotmail.com",
-                "user@company.org",
-                "user@gmail.com.co",
-                "user@notgmail.com"
+                "user@", "missing-domain", "@example.test", "user example.test", "user@."
         };
 
         for (String email : invalidEmails) {
@@ -131,7 +131,7 @@ public class AuthenticationAndIsolationTest {
             assertEquals(400, resp.statusCode(), "Expected 400 for domain: " + email);
             JsonObject json = JsonParser.parseString(resp.body()).getAsJsonObject();
             assertFalse(json.get("success").getAsBoolean());
-            assertTrue(json.get("message").getAsString().toLowerCase().contains("gmail.com"));
+            assertTrue(json.get("message").getAsString().toLowerCase().contains("valid email"));
         }
     }
 
@@ -331,7 +331,7 @@ public class AuthenticationAndIsolationTest {
 
         HttpResponse<String> listBResp = get(clientB, "/api/inventory");
         assertEquals(200, listBResp.statusCode());
-        assertTrue(listBResp.body().contains(itemAName), "Authenticated User B should see restaurant inventory item");
+        assertFalse(listBResp.body().contains(itemAName), "User B must not see User A inventory");
 
         // 7. User A records a sale
         String saleAJson = String.format("{\"foodItemId\":%d,\"quantitySold\":5.0,\"unitPrice\":1200.0}", itemAId);

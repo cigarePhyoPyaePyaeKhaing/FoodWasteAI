@@ -41,11 +41,11 @@ class CurrentWasteRiskRegressionTest {
 
     private PredictionService service() {
         return new PredictionService(prolog, null, new SalesDao() {
-            @Override public BigDecimal getHistoricalAverageDailySales(Long id, int days) {
+            @Override public BigDecimal getHistoricalAverageDailySales(Long id, int days, Long userId) {
                 assertEquals(7, days); return sales;
             }
         }, new WasteRecordDao() {
-            @Override public BigDecimal calculateHistoricalWasteRate(Long id, int days) throws SQLException {
+            @Override public BigDecimal calculateHistoricalWasteRate(Long id, int days, Long userId) throws SQLException {
                 assertEquals(14, days);
                 if (historyUnavailable) throw new SQLException("History unavailable");
                 return wasteRate;
@@ -54,7 +54,7 @@ class CurrentWasteRiskRegressionTest {
     }
 
     private FoodItem item(double stock, String unit, int days) {
-        FoodItem i = new FoodItem();
+        FoodItem i = new OwnedFoodItemFixture();
         i.setId(987L); i.setName("Generic inventory fixture"); i.setCategory("poultry");
         i.setQuantity(BigDecimal.valueOf(stock)); i.setUnit(unit);
         i.setExpiryDate(LocalDate.of(2026, 9, 7).plusDays(days));

@@ -67,7 +67,7 @@ public class AuditUserForeignKeyIntegrityTest {
 
         // Create food item
         FoodItem item = foodItemService.createFoodItem(
-                new FoodItem(null, "Organic Apples " + System.currentTimeMillis(), "Produce", new BigDecimal("30.00"), "kg",
+                new OwnedFoodItemFixture(null, "Organic Apples " + System.currentTimeMillis(), "Produce", new BigDecimal("30.00"), "kg",
                         new BigDecimal("1500.00"), LocalDate.now().plusDays(10), new BigDecimal("5.00")), realUserId
         );
         Long itemId = item.getId();
@@ -80,13 +80,13 @@ public class AuditUserForeignKeyIntegrityTest {
         assertEquals(0, new BigDecimal("6000.00").compareTo(recorded.getTotalAmount()));
 
         // Verify remaining stock is 26.00 kg
-        Optional<FoodItem> after = foodItemService.getFoodItemById(itemId);
+        Optional<FoodItem> after = foodItemService.getFoodItemById(itemId, realUserId);
         assertTrue(after.isPresent());
         assertEquals(0, new BigDecimal("26.00").compareTo(after.get().getQuantity()));
 
         // Verify audit transactions contain the real user ID or valid foreign key
         if (DatabaseConfig.isAvailable()) {
-            List<InventoryTransaction> transactions = txDao.findByFoodItemId(itemId);
+            List<InventoryTransaction> transactions = txDao.findByFoodItemId(itemId, realUserId);
             assertFalse(transactions.isEmpty(), "Audit transactions must be logged");
             boolean foundUsage = false;
             for (InventoryTransaction tx : transactions) {
@@ -100,49 +100,13 @@ public class AuditUserForeignKeyIntegrityTest {
     }
 
     @Test
-    @DisplayName("2. Anonymous/No User: Waste audit writes null created_by safely without FK violation")
-    public void testNoUserWasteAudit() throws SQLException {
-        // Create food item
-        FoodItem item = foodItemService.createFoodItem(
-                new FoodItem(null, "Fresh Milk Audit " + System.currentTimeMillis(), "Dairy", new BigDecimal("12.00"), "liter",
-                        new BigDecimal("2000.00"), LocalDate.now().plusDays(4), new BigDecimal("3.00")), null
-        );
-        Long itemId = item.getId();
-
-        WasteRecord waste = new WasteRecord(itemId, new BigDecimal("4.00"), WasteRecord.Reason.EXPIRED, null, LocalDateTime.now(), "Audit test");
-        WasteRecord recorded = wasteService.recordWaste(waste, null);
-
-        assertNotNull(recorded.getId());
-        assertEquals("liter", recorded.getUnit());
-
-        Optional<FoodItem> after = foodItemService.getFoodItemById(itemId);
-        assertTrue(after.isPresent());
-        assertEquals(0, new BigDecimal("8.00").compareTo(after.get().getQuantity()), "Stock must be reduced 12 -> 8 liter");
+    void anonymousInventoryIsRejected() {
+        var item = new OwnedFoodItemFixture(null,"Anonymous fixture","Dairy",new BigDecimal("12"),"liter",new BigDecimal("2000"),LocalDate.now().plusDays(4));
+        assertThrows(IllegalArgumentException.class, () -> foodItemService.createFoodItem(item, null));
     }
-
     @Test
-    @DisplayName("3. Non-existent User ID: resolveValidUserId returns null to avoid FK constraint failure")
-    public void testNonExistentUserIdSafelyHandled() throws SQLException {
-        Long fakeUserId = 88888888L;
-
-        FoodItem item = foodItemService.createFoodItem(
-                new FoodItem(null, "Safe Beef " + System.currentTimeMillis(), "Meat", new BigDecimal("20.00"), "kg",
-                        new BigDecimal("12000.00"), LocalDate.now().plusDays(5), new BigDecimal("2.00")), fakeUserId
-        );
-        Long itemId = item.getId();
-
-        // Record sale with fake user ID: must not throw foreign key constraint violation
-        Sale sale = new Sale(itemId, new BigDecimal("5.00"), new BigDecimal("12000.00"), null, 1, LocalDateTime.now());
-        Sale recorded = salesService.recordSale(sale, fakeUserId);
-        assertNotNull(recorded.getId());
-
-        // Record waste with fake user ID: must not throw foreign key constraint violation
-        WasteRecord waste = new WasteRecord(itemId, new BigDecimal("2.00"), WasteRecord.Reason.SPOILED, null, LocalDateTime.now(), "Safe waste");
-        WasteRecord savedWaste = wasteService.recordWaste(waste, fakeUserId);
-        assertNotNull(savedWaste.getId());
-
-        Optional<FoodItem> after = foodItemService.getFoodItemById(itemId);
-        assertTrue(after.isPresent());
-        assertEquals(0, new BigDecimal("13.00").compareTo(after.get().getQuantity()), "Stock must be 20 - 5 - 2 = 13.00 kg");
+    void unknownOwnerIsRejectedByForeignKey() {
+        var item = new OwnedFoodItemFixture(null,"Unknown owner fixture","Meat",new BigDecimal("20"),"kg",new BigDecimal("12000"),LocalDate.now().plusDays(5));
+        assertThrows(SQLException.class, () -> foodItemService.createFoodItem(item, 88888888L));
     }
 }

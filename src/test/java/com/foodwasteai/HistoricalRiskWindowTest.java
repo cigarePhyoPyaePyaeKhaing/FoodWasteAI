@@ -23,6 +23,8 @@ class HistoricalRiskWindowTest {
             try (var sql = real.createStatement()) {
                 sql.execute("CREATE TEMPORARY TABLE sales (food_item_id BIGINT, quantity_sold DECIMAL(12,2), sale_date DATETIME)");
                 sql.execute("CREATE TEMPORARY TABLE waste_records (food_item_id BIGINT, quantity_wasted DECIMAL(12,2), waste_date DATETIME)");
+                sql.execute("CREATE TEMPORARY TABLE food_items (id BIGINT PRIMARY KEY, user_id BIGINT)");
+                sql.execute("INSERT INTO food_items VALUES (1,1),(2,2)");
                 try {
                     sql.execute("INSERT INTO sales VALUES (1,60,NOW()-INTERVAL 4 DAY),(1,20,NOW()-INTERVAL 4 DAY),"
                             + "(1,20,NOW()-INTERVAL 10 DAY),(1,900,NOW()-INTERVAL 20 DAY),"
@@ -31,12 +33,12 @@ class HistoricalRiskWindowTest {
                             + "(1,900,NOW()+INTERVAL 1 DAY),(2,900,NOW()-INTERVAL 1 DAY)");
                     var sales = new SalesDao() { @Override protected Connection getConnection() {return borrowed;} };
                     var waste = new WasteRecordDao() { @Override protected Connection getConnection() {return borrowed;} };
-                    assertEquals(80.0/7,sales.getHistoricalAverageDailySales(1L,7).doubleValue(),0.000001);
-                    assertEquals(0,waste.calculateHistoricalWasteRate(1L,14).compareTo(BigDecimal.ZERO));
+                    assertEquals(80.0/7,sales.getHistoricalAverageDailySales(1L,7, 1L).doubleValue(),0.000001);
+                    assertEquals(0,waste.calculateHistoricalWasteRate(1L,14, 1L).compareTo(BigDecimal.ZERO));
                     sql.execute("INSERT INTO waste_records VALUES (1,25,NOW()-INTERVAL 10 DAY)");
-                    assertEquals(new BigDecimal("0.2000"),waste.calculateHistoricalWasteRate(1L,14));
+                    assertEquals(new BigDecimal("0.2000"),waste.calculateHistoricalWasteRate(1L,14, 1L));
                 } finally {
-                    sql.execute("DROP TEMPORARY TABLE IF EXISTS sales, waste_records");
+                    sql.execute("DROP TEMPORARY TABLE IF EXISTS sales, waste_records, food_items");
                 }
             }
         }

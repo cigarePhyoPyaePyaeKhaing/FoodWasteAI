@@ -75,7 +75,7 @@ public class ExpiryStatusResolverTest {
         LocalDate today = LocalDate.of(2026, 8, 22);
         LocalDate milkExpiry = LocalDate.of(2026, 8, 21);
 
-        FoodItem milk = new FoodItem();
+        FoodItem milk = new OwnedFoodItemFixture();
         milk.setId(1L);
         milk.setName("Fresh Milk");
         milk.setCategory("Dairy");

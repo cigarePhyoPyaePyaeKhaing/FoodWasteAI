@@ -319,16 +319,16 @@ public class BilingualAndUnitConsistencyTest {
         LocalDate today = com.foodwasteai.util.ExpiryStatusResolver.getToday();
         LocalDate tomorrow = today.plusDays(1);
 
-        com.foodwasteai.model.FoodItem milkBatch1 = new com.foodwasteai.model.FoodItem(101L, "Fresh Milk", "Dairy",
+        com.foodwasteai.model.FoodItem milkBatch1 = new OwnedFoodItemFixture(101L, "Fresh Milk", "Dairy",
                 new java.math.BigDecimal("10.00"), "liter", new java.math.BigDecimal("2500.00"), tomorrow, new java.math.BigDecimal("1.00"));
 
-        com.foodwasteai.model.FoodItem milkBatch2 = new com.foodwasteai.model.FoodItem(102L, "Fresh Milk", "Dairy",
+        com.foodwasteai.model.FoodItem milkBatch2 = new OwnedFoodItemFixture(102L, "Fresh Milk", "Dairy",
                 new java.math.BigDecimal("6.00"), "liter", new java.math.BigDecimal("2500.00"), tomorrow, new java.math.BigDecimal("1.00"));
 
-        com.foodwasteai.model.FoodItem beefLater = new com.foodwasteai.model.FoodItem(103L, "Fresh Beef", "Meat",
+        com.foodwasteai.model.FoodItem beefLater = new OwnedFoodItemFixture(103L, "Fresh Beef", "Meat",
                 new java.math.BigDecimal("5.00"), "kg", new java.math.BigDecimal("18000.00"), today.plusDays(3), new java.math.BigDecimal("1.00"));
 
-        com.foodwasteai.model.FoodItem zeroItem = new com.foodwasteai.model.FoodItem(104L, "Yogurt", "Dairy",
+        com.foodwasteai.model.FoodItem zeroItem = new OwnedFoodItemFixture(104L, "Yogurt", "Dairy",
                 java.math.BigDecimal.ZERO, "pcs", new java.math.BigDecimal("1200.00"), tomorrow, new java.math.BigDecimal("1.00"));
 
         List<com.foodwasteai.model.FoodItem> currentInventory = List.of(milkBatch1, milkBatch2, beefLater, zeroItem);

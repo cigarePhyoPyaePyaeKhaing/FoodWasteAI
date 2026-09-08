@@ -13,16 +13,16 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class MetricForecastConsistencyTest {
     private FoodItem item(long id, String unit, double stock, int expiry, double price) {
-        return new FoodItem(id,"Generic batch " + id,"Other",BigDecimal.valueOf(stock),unit,BigDecimal.valueOf(price),
+        return new OwnedFoodItemFixture(id,"Generic batch " + id,"Other",BigDecimal.valueOf(stock),unit,BigDecimal.valueOf(price),
             LocalDate.of(2026,9,7).plusDays(expiry),BigDecimal.ONE);
     }
     private PredictionService forecast() {
         return new PredictionService(new PrologService(),null,new SalesDao() {
-            @Override public BigDecimal getHistoricalAverageDailySales(Long id,int days) {
+            @Override public BigDecimal getHistoricalAverageDailySales(Long id,int days, Long userId) {
                 return BigDecimal.valueOf(id==1 ? 100.0/7 : id==2 ? 90.0/7 : 80.0/7);
             }
         },new WasteRecordDao() {
-            @Override public BigDecimal calculateHistoricalWasteRate(Long id,int days) {return BigDecimal.ZERO;}
+            @Override public BigDecimal calculateHistoricalWasteRate(Long id,int days, Long userId) {return BigDecimal.ZERO;}
         },null,null,Clock.fixed(Instant.parse("2026-09-06T18:00:00Z"),ZoneId.of("Asia/Yangon")));
     }
     private Redistribution dispatch(long id,double qty,String unit,Redistribution.Status status) {
@@ -33,14 +33,14 @@ class MetricForecastConsistencyTest {
         FoodItem fresh=item(999,"kg",8,10,23000);fresh.setId(null);fresh.setName("Count consistency " + UUID.randomUUID());
         FoodItem saved=service.createFoodItem(fresh,1L);
         saved.setQuantity(new BigDecimal("7"));assertTrue(service.updateFoodItem(saved,1L));
-        var after=service.getFoodItemById(saved.getId()).orElseThrow();
+        var after=service.getFoodItemById(saved.getId(), 1L).orElseThrow();
         assertEquals(7,after.getQuantity().doubleValue());assertEquals(8,after.getTotalQuantity().doubleValue());
-        var history=service.getItemStockHistory(saved.getId());
+        var history=service.getItemStockHistory(saved.getId(), 1L);
         assertTrue(history.stream().anyMatch(t->t.getTransactionType()==InventoryTransaction.Type.MANUAL_COUNT && t.getQuantity().doubleValue()==7));
         new WasteService(new WasteRecordDao(),service).recordWaste(new WasteRecord(saved.getId(),new BigDecimal("7"),WasteRecord.Reason.SPOILED,null,LocalDateTime.now(),"Regression fixture"),1L);
-        after=service.getFoodItemById(saved.getId()).orElseThrow();
+        after=service.getFoodItemById(saved.getId(), 1L).orElseThrow();
         assertEquals(0,after.getQuantity().doubleValue());assertEquals(8,after.getTotalQuantity().doubleValue());
-        var preserved=service.getItemStockHistory(saved.getId());
+        var preserved=service.getItemStockHistory(saved.getId(), 1L);
         assertTrue(preserved.size()>history.size());
         for(var transaction:history) assertTrue(preserved.stream().anyMatch(t->Objects.equals(t.getId(),transaction.getId())));
     }
@@ -132,8 +132,8 @@ class MetricForecastConsistencyTest {
             waste.recordWaste(new WasteRecord(saved.getId(),BigDecimal.ONE,WasteRecord.Reason.SPOILED,null,date,"Timezone fixture"),1L);
         }
         var day=LocalDate.of(2030,1,2);
-        var selectedSales=new SalesDao().findByDateRange(day,day).stream().filter(row->saved.getId().equals(row.getFoodItemId())).toList();
-        var selectedWaste=new WasteRecordDao().findByDateRange(day,day).stream().filter(row->saved.getId().equals(row.getFoodItemId())).toList();
+        var selectedSales=new SalesDao().findByDateRange(day,day, 1L).stream().filter(row->saved.getId().equals(row.getFoodItemId())).toList();
+        var selectedWaste=new WasteRecordDao().findByDateRange(day,day, 1L).stream().filter(row->saved.getId().equals(row.getFoodItemId())).toList();
         assertEquals(2,selectedSales.size());assertEquals(2,selectedWaste.size());
         assertEquals(Set.of(dates.get(1),dates.get(2)),new HashSet<>(selectedSales.stream().map(Sale::getSaleDate).toList()));
         assertEquals(Set.of(dates.get(1),dates.get(2)),new HashSet<>(selectedWaste.stream().map(WasteRecord::getWasteDate).toList()));

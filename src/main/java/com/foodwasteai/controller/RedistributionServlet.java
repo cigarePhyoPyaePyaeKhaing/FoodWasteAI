@@ -29,7 +29,7 @@ public class RedistributionServlet extends BaseServlet {
         try {
             String path = req.getPathInfo();
             if (path != null && path.contains("candidates")) {
-                Map<String, Object> candidates = redistributionService.evaluateRedistributionCandidates();
+                Map<String, Object> candidates = redistributionService.evaluateRedistributionCandidates(getAuthenticatedUserId(req));
                 sendSuccess(resp, candidates);
                 return;
             }
@@ -39,12 +39,12 @@ public class RedistributionServlet extends BaseServlet {
                 return;
             }
             if (path != null && path.contains("stats")) {
-                Map<String, Object> stats = redistributionService.getRedistributionStats();
+                Map<String, Object> stats = redistributionService.getRedistributionStats(getAuthenticatedUserId(req));
                 sendSuccess(resp, stats);
                 return;
             }
 
-            List<Redistribution> dispatches = redistributionService.getAllDispatches();
+            List<Redistribution> dispatches = redistributionService.getAllDispatches(getAuthenticatedUserId(req));
             sendSuccess(resp, dispatches);
         } catch (Exception e) {
             logger.error("Error in RedistributionServlet GET: {}", e.getMessage(), e);
@@ -57,13 +57,7 @@ public class RedistributionServlet extends BaseServlet {
         try {
             String path = req.getPathInfo();
             if (path != null && path.contains("recipients")) {
-                RedistributionRecipient recipient = parseJsonBody(req, RedistributionRecipient.class);
-                if (recipient == null) {
-                    sendBadRequest(resp, "Invalid JSON payload for redistribution recipient");
-                    return;
-                }
-                RedistributionRecipient saved = redistributionService.createRecipient(recipient);
-                sendCreated(resp, "Redistribution recipient partner registered successfully", saved);
+                sendJson(resp, 403, com.foodwasteai.model.ApiResponse.error("Reference partners are read-only"));
                 return;
             }
 
@@ -74,7 +68,7 @@ public class RedistributionServlet extends BaseServlet {
             }
 
             Long userId = getAuthenticatedUserId(req);
-            Redistribution saved = redistributionService.scheduleDispatch(dispatch, userId != null ? userId : 1L);
+            Redistribution saved = redistributionService.scheduleDispatch(dispatch, userId);
             sendCreated(resp, "Surplus food dispatch scheduled successfully", saved);
         } catch (IllegalArgumentException e) {
             sendBadRequest(resp, e.getMessage());
@@ -97,7 +91,7 @@ public class RedistributionServlet extends BaseServlet {
             Redistribution.Status newStatus = payload != null && payload.getStatus() != null ?
                     payload.getStatus() : Redistribution.Status.COLLECTED;
 
-            boolean updated = redistributionService.updateDispatchStatus(id, newStatus);
+            boolean updated = redistributionService.updateDispatchStatus(id, newStatus, getAuthenticatedUserId(req));
             if (updated) {
                 sendSuccess(resp, "Redistribution dispatch #" + id + " marked as " + newStatus, null);
             } else {

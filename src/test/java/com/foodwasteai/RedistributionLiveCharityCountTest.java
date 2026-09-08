@@ -59,7 +59,7 @@ public class RedistributionLiveCharityCountTest {
     @DisplayName("Stats activeCharitiesCount must match live active recipient count")
     public void testRedistributionStatsActiveCharityCount() throws SQLException {
         List<RedistributionRecipient> recipients = redistributionService.getAllRecipients();
-        Map<String, Object> stats = redistributionService.getRedistributionStats();
+        Map<String, Object> stats = redistributionService.getRedistributionStats(1L);
 
         assertNotNull(stats, "Stats map must not be null");
         assertTrue(stats.containsKey("activeCharitiesCount"), "Stats must contain 'activeCharitiesCount'");

@@ -173,7 +173,7 @@ public class RedistributionAndDisposalWorkflowTest {
     @Test
     @DisplayName("Policy 8: Redistribution Candidate Sorting -> Priority first, then fewest days to expiry, then largest safe surplus")
     public void testCandidateSorting() throws SQLException {
-        Map<String, Object> candidates = redistributionService.evaluateRedistributionCandidates();
+        Map<String, Object> candidates = redistributionService.evaluateRedistributionCandidates(1L);
         assertNotNull(candidates);
 
         @SuppressWarnings("unchecked")
@@ -204,7 +204,7 @@ public class RedistributionAndDisposalWorkflowTest {
     @DisplayName("Policy 9: Schedule Dispatch Safeguards -> Rejects expired food and excess quantity")
     public void testScheduleDispatchSafeguards() throws SQLException {
         // 1. Create an expired item
-        FoodItem expiredItem = new FoodItem(null, "Safeguard Expired Butter " + System.currentTimeMillis(), "Dairy",
+        FoodItem expiredItem = new OwnedFoodItemFixture(null, "Safeguard Expired Butter " + System.currentTimeMillis(), "Dairy",
                 new BigDecimal("5.00"), "kg", new BigDecimal("3000.00"),
                 LocalDate.now().minusDays(2), new BigDecimal("1.00"));
         FoodItem savedExpired = foodItemService.createFoodItem(expiredItem, 1L);
@@ -219,7 +219,7 @@ public class RedistributionAndDisposalWorkflowTest {
         }, "Must reject dispatch for expired food");
 
         // 2. Create an active item and attempt to donate more than remaining stock
-        FoodItem activeItem = new FoodItem(null, "Safeguard Active Bread " + System.currentTimeMillis(), "Bakery",
+        FoodItem activeItem = new OwnedFoodItemFixture(null, "Safeguard Active Bread " + System.currentTimeMillis(), "Bakery",
                 new BigDecimal("10.00"), "loaves", new BigDecimal("1500.00"),
                 LocalDate.now().plusDays(4), new BigDecimal("2.00"));
         FoodItem savedActive = foodItemService.createFoodItem(activeItem, 1L);
@@ -237,26 +237,26 @@ public class RedistributionAndDisposalWorkflowTest {
     @Test
     @DisplayName("Disposal Workflow: Auto-detection does NOT silently create waste records")
     public void testNoSilentWasteRecordCreation() throws SQLException {
-        FoodItem expiredItem = new FoodItem(null, "Test Expired Yogurt " + System.currentTimeMillis(), "Dairy",
+        FoodItem expiredItem = new OwnedFoodItemFixture(null, "Test Expired Yogurt " + System.currentTimeMillis(), "Dairy",
                 new BigDecimal("5.00"), "units", new BigDecimal("1200.00"),
                 LocalDate.now().minusDays(3), new BigDecimal("2.00"));
         FoodItem saved = foodItemService.createFoodItem(expiredItem, 1L);
         assertNotNull(saved.getId());
 
-        int initialWasteCount = wasteService.getAllWasteRecords().size();
+        int initialWasteCount = wasteService.getAllWasteRecords(1L).size();
 
-        List<FoodItem> itemsForDisposal = foodItemService.getExpiredItemsRequiringDisposal();
+        List<FoodItem> itemsForDisposal = foodItemService.getExpiredItemsRequiringDisposal(1L);
         assertNotNull(itemsForDisposal);
         assertTrue(itemsForDisposal.stream().anyMatch(i -> i.getId().equals(saved.getId())));
 
-        int afterCheckWasteCount = wasteService.getAllWasteRecords().size();
+        int afterCheckWasteCount = wasteService.getAllWasteRecords(1L).size();
         assertEquals(initialWasteCount, afterCheckWasteCount, "Auto-detection must not create waste records automatically");
     }
 
     @Test
     @DisplayName("Disposal Workflow: Explicit Record as Waste creates WasteRecord atomically and deducts stock")
     public void testExplicitRecordAsWaste() throws SQLException {
-        FoodItem item = new FoodItem(null, "Test Expired Cream " + System.currentTimeMillis(), "Dairy",
+        FoodItem item = new OwnedFoodItemFixture(null, "Test Expired Cream " + System.currentTimeMillis(), "Dairy",
                 new BigDecimal("8.00"), "liter", new BigDecimal("4500.00"),
                 LocalDate.now().minusDays(1), new BigDecimal("1.00"));
         FoodItem saved = foodItemService.createFoodItem(item, 1L);
@@ -273,7 +273,7 @@ public class RedistributionAndDisposalWorkflowTest {
         WasteRecord created = wasteService.recordWaste(waste, 1L);
         assertNotNull(created.getId());
 
-        FoodItem updated = foodItemService.getFoodItemById(saved.getId()).orElseThrow();
+        FoodItem updated = foodItemService.getFoodItemById(saved.getId(), 1L).orElseThrow();
         assertEquals(0, new BigDecimal("0.00").compareTo(updated.getQuantity()), "Remaining stock should be deducted to 0");
     }
 
@@ -294,12 +294,12 @@ public class RedistributionAndDisposalWorkflowTest {
             assertTrue(assessment.getRedistributionReasonEn().contains("temporarily unavailable"));
 
             // Verify candidates list categorization
-            FoodItem prodItem = new FoodItem(null, "Production Bread " + System.currentTimeMillis(), "Bakery",
+            FoodItem prodItem = new OwnedFoodItemFixture(null, "Production Bread " + System.currentTimeMillis(), "Bakery",
                     new BigDecimal("50.00"), "pieces", new BigDecimal("2000.00"),
                     LocalDate.now().plusDays(2), new BigDecimal("10.00"));
             FoodItem saved = foodItemService.createFoodItem(prodItem, 1L);
 
-            Map<String, Object> candidateMap = redistributionService.evaluateRedistributionCandidates();
+            Map<String, Object> candidateMap = redistributionService.evaluateRedistributionCandidates(1L);
             @SuppressWarnings("unchecked")
             List<RedistributionService.CandidateItem> priority = (List<RedistributionService.CandidateItem>) candidateMap.get("priorityCandidates");
             @SuppressWarnings("unchecked")

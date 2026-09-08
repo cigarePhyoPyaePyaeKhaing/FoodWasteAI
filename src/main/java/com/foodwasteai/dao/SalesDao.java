@@ -20,12 +20,18 @@ import java.util.Optional;
 public class SalesDao extends BaseDao {
 
     public Optional<Sale> findById(Long id) throws SQLException {
-        String sql = "SELECT s.id, s.food_item_id, f.name AS food_name, f.unit AS food_unit, s.quantity_sold, s.unit_price, " +
+        throw new IllegalArgumentException("Authenticated user is required");
+    }
+
+    public Optional<Sale> findById(Long id, Long userId) throws SQLException {
+        requireUserId(userId);
+        String sql = "SELECT s.id, s.food_item_id, f.name AS food_name, f.unit AS food_unit, f.user_id, s.quantity_sold, s.unit_price, " +
                      "s.total_amount, s.customer_count, s.sale_date, s.created_at " +
-                     "FROM sales s JOIN food_items f ON s.food_item_id = f.id WHERE s.id = ?";
+                     "FROM sales s JOIN food_items f ON s.food_item_id = f.id WHERE s.id = ? AND f.user_id = ?";
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setLong(1, id);
+            stmt.setLong(2, userId);
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
                     return Optional.of(mapResultSetToSale(rs));
@@ -41,28 +47,34 @@ public class SalesDao extends BaseDao {
 
     public List<Sale> findAll(Long userId) throws SQLException {
         List<Sale> list = new ArrayList<>();
-        String sql = "SELECT s.id, s.food_item_id, f.name AS food_name, f.unit AS food_unit, s.quantity_sold, s.unit_price, " +
+        String sql = "SELECT s.id, s.food_item_id, f.name AS food_name, f.unit AS food_unit, f.user_id, s.quantity_sold, s.unit_price, " +
                      "s.total_amount, s.customer_count, s.sale_date, s.created_at " +
-                     "FROM sales s JOIN food_items f ON s.food_item_id = f.id ORDER BY s.sale_date DESC";
+                     "FROM sales s JOIN food_items f ON s.food_item_id = f.id WHERE f.user_id = ? ORDER BY s.sale_date DESC";
         try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql);
-             ResultSet rs = stmt.executeQuery()) {
-            while (rs.next()) {
-                list.add(mapResultSetToSale(rs));
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setLong(1, requireUserId(userId));
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) list.add(mapResultSetToSale(rs));
             }
         }
         return list;
     }
 
     public List<Sale> findByFoodItemId(Long foodItemId) throws SQLException {
+        throw new IllegalArgumentException("Authenticated user is required");
+    }
+
+    public List<Sale> findByFoodItemId(Long foodItemId, Long userId) throws SQLException {
+        requireUserId(userId);
         List<Sale> list = new ArrayList<>();
-        String sql = "SELECT s.id, s.food_item_id, f.name AS food_name, f.unit AS food_unit, s.quantity_sold, s.unit_price, " +
+        String sql = "SELECT s.id, s.food_item_id, f.name AS food_name, f.unit AS food_unit, f.user_id, s.quantity_sold, s.unit_price, " +
                      "s.total_amount, s.customer_count, s.sale_date, s.created_at " +
                      "FROM sales s JOIN food_items f ON s.food_item_id = f.id " +
-                     "WHERE s.food_item_id = ? ORDER BY s.sale_date DESC";
+                     "WHERE s.food_item_id = ? AND f.user_id = ? ORDER BY s.sale_date DESC";
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setLong(1, foodItemId);
+            stmt.setLong(2, userId);
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
                     list.add(mapResultSetToSale(rs));
@@ -73,15 +85,21 @@ public class SalesDao extends BaseDao {
     }
 
     public List<Sale> findByDateRange(LocalDate start, LocalDate end) throws SQLException {
+        throw new IllegalArgumentException("Authenticated user is required");
+    }
+
+    public List<Sale> findByDateRange(LocalDate start, LocalDate end, Long userId) throws SQLException {
+        requireUserId(userId);
         List<Sale> list = new ArrayList<>();
-        String sql = "SELECT s.id, s.food_item_id, f.name AS food_name, f.unit AS food_unit, s.quantity_sold, s.unit_price, " +
+        String sql = "SELECT s.id, s.food_item_id, f.name AS food_name, f.unit AS food_unit, f.user_id, s.quantity_sold, s.unit_price, " +
                      "s.total_amount, s.customer_count, s.sale_date, s.created_at " +
                      "FROM sales s JOIN food_items f ON s.food_item_id = f.id " +
-                     "WHERE s.sale_date >= ? AND s.sale_date < ? ORDER BY s.sale_date DESC";
+                     "WHERE s.sale_date >= ? AND s.sale_date < ? AND f.user_id = ? ORDER BY s.sale_date DESC";
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setObject(1, start.atStartOfDay(com.foodwasteai.util.ExpiryStatusResolver.ZONE_YANGON).withZoneSameInstant(java.time.ZoneOffset.UTC).toLocalDateTime());
             stmt.setObject(2, end.plusDays(1).atStartOfDay(com.foodwasteai.util.ExpiryStatusResolver.ZONE_YANGON).withZoneSameInstant(java.time.ZoneOffset.UTC).toLocalDateTime());
+            stmt.setLong(3, userId);
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
                     list.add(mapResultSetToSale(rs));
@@ -92,13 +110,19 @@ public class SalesDao extends BaseDao {
     }
 
     public BigDecimal getHistoricalAverageDailySales(Long foodItemId, int pastDays) throws SQLException {
+        throw new IllegalArgumentException("Authenticated user is required");
+    }
+
+    public BigDecimal getHistoricalAverageDailySales(Long foodItemId, int pastDays, Long userId) throws SQLException {
+        requireUserId(userId);
         String sql = "SELECT IFNULL(SUM(quantity_sold) / ?, 0) AS avg_daily_demand " +
-                     "FROM sales WHERE food_item_id = ? AND sale_date >= DATE_SUB(NOW(), INTERVAL ? DAY) AND sale_date <= NOW()";
+                     "FROM sales WHERE food_item_id = ? AND sale_date >= DATE_SUB(NOW(), INTERVAL ? DAY) AND sale_date <= NOW() AND food_item_id IN (SELECT id FROM food_items WHERE user_id = ?)";
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, pastDays > 0 ? pastDays : 7);
             stmt.setLong(2, foodItemId);
             stmt.setInt(3, pastDays > 0 ? pastDays : 7);
+            stmt.setLong(4, userId);
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
                     return rs.getBigDecimal("avg_daily_demand");
@@ -116,13 +140,13 @@ public class SalesDao extends BaseDao {
         ValidationUtils.validateSale(sale);
 
         String selectFoodSql = "SELECT id, name, category, quantity, unit, price_per_unit, expiry_date, status " +
-                               "FROM food_items WHERE id = ? FOR UPDATE";
+                               "FROM food_items WHERE id = ? AND user_id = ? FOR UPDATE";
         String insertSaleSql = "INSERT INTO sales (food_item_id, quantity_sold, unit_price, total_amount, customer_count, sale_date) " +
                                "VALUES (?, ?, ?, ?, ?, ?)";
         String updateFoodQtySql = "UPDATE food_items SET quantity = ?, status = CASE " +
                                   "WHEN expiry_date < CURDATE() THEN 'EXPIRED' " +
                                   "WHEN expiry_date <= DATE_ADD(CURDATE(), INTERVAL 2 DAY) THEN 'NEAR_EXPIRY' " +
-                                  "ELSE 'OK' END WHERE id = ?";
+                                  "ELSE 'OK' END WHERE id = ? AND user_id = ?";
         String insertTxSql = "INSERT INTO inventory_transactions (food_item_id, transaction_type, quantity, unit, notes, created_by) " +
                              "VALUES (?, 'USAGE', ?, ?, ?, ?)";
 
@@ -137,6 +161,7 @@ public class SalesDao extends BaseDao {
             FoodItem foodItem = null;
             try (PreparedStatement stmt = conn.prepareStatement(selectFoodSql)) {
                 stmt.setLong(1, sale.getFoodItemId());
+                stmt.setLong(2, requireUserId(userId));
                 try (ResultSet rs = stmt.executeQuery()) {
                     if (rs.next()) {
                         foodItem = new FoodItem();
@@ -232,6 +257,7 @@ public class SalesDao extends BaseDao {
             try (PreparedStatement updateStmt = conn.prepareStatement(updateFoodQtySql)) {
                 updateStmt.setBigDecimal(1, newStock);
                 updateStmt.setLong(2, foodItem.getId());
+                updateStmt.setLong(3, userId);
                 updateStmt.executeUpdate();
             }
 
@@ -280,10 +306,16 @@ public class SalesDao extends BaseDao {
     }
 
     public boolean delete(Long id) throws SQLException {
-        String sql = "DELETE FROM sales WHERE id = ?";
+        throw new IllegalArgumentException("Authenticated user is required");
+    }
+
+    public boolean delete(Long id, Long userId) throws SQLException {
+        requireUserId(userId);
+        String sql = "DELETE FROM sales WHERE id = ? AND food_item_id IN (SELECT id FROM food_items WHERE user_id = ?)";
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setLong(1, id);
+            stmt.setLong(2, userId);
             return stmt.executeUpdate() > 0;
         }
     }
@@ -291,6 +323,7 @@ public class SalesDao extends BaseDao {
     private Sale mapResultSetToSale(ResultSet rs) throws SQLException {
         Sale sale = new Sale();
         sale.setId(rs.getLong("id"));
+        sale.setUserId(rs.getLong("user_id"));
         sale.setFoodItemId(rs.getLong("food_item_id"));
         sale.setFoodItemName(rs.getString("food_name"));
         sale.setUnit(rs.getString("food_unit"));

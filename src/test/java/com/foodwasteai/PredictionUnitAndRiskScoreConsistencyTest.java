@@ -145,11 +145,11 @@ public class PredictionUnitAndRiskScoreConsistencyTest {
     @DisplayName("8. End-to-end Inventory Assessment: Preserves unit and risk score for created food items")
     public void testEndToEndInventoryUnitAndRisk() throws SQLException {
         FoodItem item = foodItemService.createFoodItem(
-                new FoodItem(null, "Fresh Milk E2E " + System.currentTimeMillis(), "Dairy", new BigDecimal("8.00"), "liter",
-                        new BigDecimal("2000.00"), LocalDate.now().plusDays(1), new BigDecimal("2.00")), null
+                new OwnedFoodItemFixture(null, "Fresh Milk E2E " + System.currentTimeMillis(), "Dairy", new BigDecimal("8.00"), "liter",
+                        new BigDecimal("2000.00"), LocalDate.now().plusDays(1), new BigDecimal("2.00")), 1L
         );
 
-        Optional<PrologAssessment> opt = predictionService.assessFoodItemById(item.getId());
+        Optional<PrologAssessment> opt = predictionService.assessFoodItemById(item.getId(), 1L);
         assertTrue(opt.isPresent(), "Assessment must be generated");
 
         PrologAssessment a = opt.get();
@@ -200,11 +200,11 @@ public class PredictionUnitAndRiskScoreConsistencyTest {
     @Test
     @DisplayName("11. Incompatible Unit Safety: Assesses items of different units without mathematically adding incompatible units into kg")
     public void testIncompatibleUnitSafety() throws SQLException {
-        FoodItem milk = new FoodItem(101L, "Fresh Milk", "Dairy", new BigDecimal("5.00"), "liter",
+        FoodItem milk = new OwnedFoodItemFixture(101L, "Fresh Milk", "Dairy", new BigDecimal("5.00"), "liter",
                 new BigDecimal("2000.00"), LocalDate.now().plusDays(1), new BigDecimal("1.00"));
-        FoodItem beef = new FoodItem(102L, "Beef Steak", "Meat", new BigDecimal("3.00"), "kg",
+        FoodItem beef = new OwnedFoodItemFixture(102L, "Beef Steak", "Meat", new BigDecimal("3.00"), "kg",
                 new BigDecimal("18000.00"), LocalDate.now().plusDays(1), new BigDecimal("0.50"));
-        FoodItem eggs = new FoodItem(103L, "Eggs", "Dairy", new BigDecimal("10.00"), "pieces",
+        FoodItem eggs = new OwnedFoodItemFixture(103L, "Eggs", "Dairy", new BigDecimal("10.00"), "pieces",
                 new BigDecimal("300.00"), LocalDate.now().plusDays(1), new BigDecimal("2.00"));
 
         Map<String, Object> report = predictionService.assessInventory(java.util.List.of(milk, beef, eggs));
@@ -244,19 +244,19 @@ public class PredictionUnitAndRiskScoreConsistencyTest {
         LocalDate laterExpiry = today.plusDays(2);
         LocalDate evenLaterExpiry = today.plusDays(5);
 
-        FoodItem cheese = new FoodItem(201L, "cheese", "Dairy", new BigDecimal("34.00"), "pcs",
+        FoodItem cheese = new OwnedFoodItemFixture(201L, "cheese", "Dairy", new BigDecimal("34.00"), "pcs",
                 new BigDecimal("2000.00"), tomorrow, new BigDecimal("1.00")); // Expiring tomorrow -> INCLUDED!
-        FoodItem tomato = new FoodItem(202L, "tomato", "Produce", new BigDecimal("23.00"), "kg",
+        FoodItem tomato = new OwnedFoodItemFixture(202L, "tomato", "Produce", new BigDecimal("23.00"), "kg",
                 new BigDecimal("1500.00"), tomorrow, new BigDecimal("2.00")); // Expiring tomorrow -> INCLUDED!
-        FoodItem pork = new FoodItem(203L, "pork", "Meat", new BigDecimal("12.00"), "kg",
+        FoodItem pork = new OwnedFoodItemFixture(203L, "pork", "Meat", new BigDecimal("12.00"), "kg",
                 new BigDecimal("12000.00"), todayExpiry, new BigDecimal("2.00")); // Expiring today -> EXCLUDED!
-        FoodItem sugar = new FoodItem(204L, "sugar", "Dry Goods", new BigDecimal("15.00"), "kg",
+        FoodItem sugar = new OwnedFoodItemFixture(204L, "sugar", "Dry Goods", new BigDecimal("15.00"), "kg",
                 new BigDecimal("3000.00"), laterExpiry, new BigDecimal("1.00")); // Expiring after tomorrow -> EXCLUDED!
-        FoodItem milk = new FoodItem(205L, "milk", "Dairy", new BigDecimal("2.00"), "liter",
+        FoodItem milk = new OwnedFoodItemFixture(205L, "milk", "Dairy", new BigDecimal("2.00"), "liter",
                 new BigDecimal("2000.00"), evenLaterExpiry, new BigDecimal("1.00")); // Expiring after tomorrow -> EXCLUDED!
-        FoodItem zeroStock = new FoodItem(206L, "Zero Salt", "Condiments", BigDecimal.ZERO, "kg",
+        FoodItem zeroStock = new OwnedFoodItemFixture(206L, "Zero Salt", "Condiments", BigDecimal.ZERO, "kg",
                 new BigDecimal("500.00"), tomorrow, new BigDecimal("1.00")); // Stock == 0 -> EXCLUDED!
-        FoodItem oldMeat = new FoodItem(207L, "Old Chicken", "Meat", new BigDecimal("5.00"), "kg",
+        FoodItem oldMeat = new OwnedFoodItemFixture(207L, "Old Chicken", "Meat", new BigDecimal("5.00"), "kg",
                 new BigDecimal("8000.00"), pastExpiry, new BigDecimal("1.00")); // Expired -> EXCLUDED!
 
         List<FoodItem> items = List.of(cheese, tomato, pork, sugar, milk, zeroStock, oldMeat);
@@ -297,11 +297,11 @@ public class PredictionUnitAndRiskScoreConsistencyTest {
     @DisplayName("13. Exclude Zero Stock and Past Expired Products from Tomorrow's Prediction")
     public void testExcludeZeroStockAndPastExpired() {
         LocalDate today = com.foodwasteai.util.ExpiryStatusResolver.getToday();
-        FoodItem zeroStock = new FoodItem(210L, "Zero Beef", "Meat", BigDecimal.ZERO, "kg",
+        FoodItem zeroStock = new OwnedFoodItemFixture(210L, "Zero Beef", "Meat", BigDecimal.ZERO, "kg",
                 new BigDecimal("15000.00"), today.plusDays(1), new BigDecimal("1.00"));
-        FoodItem negativeStock = new FoodItem(211L, "Negative Pork", "Meat", new BigDecimal("-2.00"), "kg",
+        FoodItem negativeStock = new OwnedFoodItemFixture(211L, "Negative Pork", "Meat", new BigDecimal("-2.00"), "kg",
                 new BigDecimal("12000.00"), today.plusDays(1), new BigDecimal("1.00"));
-        FoodItem expiredItem = new FoodItem(212L, "Old Chicken", "Meat", new BigDecimal("5.00"), "kg",
+        FoodItem expiredItem = new OwnedFoodItemFixture(212L, "Old Chicken", "Meat", new BigDecimal("5.00"), "kg",
                 new BigDecimal("8000.00"), today.minusDays(2), new BigDecimal("1.00"));
 
         Map<String, Object> tomorrowPred = predictionService.calculateTomorrowPrediction(List.of(zeroStock, negativeStock, expiredItem));
@@ -320,9 +320,9 @@ public class PredictionUnitAndRiskScoreConsistencyTest {
         LocalDate today = com.foodwasteai.util.ExpiryStatusResolver.getToday();
         LocalDate targetDate = today.plusDays(1);
 
-        FoodItem sugar = new FoodItem(220L, "Sugar", "Dry Goods", new BigDecimal("15.00"), "kg",
+        FoodItem sugar = new OwnedFoodItemFixture(220L, "Sugar", "Dry Goods", new BigDecimal("15.00"), "kg",
                 new BigDecimal("3000.00"), targetDate, new BigDecimal("1.00"));
-        FoodItem pork = new FoodItem(221L, "Pork", "Meat", new BigDecimal("8.00"), "kg",
+        FoodItem pork = new OwnedFoodItemFixture(221L, "Pork", "Meat", new BigDecimal("8.00"), "kg",
                 new BigDecimal("12000.00"), targetDate, new BigDecimal("1.00"));
 
         Map<String, Object> tomorrowPred = predictionService.calculateTomorrowPrediction(List.of(sugar, pork));
@@ -352,11 +352,11 @@ public class PredictionUnitAndRiskScoreConsistencyTest {
         LocalDate today = com.foodwasteai.util.ExpiryStatusResolver.getToday();
         LocalDate targetDate = today.plusDays(1);
 
-        FoodItem milk = new FoodItem(230L, "Milk", "Dairy", new BigDecimal("4.00"), "liter",
+        FoodItem milk = new OwnedFoodItemFixture(230L, "Milk", "Dairy", new BigDecimal("4.00"), "liter",
                 new BigDecimal("2000.00"), targetDate, new BigDecimal("1.00"));
-        FoodItem rice = new FoodItem(231L, "Rice", "Grains", new BigDecimal("10.00"), "kg",
+        FoodItem rice = new OwnedFoodItemFixture(231L, "Rice", "Grains", new BigDecimal("10.00"), "kg",
                 new BigDecimal("2500.00"), targetDate, new BigDecimal("1.00"));
-        FoodItem eggs = new FoodItem(232L, "Eggs", "Dairy", new BigDecimal("12.00"), "pack",
+        FoodItem eggs = new OwnedFoodItemFixture(232L, "Eggs", "Dairy", new BigDecimal("12.00"), "pack",
                 new BigDecimal("4000.00"), targetDate, new BigDecimal("1.00"));
 
         Map<String, Object> tomorrowPred = predictionService.calculateTomorrowPrediction(List.of(milk, rice, eggs));
@@ -385,7 +385,7 @@ public class PredictionUnitAndRiskScoreConsistencyTest {
     @DisplayName("16. Full Inventory Assessment Report Includes Tomorrow Prediction Metadata")
     public void testFullInventoryAssessmentReportIncludesTomorrowPrediction() throws SQLException {
         LocalDate today = com.foodwasteai.util.ExpiryStatusResolver.getToday();
-        FoodItem item = new FoodItem(240L, "Test Beef", "Meat", new BigDecimal("5.00"), "kg",
+        FoodItem item = new OwnedFoodItemFixture(240L, "Test Beef", "Meat", new BigDecimal("5.00"), "kg",
                 new BigDecimal("15000.00"), today.plusDays(2), new BigDecimal("1.00"));
 
         Map<String, Object> report = predictionService.assessInventory(List.of(item));
@@ -404,9 +404,9 @@ public class PredictionUnitAndRiskScoreConsistencyTest {
         LocalDate targetDate = today.plusDays(1);
 
         // Two items with normalized name 'cheese' (one 'cheese', one ' CHEESE ')
-        FoodItem cheese1 = new FoodItem(8L, "cheese", "Dairy", new BigDecimal("34.00"), "pcs",
+        FoodItem cheese1 = new OwnedFoodItemFixture(8L, "cheese", "Dairy", new BigDecimal("34.00"), "pcs",
                 new BigDecimal("2000.00"), targetDate, new BigDecimal("1.00"));
-        FoodItem cheese2 = new FoodItem(9L, " CHEESE ", "Dairy", new BigDecimal("34.00"), "pcs",
+        FoodItem cheese2 = new OwnedFoodItemFixture(9L, " CHEESE ", "Dairy", new BigDecimal("34.00"), "pcs",
                 new BigDecimal("2000.00"), targetDate, new BigDecimal("1.00"));
 
         Map<String, Object> tomorrowPred = predictionService.calculateTomorrowPrediction(List.of(cheese1, cheese2));
@@ -434,11 +434,11 @@ public class PredictionUnitAndRiskScoreConsistencyTest {
         LocalDate today = com.foodwasteai.util.ExpiryStatusResolver.getToday();
         LocalDate targetDate = today.plusDays(1);
 
-        FoodItem cheese = new FoodItem(8L, "Cheese", "Dairy", new BigDecimal("20.00"), "pcs",
+        FoodItem cheese = new OwnedFoodItemFixture(8L, "Cheese", "Dairy", new BigDecimal("20.00"), "pcs",
                 new BigDecimal("2000.00"), targetDate, new BigDecimal("1.00"));
-        FoodItem butter = new FoodItem(10L, "Butter", "Dairy", new BigDecimal("10.00"), "kg",
+        FoodItem butter = new OwnedFoodItemFixture(10L, "Butter", "Dairy", new BigDecimal("10.00"), "kg",
                 new BigDecimal("3000.00"), targetDate, new BigDecimal("1.00"));
-        FoodItem bread = new FoodItem(11L, "Bread", "Bakery", new BigDecimal("5.00"), "loaf",
+        FoodItem bread = new OwnedFoodItemFixture(11L, "Bread", "Bakery", new BigDecimal("5.00"), "loaf",
                 new BigDecimal("1500.00"), targetDate.plusDays(2), new BigDecimal("1.00")); // later date
 
         Map<String, Object> tomorrowPred = predictionService.calculateTomorrowPrediction(List.of(cheese, butter, bread));
@@ -460,9 +460,9 @@ public class PredictionUnitAndRiskScoreConsistencyTest {
         LocalDate today = com.foodwasteai.util.ExpiryStatusResolver.getToday();
 
         // Products expire in 2, 3, and 5 days, but NONE tomorrow
-        FoodItem bread = new FoodItem(301L, "Bread", "Bakery", new BigDecimal("5.00"), "pcs",
+        FoodItem bread = new OwnedFoodItemFixture(301L, "Bread", "Bakery", new BigDecimal("5.00"), "pcs",
                 new BigDecimal("1000.00"), today.plusDays(2), new BigDecimal("1.00"));
-        FoodItem milk = new FoodItem(302L, "Milk", "Dairy", new BigDecimal("4.00"), "liter",
+        FoodItem milk = new OwnedFoodItemFixture(302L, "Milk", "Dairy", new BigDecimal("4.00"), "liter",
                 new BigDecimal("2500.00"), today.plusDays(3), new BigDecimal("1.00"));
 
         Map<String, Object> tomorrowPred = predictionService.calculateTomorrowPrediction(List.of(bread, milk));
@@ -487,15 +487,15 @@ public class PredictionUnitAndRiskScoreConsistencyTest {
         LocalDate today = com.foodwasteai.util.ExpiryStatusResolver.getToday();
         LocalDate tomorrow = today.plusDays(1);
 
-        FoodItem pork = new FoodItem(16L, "pork", "Meat", new BigDecimal("12.00"), "kg",
+        FoodItem pork = new OwnedFoodItemFixture(16L, "pork", "Meat", new BigDecimal("12.00"), "kg",
                 new BigDecimal("20000.00"), today, new BigDecimal("1.00"));
-        FoodItem sugar = new FoodItem(12L, "sugar", "Baking", new BigDecimal("12.00"), "kg",
+        FoodItem sugar = new OwnedFoodItemFixture(12L, "sugar", "Baking", new BigDecimal("12.00"), "kg",
                 new BigDecimal("1500.00"), today, new BigDecimal("1.00"));
-        FoodItem bread = new FoodItem(14L, "bread", "Bakery", new BigDecimal("5.00"), "pcs",
+        FoodItem bread = new OwnedFoodItemFixture(14L, "bread", "Bakery", new BigDecimal("5.00"), "pcs",
                 new BigDecimal("2500.00"), tomorrow, new BigDecimal("1.00"));
-        FoodItem milk = new FoodItem(13L, "milk", "Dairy", new BigDecimal("15.00"), "liter",
+        FoodItem milk = new OwnedFoodItemFixture(13L, "milk", "Dairy", new BigDecimal("15.00"), "liter",
                 new BigDecimal("4000.00"), tomorrow, new BigDecimal("1.00"));
-        FoodItem beef = new FoodItem(15L, "beef", "Meat", new BigDecimal("32.00"), "kg",
+        FoodItem beef = new OwnedFoodItemFixture(15L, "beef", "Meat", new BigDecimal("32.00"), "kg",
                 new BigDecimal("25000.00"), today.plusDays(2), new BigDecimal("1.00"));
 
         List<FoodItem> inventory = List.of(pork, sugar, bread, milk, beef);
@@ -583,9 +583,9 @@ public class PredictionUnitAndRiskScoreConsistencyTest {
         LocalDate today = com.foodwasteai.util.ExpiryStatusResolver.getToday();
         LocalDate tomorrow = today.plusDays(1);
 
-        FoodItem zeroToday = new FoodItem(401L, "Zero Today", "Produce", BigDecimal.ZERO, "kg",
+        FoodItem zeroToday = new OwnedFoodItemFixture(401L, "Zero Today", "Produce", BigDecimal.ZERO, "kg",
                 new BigDecimal("1000.00"), today, new BigDecimal("1.00"));
-        FoodItem zeroTomorrow = new FoodItem(402L, "Zero Tomorrow", "Produce", BigDecimal.ZERO, "pcs",
+        FoodItem zeroTomorrow = new OwnedFoodItemFixture(402L, "Zero Tomorrow", "Produce", BigDecimal.ZERO, "pcs",
                 new BigDecimal("1000.00"), tomorrow, new BigDecimal("1.00"));
 
         Map<String, Object> tomorrowPred = predictionService.calculateTomorrowPrediction(List.of(zeroToday, zeroTomorrow));
@@ -599,4 +599,3 @@ public class PredictionUnitAndRiskScoreConsistencyTest {
         assertTrue(wasteItems.isEmpty(), "Zero quantity items must be excluded from today actual waste");
     }
 }
-

@@ -53,7 +53,7 @@ public class InventoryTotalAndRemainingQuantityTest {
         LocalDate expiry = LocalDate.now().plusDays(10);
         BigDecimal price = new BigDecimal("3500.00");
 
-        FoodItem initial = new FoodItem(null, name, "Produce", new BigDecimal("10.00"), "kg", price, expiry, BigDecimal.ZERO);
+        FoodItem initial = new OwnedFoodItemFixture(null, name, "Produce", new BigDecimal("10.00"), "kg", price, expiry, BigDecimal.ZERO);
         FoodItem saved = foodItemService.addFoodItem(initial, 1L);
 
         assertNotNull(saved.getId(), "Item must have an ID");
@@ -62,7 +62,7 @@ public class InventoryTotalAndRemainingQuantityTest {
         assertEquals(0, new BigDecimal("10.00").compareTo(saved.getQuantity()), "Authoritative quantity must match Remaining Quantity");
 
         // Verify re-fetch from service
-        Optional<FoodItem> fetched = foodItemService.getFoodItemById(saved.getId());
+        Optional<FoodItem> fetched = foodItemService.getFoodItemById(saved.getId(), 1L);
         assertTrue(fetched.isPresent());
         assertEquals(0, new BigDecimal("10.00").compareTo(fetched.get().getTotalQuantity()), "Re-fetched Total Quantity must be 10.00 kg");
         assertEquals(0, new BigDecimal("10.00").compareTo(fetched.get().getRemainingQuantity()), "Re-fetched Remaining Quantity must be 10.00 kg");
@@ -76,12 +76,12 @@ public class InventoryTotalAndRemainingQuantityTest {
         BigDecimal price = new BigDecimal("14000.00");
 
         // Initial: 10 kg
-        FoodItem item1 = new FoodItem(null, name, "Meat", new BigDecimal("10.00"), "kg", price, expiry, BigDecimal.ZERO);
+        FoodItem item1 = new OwnedFoodItemFixture(null, name, "Meat", new BigDecimal("10.00"), "kg", price, expiry, BigDecimal.ZERO);
         FoodItem saved1 = foodItemService.addFoodItem(item1, 1L);
         Long id1 = saved1.getId();
 
         // Add: 5 kg with exact same name, unit, price, expiry
-        FoodItem item2 = new FoodItem(null, name, "Meat", new BigDecimal("5.00"), "kg", price, expiry, BigDecimal.ZERO);
+        FoodItem item2 = new OwnedFoodItemFixture(null, name, "Meat", new BigDecimal("5.00"), "kg", price, expiry, BigDecimal.ZERO);
         FoodItem saved2 = foodItemService.addFoodItem(item2, 1L);
 
         assertEquals(id1, saved2.getId(), "Must merge into the exact same item ID");
@@ -89,7 +89,7 @@ public class InventoryTotalAndRemainingQuantityTest {
         assertEquals(0, new BigDecimal("15.00").compareTo(saved2.getRemainingQuantity()), "Remaining Quantity must be 15.00 kg");
 
         // Re-fetch check
-        FoodItem fetched = foodItemService.getFoodItemById(id1).orElseThrow();
+        FoodItem fetched = foodItemService.getFoodItemById(id1, 1L).orElseThrow();
         assertEquals(0, new BigDecimal("15.00").compareTo(fetched.getTotalQuantity()), "Re-fetched Total Quantity must be 15.00 kg");
         assertEquals(0, new BigDecimal("15.00").compareTo(fetched.getRemainingQuantity()), "Re-fetched Remaining Quantity must be 15.00 kg");
     }
@@ -102,8 +102,8 @@ public class InventoryTotalAndRemainingQuantityTest {
         BigDecimal price = new BigDecimal("4500.00");
 
         // Initial 10 kg + 5 kg = 15 kg Total & Remaining
-        FoodItem saved = foodItemService.addFoodItem(new FoodItem(null, name, "Grains", new BigDecimal("10.00"), "kg", price, expiry, BigDecimal.ZERO), 1L);
-        saved = foodItemService.addFoodItem(new FoodItem(null, name, "Grains", new BigDecimal("5.00"), "kg", price, expiry, BigDecimal.ZERO), 1L);
+        FoodItem saved = foodItemService.addFoodItem(new OwnedFoodItemFixture(null, name, "Grains", new BigDecimal("10.00"), "kg", price, expiry, BigDecimal.ZERO), 1L);
+        saved = foodItemService.addFoodItem(new OwnedFoodItemFixture(null, name, "Grains", new BigDecimal("5.00"), "kg", price, expiry, BigDecimal.ZERO), 1L);
         Long id = saved.getId();
 
         // Sell: 4 kg
@@ -111,7 +111,7 @@ public class InventoryTotalAndRemainingQuantityTest {
         salesService.recordSale(sale, 1L);
 
         // Verify
-        FoodItem afterSale = foodItemService.getFoodItemById(id).orElseThrow();
+        FoodItem afterSale = foodItemService.getFoodItemById(id, 1L).orElseThrow();
         assertEquals(0, new BigDecimal("15.00").compareTo(afterSale.getTotalQuantity()), "Total Quantity must remain 15.00 kg after sale");
         assertEquals(0, new BigDecimal("11.00").compareTo(afterSale.getRemainingQuantity()), "Remaining Quantity must be 11.00 kg after sale");
         assertEquals(0, new BigDecimal("11.00").compareTo(afterSale.getQuantity()), "Quantity must equal 11.00 kg");
@@ -125,21 +125,21 @@ public class InventoryTotalAndRemainingQuantityTest {
         BigDecimal price = new BigDecimal("3000.00");
 
         // Step 1: Initial 10 kg
-        FoodItem saved = foodItemService.addFoodItem(new FoodItem(null, name, "Baking", new BigDecimal("10.00"), "kg", price, expiry, BigDecimal.ZERO), 1L);
+        FoodItem saved = foodItemService.addFoodItem(new OwnedFoodItemFixture(null, name, "Baking", new BigDecimal("10.00"), "kg", price, expiry, BigDecimal.ZERO), 1L);
         // Step 2: Add 5 kg -> Total 15, Remaining 15
-        saved = foodItemService.addFoodItem(new FoodItem(null, name, "Baking", new BigDecimal("5.00"), "kg", price, expiry, BigDecimal.ZERO), 1L);
+        saved = foodItemService.addFoodItem(new OwnedFoodItemFixture(null, name, "Baking", new BigDecimal("5.00"), "kg", price, expiry, BigDecimal.ZERO), 1L);
         Long id = saved.getId();
         // Step 3: Sell 4 kg -> Total 15, Remaining 11
         salesService.recordSale(new Sale(id, new BigDecimal("4.00"), price, null, 1, LocalDateTime.now()), 1L);
 
         // Step 4: Add 5 kg to same batch
-        FoodItem addedAgain = foodItemService.addFoodItem(new FoodItem(null, name, "Baking", new BigDecimal("5.00"), "kg", price, expiry, BigDecimal.ZERO), 1L);
+        FoodItem addedAgain = foodItemService.addFoodItem(new OwnedFoodItemFixture(null, name, "Baking", new BigDecimal("5.00"), "kg", price, expiry, BigDecimal.ZERO), 1L);
 
         assertEquals(id, addedAgain.getId(), "Must maintain the same item ID");
         assertEquals(0, new BigDecimal("20.00").compareTo(addedAgain.getTotalQuantity()), "Total Quantity must be 20.00 kg (10 + 5 + 5)");
         assertEquals(0, new BigDecimal("16.00").compareTo(addedAgain.getRemainingQuantity()), "Remaining Quantity must be 16.00 kg (11 + 5)");
 
-        FoodItem fetched = foodItemService.getFoodItemById(id).orElseThrow();
+        FoodItem fetched = foodItemService.getFoodItemById(id, 1L).orElseThrow();
         assertEquals(0, new BigDecimal("20.00").compareTo(fetched.getTotalQuantity()));
         assertEquals(0, new BigDecimal("16.00").compareTo(fetched.getRemainingQuantity()));
     }
@@ -152,17 +152,17 @@ public class InventoryTotalAndRemainingQuantityTest {
         BigDecimal price = new BigDecimal("8000.00");
 
         // Initial 10 + 5 = 15, Sell 4 = 11, Add 5 = 16 (Total 20)
-        FoodItem saved = foodItemService.addFoodItem(new FoodItem(null, name, "Seafood", new BigDecimal("10.00"), "kg", price, expiry, BigDecimal.ZERO), 1L);
-        foodItemService.addFoodItem(new FoodItem(null, name, "Seafood", new BigDecimal("5.00"), "kg", price, expiry, BigDecimal.ZERO), 1L);
+        FoodItem saved = foodItemService.addFoodItem(new OwnedFoodItemFixture(null, name, "Seafood", new BigDecimal("10.00"), "kg", price, expiry, BigDecimal.ZERO), 1L);
+        foodItemService.addFoodItem(new OwnedFoodItemFixture(null, name, "Seafood", new BigDecimal("5.00"), "kg", price, expiry, BigDecimal.ZERO), 1L);
         Long id = saved.getId();
         salesService.recordSale(new Sale(id, new BigDecimal("4.00"), price, null, 1, LocalDateTime.now()), 1L);
-        foodItemService.addFoodItem(new FoodItem(null, name, "Seafood", new BigDecimal("5.00"), "kg", price, expiry, BigDecimal.ZERO), 1L);
+        foodItemService.addFoodItem(new OwnedFoodItemFixture(null, name, "Seafood", new BigDecimal("5.00"), "kg", price, expiry, BigDecimal.ZERO), 1L);
 
         // Confirmed waste: 6 kg
         WasteRecord waste = new WasteRecord(id, new BigDecimal("6.00"), WasteRecord.Reason.EXPIRED, price.multiply(new BigDecimal("6.00")), LocalDateTime.now(), "Confirmed spoilage");
         wasteService.recordWaste(waste, 1L);
 
-        FoodItem afterWaste = foodItemService.getFoodItemById(id).orElseThrow();
+        FoodItem afterWaste = foodItemService.getFoodItemById(id, 1L).orElseThrow();
         assertEquals(0, new BigDecimal("20.00").compareTo(afterWaste.getTotalQuantity()), "Total Quantity must remain 20.00 kg after confirmed waste");
         assertEquals(0, new BigDecimal("10.00").compareTo(afterWaste.getRemainingQuantity()), "Remaining Quantity must be 10.00 kg (16 - 6)");
         assertEquals(0, new BigDecimal("10.00").compareTo(afterWaste.getQuantity()), "Authoritative quantity must be 10.00 kg");
@@ -175,15 +175,15 @@ public class InventoryTotalAndRemainingQuantityTest {
 
         // Batch 1: Price 9000, Expiry Day +5, Qty 10
         FoodItem batch1 = foodItemService.addFoodItem(
-                new FoodItem(null, name, "Meat", new BigDecimal("10.00"), "kg", new BigDecimal("9000.00"), LocalDate.now().plusDays(5), BigDecimal.ZERO), 1L);
+                new OwnedFoodItemFixture(null, name, "Meat", new BigDecimal("10.00"), "kg", new BigDecimal("9000.00"), LocalDate.now().plusDays(5), BigDecimal.ZERO), 1L);
 
         // Batch 2: Price 9500 (different price!), Expiry Day +5, Qty 8
         FoodItem batch2 = foodItemService.addFoodItem(
-                new FoodItem(null, name, "Meat", new BigDecimal("8.00"), "kg", new BigDecimal("9500.00"), LocalDate.now().plusDays(5), BigDecimal.ZERO), 1L);
+                new OwnedFoodItemFixture(null, name, "Meat", new BigDecimal("8.00"), "kg", new BigDecimal("9500.00"), LocalDate.now().plusDays(5), BigDecimal.ZERO), 1L);
 
         // Batch 3: Price 9000, Expiry Day +12 (different expiry!), Qty 12
         FoodItem batch3 = foodItemService.addFoodItem(
-                new FoodItem(null, name, "Meat", new BigDecimal("12.00"), "kg", new BigDecimal("9000.00"), LocalDate.now().plusDays(12), BigDecimal.ZERO), 1L);
+                new OwnedFoodItemFixture(null, name, "Meat", new BigDecimal("12.00"), "kg", new BigDecimal("9000.00"), LocalDate.now().plusDays(12), BigDecimal.ZERO), 1L);
 
         assertNotEquals(batch1.getId(), batch2.getId(), "Batch 1 and Batch 2 must have separate IDs due to price difference");
         assertNotEquals(batch1.getId(), batch3.getId(), "Batch 1 and Batch 3 must have separate IDs due to expiry difference");
@@ -207,13 +207,13 @@ public class InventoryTotalAndRemainingQuantityTest {
         BigDecimal price = new BigDecimal("6000.00");
 
         FoodItem item = foodItemService.addFoodItem(
-                new FoodItem(null, name, "Poultry", new BigDecimal("20.00"), "kg", price, expiry, BigDecimal.ZERO), 1L);
+                new OwnedFoodItemFixture(null, name, "Poultry", new BigDecimal("20.00"), "kg", price, expiry, BigDecimal.ZERO), 1L);
         Long id = item.getId();
 
         Sale sale = new Sale(id, new BigDecimal("5.00"), price, null, 1, LocalDateTime.now());
         salesService.recordSale(sale, 1L);
 
-        FoodItem fetched = foodItemService.getFoodItemById(id).orElseThrow();
+        FoodItem fetched = foodItemService.getFoodItemById(id, 1L).orElseThrow();
         assertEquals(0, new BigDecimal("15.00").compareTo(fetched.getRemainingQuantity()), "Remaining must be exactly 15.00 (not double deducted)");
         assertEquals(0, new BigDecimal("20.00").compareTo(fetched.getTotalQuantity()), "Total must remain 20.00");
     }
@@ -226,13 +226,13 @@ public class InventoryTotalAndRemainingQuantityTest {
         BigDecimal price = new BigDecimal("2000.00");
 
         FoodItem item = foodItemService.addFoodItem(
-                new FoodItem(null, name, "Produce", new BigDecimal("15.00"), "kg", price, expiry, BigDecimal.ZERO), 1L);
+                new OwnedFoodItemFixture(null, name, "Produce", new BigDecimal("15.00"), "kg", price, expiry, BigDecimal.ZERO), 1L);
         Long id = item.getId();
 
         WasteRecord waste = new WasteRecord(id, new BigDecimal("3.00"), WasteRecord.Reason.SPOILED, new BigDecimal("6000.00"), LocalDateTime.now(), "Overripe");
         wasteService.recordWaste(waste, 1L);
 
-        FoodItem fetched = foodItemService.getFoodItemById(id).orElseThrow();
+        FoodItem fetched = foodItemService.getFoodItemById(id, 1L).orElseThrow();
         assertEquals(0, new BigDecimal("12.00").compareTo(fetched.getRemainingQuantity()), "Remaining must be exactly 12.00 (not double deducted)");
         assertEquals(0, new BigDecimal("15.00").compareTo(fetched.getTotalQuantity()), "Total must remain 15.00");
     }
@@ -245,10 +245,10 @@ public class InventoryTotalAndRemainingQuantityTest {
         BigDecimal price = new BigDecimal("12000.00");
 
         FoodItem item = foodItemService.addFoodItem(
-                new FoodItem(null, name, "Pantry", new BigDecimal("25.00"), "liter", price, expiry, BigDecimal.ZERO), 1L);
+                new OwnedFoodItemFixture(null, name, "Pantry", new BigDecimal("25.00"), "liter", price, expiry, BigDecimal.ZERO), 1L);
         salesService.recordSale(new Sale(item.getId(), new BigDecimal("7.00"), price, null, 1, LocalDateTime.now()), 1L);
 
-        FoodItem currentFood = foodItemService.getFoodItemById(item.getId()).orElseThrow();
+        FoodItem currentFood = foodItemService.getFoodItemById(item.getId(), 1L).orElseThrow();
         BigDecimal expectedRemaining = new BigDecimal("18.00");
 
         // 1. FoodItem model consistency
@@ -280,13 +280,13 @@ public class InventoryTotalAndRemainingQuantityTest {
 
         // Add initial 50 packages
         FoodItem futureItem = foodItemService.addFoodItem(
-                new FoodItem(null, futureItemName, "Beverage", new BigDecimal("50.00"), "pack", futurePrice, futureExpiry, BigDecimal.ZERO), 1L);
+                new OwnedFoodItemFixture(null, futureItemName, "Beverage", new BigDecimal("50.00"), "pack", futurePrice, futureExpiry, BigDecimal.ZERO), 1L);
         Long futureId = futureItem.getId();
         assertNotNull(futureId);
 
         // Add 25 more packages
         foodItemService.addFoodItem(
-                new FoodItem(null, futureItemName, "Beverage", new BigDecimal("25.00"), "pack", futurePrice, futureExpiry, BigDecimal.ZERO), 1L);
+                new OwnedFoodItemFixture(null, futureItemName, "Beverage", new BigDecimal("25.00"), "pack", futurePrice, futureExpiry, BigDecimal.ZERO), 1L);
 
         // Sell 15 packages
         salesService.recordSale(new Sale(futureId, new BigDecimal("15.00"), futurePrice, null, 1, LocalDateTime.now()), 1L);
@@ -294,7 +294,7 @@ public class InventoryTotalAndRemainingQuantityTest {
         // Waste 5 packages
         wasteService.recordWaste(new WasteRecord(futureId, new BigDecimal("5.00"), WasteRecord.Reason.DAMAGED, futurePrice.multiply(new BigDecimal("5.00")), LocalDateTime.now(), "Packaging leak"), 1L);
 
-        FoodItem result = foodItemService.getFoodItemById(futureId).orElseThrow();
+        FoodItem result = foodItemService.getFoodItemById(futureId, 1L).orElseThrow();
         assertEquals(0, new BigDecimal("75.00").compareTo(result.getTotalQuantity()), "Total quantity must be 75.00 pack (50 + 25)");
         assertEquals(0, new BigDecimal("55.00").compareTo(result.getRemainingQuantity()), "Remaining quantity must be 55.00 pack (75 - 15 - 5)");
         assertEquals(0, new BigDecimal("55.00").compareTo(result.getQuantity()), "Quantity must match Remaining Quantity (55.00)");

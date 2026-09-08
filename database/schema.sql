@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS users (
 -- 2. FOOD ITEMS (INVENTORY) TABLE
 CREATE TABLE IF NOT EXISTS food_items (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT NOT NULL,
     name VARCHAR(100) NOT NULL,
     category VARCHAR(50) NOT NULL, -- e.g. Poultry, Produce, Seafood, Dairy, Grains, Bakery
     quantity DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
@@ -33,6 +34,8 @@ CREATE TABLE IF NOT EXISTS food_items (
     status ENUM('OK', 'NEAR_EXPIRY', 'EXPIRED') NOT NULL DEFAULT 'OK',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_food_owner FOREIGN KEY (user_id) REFERENCES users(id),
+    INDEX idx_food_owner_expiry (user_id, expiry_date),
     INDEX idx_food_category (category),
     INDEX idx_food_expiry (expiry_date),
     INDEX idx_food_status (status)
@@ -88,6 +91,8 @@ CREATE TABLE IF NOT EXISTS waste_records (
 -- 6. PREDICTIONS (BATCH RUNS) TABLE
 CREATE TABLE IF NOT EXISTS predictions (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    CONSTRAINT fk_prediction_owner FOREIGN KEY (user_id) REFERENCES users(id),
     prediction_date DATE NOT NULL,
     overall_risk_score DECIMAL(5, 2) NOT NULL DEFAULT 0.00, -- 0-100%
     expected_total_waste_kg DECIMAL(10, 2) NOT NULL DEFAULT 0.00,

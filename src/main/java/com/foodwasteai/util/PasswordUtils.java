@@ -9,13 +9,13 @@ import java.security.spec.InvalidKeySpecException;
 import java.util.Base64;
 
 /**
- * Enterprise-grade cryptographic password hashing and verification utility.
- * Uses PBKDF2 with HMAC-SHA256, 16-byte random salt, and 65,536 iterations.
+ * Salted password hashing and verification.
+ * Uses PBKDF2 with HMAC-SHA256, 16-byte random salt, and 600,000 iterations for new passwords.
  */
 public final class PasswordUtils {
 
     private static final String ALGORITHM = "PBKDF2WithHmacSHA256";
-    private static final int ITERATIONS = 65536;
+    private static final int ITERATIONS = 600000;
     private static final int KEY_LENGTH = 256;
     private static final int SALT_LENGTH = 16;
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
@@ -44,7 +44,7 @@ public final class PasswordUtils {
     /**
      * Verifies an incoming password against the stored password hash.
      * Supports PBKDF2 formatted hashes with timing-attack resistant comparison.
-     * Supports backward-compatible plaintext verification for legacy test/seed users.
+     * Rejects plaintext and unrecognized hash formats.
      */
     public static boolean verifyPassword(String password, String storedHash) {
         if (password == null || storedHash == null || storedHash.isEmpty()) {
@@ -61,6 +61,9 @@ public final class PasswordUtils {
                 int iterations = Integer.parseInt(parts[1]);
                 byte[] salt = Base64.getDecoder().decode(parts[2]);
                 byte[] expectedHash = Base64.getDecoder().decode(parts[3]);
+                if (iterations < 1 || iterations > 2000000 || salt.length < 16 || expectedHash.length != 32) {
+                    return false;
+                }
 
                 byte[] actualHash = pbkdf2(password.toCharArray(), salt, iterations, expectedHash.length * 8);
 
@@ -86,9 +89,8 @@ public final class PasswordUtils {
             } catch (Exception ignored) {}
         }
 
-        // 3. Backward compatibility fallback for legacy plaintext seed/mock credentials (e.g. admin123, user123)
-        return MessageDigest.isEqual(password.getBytes(java.nio.charset.StandardCharsets.UTF_8),
-                storedHash.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        // Never accept plaintext or unrecognized hashes as passwords.
+        return false;
     }
 
     private static byte[] pbkdf2(char[] password, byte[] salt, int iterations, int keyLength) {

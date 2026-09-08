@@ -174,13 +174,13 @@ public class RedistributionExpiryClassificationBoundaryTest {
         LocalDate expiry15Days = todayYangon.plusDays(15);
 
         String uniqueName = "Test Chicken Scenario " + System.currentTimeMillis();
-        FoodItem item = new FoodItem(null, uniqueName, "Poultry",
+        FoodItem item = new OwnedFoodItemFixture(null, uniqueName, "Poultry",
                 new BigDecimal("25.00"), "kg", new BigDecimal("5000.00"),
                 expiry15Days, new BigDecimal("2.00"));
         FoodItem saved = foodItemService.createFoodItem(item, 1L);
         assertNotNull(saved.getId());
 
-        Map<String, Object> candidateMap = redistributionService.evaluateRedistributionCandidates();
+        Map<String, Object> candidateMap = redistributionService.evaluateRedistributionCandidates(1L);
         assertNotNull(candidateMap);
 
         @SuppressWarnings("unchecked")

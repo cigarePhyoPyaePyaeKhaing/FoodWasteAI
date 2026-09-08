@@ -72,6 +72,9 @@ public class SalesServlet extends BaseServlet {
             }
 
             Long userId = getAuthenticatedUserId(req);
+            if (sale.getFoodItemId() != null && new com.foodwasteai.service.FoodItemService().getFoodItemById(sale.getFoodItemId(), userId).isEmpty()) {
+                sendNotFound(resp, "Food item not found"); return;
+            }
             Sale saved = salesService.recordSale(sale, userId);
             sendCreated(resp, "Sale recorded successfully and stock updated", saved);
         } catch (IllegalArgumentException e) {

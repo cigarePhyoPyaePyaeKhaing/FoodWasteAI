@@ -12,13 +12,17 @@ import java.util.*;
 public class RecommendationDao extends BaseDao {
 
     public Optional<Recommendation> findById(Long id) throws SQLException {
-        String sql = "SELECT r.id, r.food_item_id, f.name AS food_name, r.category, r.risk_level, " +
+        throw new IllegalArgumentException("Authenticated user is required");
+    }
+    public Optional<Recommendation> findById(Long id, Long userId) throws SQLException {
+        String sql = "SELECT r.id, r.food_item_id, f.name AS food_name, f.user_id, r.category, r.risk_level, " +
                      "r.title, r.title_en, r.title_my, r.description, r.description_en, r.description_my, " +
                      "r.reasoning_details, r.reasoning_details_en, r.reasoning_details_my, r.estimated_savings, r.status, r.created_at, r.updated_at " +
-                     "FROM recommendations r JOIN food_items f ON r.food_item_id = f.id WHERE r.id = ?";
+                     "FROM recommendations r JOIN food_items f ON r.food_item_id = f.id WHERE r.id = ? AND f.user_id = ?";
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setLong(1, id);
+            stmt.setLong(2, requireUserId(userId));
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
                     return Optional.of(mapResultSetToRecommendation(rs));
@@ -42,19 +46,20 @@ public class RecommendationDao extends BaseDao {
 
     public List<Recommendation> findActiveRecommendations(Long userId) throws SQLException {
         List<Recommendation> list = new ArrayList<>();
-        String sql = "SELECT r.id, r.food_item_id, f.name AS food_name, f.quantity AS stock, " +
+        String sql = "SELECT r.id, r.food_item_id, f.name AS food_name, f.user_id, f.quantity AS stock, " +
                      "r.category, r.risk_level, r.title, r.title_en, r.title_my, r.description, r.description_en, r.description_my, " +
                      "r.reasoning_details, r.reasoning_details_en, r.reasoning_details_my, r.estimated_savings, r.status, r.created_at, r.updated_at " +
                      "FROM recommendations r JOIN food_items f ON r.food_item_id = f.id " +
-                     "WHERE f.quantity > 0 AND r.status != 'DISMISSED' " +
+                     "WHERE f.quantity > 0 AND r.status != 'DISMISSED' AND f.user_id = ? " +
                      "ORDER BY r.id DESC";
 
         Set<String> seenActions = new HashSet<>();
         Map<Long, Recommendation.RiskLevel> latestItemRisk = new HashMap<>();
 
         try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql);
-             ResultSet rs = stmt.executeQuery()) {
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setLong(1, requireUserId(userId));
+            try (ResultSet rs = stmt.executeQuery()) {
             while (rs.next()) {
                 Recommendation rec = mapResultSetToRecommendation(rs);
                 Long foodId = rec.getFoodItemId();
@@ -72,23 +77,28 @@ public class RecommendationDao extends BaseDao {
                 }
             }
         }
+        }
         list.sort(Comparator.comparing(Recommendation::getCategory));
         return list;
     }
 
     public List<Recommendation> findByStatus(Recommendation.Status status) throws SQLException {
+        throw new IllegalArgumentException("Authenticated user is required");
+    }
+    public List<Recommendation> findByStatus(Recommendation.Status status, Long userId) throws SQLException {
         List<Recommendation> list = new ArrayList<>();
-        String sql = "SELECT r.id, r.food_item_id, f.name AS food_name, f.quantity AS stock, " +
+        String sql = "SELECT r.id, r.food_item_id, f.name AS food_name, f.user_id, f.quantity AS stock, " +
                      "r.category, r.risk_level, r.title, r.title_en, r.title_my, r.description, r.description_en, r.description_my, " +
                      "r.reasoning_details, r.reasoning_details_en, r.reasoning_details_my, r.estimated_savings, r.status, r.created_at, r.updated_at " +
                      "FROM recommendations r JOIN food_items f ON r.food_item_id = f.id " +
-                     "WHERE f.quantity > 0 AND r.status = ? " +
+                     "WHERE f.quantity > 0 AND r.status = ? AND f.user_id = ? " +
                      "ORDER BY r.id DESC";
 
         Set<String> seenActions = new HashSet<>();
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, status.name());
+            stmt.setLong(2, requireUserId(userId));
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
                     Recommendation rec = mapResultSetToRecommendation(rs);
@@ -107,7 +117,7 @@ public class RecommendationDao extends BaseDao {
         String sql = "INSERT INTO recommendations (food_item_id, category, risk_level, title, title_en, title_my, " +
                      "description, description_en, description_my, reasoning_details, reasoning_details_en, reasoning_details_my, " +
                      "estimated_savings, status) " +
-                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                     "SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? FROM food_items WHERE id = ? AND user_id = ?";
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             stmt.setLong(1, rec.getFoodItemId());
@@ -125,7 +135,10 @@ public class RecommendationDao extends BaseDao {
             stmt.setBigDecimal(13, rec.getEstimatedSavings());
             stmt.setString(14, rec.getStatus() != null ? rec.getStatus().name() : Recommendation.Status.PENDING.name());
 
+            stmt.setLong(15, rec.getFoodItemId());
+            stmt.setLong(16, requireUserId(rec.getUserId()));
             int affected = stmt.executeUpdate();
+            if (affected != 1) throw new SQLException("Food item not found");
             if (affected > 0) {
                 try (ResultSet keys = stmt.getGeneratedKeys()) {
                     if (keys.next()) {
@@ -142,11 +155,12 @@ public class RecommendationDao extends BaseDao {
     }
 
     public boolean updateStatus(Long id, Recommendation.Status status, Long userId) throws SQLException {
-        String sql = "UPDATE recommendations SET status = ? WHERE id = ?";
+        String sql = "UPDATE recommendations SET status = ? WHERE id = ? AND food_item_id IN (SELECT id FROM food_items WHERE user_id = ?)";
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, status.name());
             stmt.setLong(2, id);
+            stmt.setLong(3, requireUserId(userId));
             return stmt.executeUpdate() > 0;
         }
     }
@@ -156,17 +170,22 @@ public class RecommendationDao extends BaseDao {
     }
 
     public int clearPendingRecommendations(Long userId) throws SQLException {
-        String sql = "DELETE FROM recommendations WHERE status = 'PENDING'";
+        String sql = "DELETE FROM recommendations WHERE status = 'PENDING' AND food_item_id IN (SELECT id FROM food_items WHERE user_id = ?)";
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setLong(1, requireUserId(userId));
             return stmt.executeUpdate();
         }
     }
 
     public int clearAllRecommendations() throws SQLException {
-        String sql = "DELETE FROM recommendations";
+        throw new IllegalArgumentException("Authenticated user is required");
+    }
+    public int clearAllRecommendations(Long userId) throws SQLException {
+        String sql = "DELETE FROM recommendations WHERE food_item_id IN (SELECT id FROM food_items WHERE user_id = ?)";
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setLong(1, requireUserId(userId));
             return stmt.executeUpdate();
         }
     }
@@ -174,6 +193,7 @@ public class RecommendationDao extends BaseDao {
     private Recommendation mapResultSetToRecommendation(ResultSet rs) throws SQLException {
         Recommendation rec = new Recommendation();
         rec.setId(rs.getLong("id"));
+        rec.setUserId(rs.getLong("user_id"));
         rec.setFoodItemId(rs.getLong("food_item_id"));
         rec.setFoodItemName(rs.getString("food_name"));
         rec.setCategory(Recommendation.Category.valueOf(rs.getString("category")));

@@ -129,6 +129,11 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.2.5</version>
+                <configuration>
+                    <systemPropertyVariables>
+                        <foodwaste.testRun>true</foodwaste.testRun>
+                    </systemPropertyVariables>
+                </configuration>
             </plugin>
 
             <!-- Maven Shade Plugin for Executable Fat JAR -->

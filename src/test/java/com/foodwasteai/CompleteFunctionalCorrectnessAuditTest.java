@@ -87,7 +87,7 @@ public class CompleteFunctionalCorrectnessAuditTest {
     }
 
     private FoodItem createTestItem(String name, BigDecimal qty, String unit, BigDecimal price, LocalDate expiry) throws SQLException {
-        FoodItem item = new FoodItem();
+        FoodItem item = new OwnedFoodItemFixture();
         item.setName(name + "_" + System.currentTimeMillis() + "_" + UUID.randomUUID().toString().substring(0, 4));
         item.setCategory("Dairy");
         item.setQuantity(qty);
@@ -119,7 +119,7 @@ public class CompleteFunctionalCorrectnessAuditTest {
         boolean updated = foodItemService.updateFoodItem(item, 1L);
         assertTrue(updated);
 
-        Optional<FoodItem> reloaded = foodItemService.getFoodItemById(item.getId());
+        Optional<FoodItem> reloaded = foodItemService.getFoodItemById(item.getId(), 1L);
         assertTrue(reloaded.isPresent());
         assertEquals(0, new BigDecimal("15.00").compareTo(reloaded.get().getQuantity()));
         assertEquals(0, new BigDecimal("5500.00").compareTo(reloaded.get().getPricePerUnit()));
@@ -150,7 +150,7 @@ public class CompleteFunctionalCorrectnessAuditTest {
         assertEquals(0, new BigDecimal("10000.00").compareTo(recorded.getTotalAmount()));
 
         // Stock decreased from 10.00 to 6.00 exactly once
-        FoodItem afterSale = foodItemService.getFoodItemById(item.getId()).orElseThrow();
+        FoodItem afterSale = foodItemService.getFoodItemById(item.getId(), 1L).orElseThrow();
         assertEquals(0, new BigDecimal("6.00").compareTo(afterSale.getQuantity()));
 
         // Oversell attempt blocked
@@ -165,7 +165,7 @@ public class CompleteFunctionalCorrectnessAuditTest {
         }, "Overselling beyond remaining 6.00 liter must throw IllegalArgumentException and rollback");
 
         // Verify stock remains exactly 6.00
-        FoodItem afterFailedSale = foodItemService.getFoodItemById(item.getId()).orElseThrow();
+        FoodItem afterFailedSale = foodItemService.getFoodItemById(item.getId(), 1L).orElseThrow();
         assertEquals(0, new BigDecimal("6.00").compareTo(afterFailedSale.getQuantity()));
     }
 
@@ -190,7 +190,7 @@ public class CompleteFunctionalCorrectnessAuditTest {
         assertEquals(0, new BigDecimal("9000.00").compareTo(logged.getMonetaryLoss()), "Monetary loss must be 3.00 * 3000.00 = 9000.00 MMK");
 
         // Verify stock deducted from 8.00 to 5.00 exactly once
-        FoodItem afterWaste = foodItemService.getFoodItemById(item.getId()).orElseThrow();
+        FoodItem afterWaste = foodItemService.getFoodItemById(item.getId(), 1L).orElseThrow();
         assertEquals(0, new BigDecimal("5.00").compareTo(afterWaste.getQuantity()));
 
         // Excessive waste blocked
@@ -248,7 +248,7 @@ public class CompleteFunctionalCorrectnessAuditTest {
     public void testPredictionGrounding() throws SQLException {
         // Fresh Item Query
         FoodItem freshMilk = createTestItem("Audit Fresh Milk", new BigDecimal("12.00"), "liter", new BigDecimal("2000.00"), LocalDate.now().plusDays(2));
-        Optional<PrologAssessment> milkAssessOpt = predictionService.assessFoodItemById(freshMilk.getId());
+        Optional<PrologAssessment> milkAssessOpt = predictionService.assessFoodItemById(freshMilk.getId(), 1L);
         assertTrue(milkAssessOpt.isPresent());
         PrologAssessment milkAssess = milkAssessOpt.get();
         assertEquals("liter", milkAssess.getUnit());
@@ -256,7 +256,7 @@ public class CompleteFunctionalCorrectnessAuditTest {
 
         // Expired Item Safety
         FoodItem expiredBeef = createTestItem("Audit Expired Beef", new BigDecimal("5.00"), "kg", new BigDecimal("18000.00"), LocalDate.now().minusDays(2));
-        Optional<PrologAssessment> beefAssessOpt = predictionService.assessFoodItemById(expiredBeef.getId());
+        Optional<PrologAssessment> beefAssessOpt = predictionService.assessFoodItemById(expiredBeef.getId(), 1L);
         assertTrue(beefAssessOpt.isPresent());
         PrologAssessment beefAssess = beefAssessOpt.get();
         assertEquals("HIGH", beefAssess.getRiskLevel());
@@ -320,7 +320,7 @@ public class CompleteFunctionalCorrectnessAuditTest {
         assertEquals(activeStockItem.getName(), activeAssessments.get(0).getFoodName());
 
         // 4. Zero-stock expired items must NOT trigger disposal review reminders
-        List<FoodItem> disposalItems = foodItemService.getExpiredItemsRequiringDisposal();
+        List<FoodItem> disposalItems = foodItemService.getExpiredItemsRequiringDisposal(1L);
         boolean containsZeroStock = disposalItems.stream().anyMatch(i -> i.getId().equals(zeroStockItem.getId()));
         assertFalse(containsZeroStock, "Zero-stock expired item must not trigger disposal reminder");
     }
@@ -341,7 +341,7 @@ public class CompleteFunctionalCorrectnessAuditTest {
         FoodItem rice = createTestItem("Audit Safe Rice", new BigDecimal("25.00"), "kg", new BigDecimal("1800.00"), LocalDate.now().plusDays(30));
 
         // Generate recommendations
-        List<Recommendation> recs = recommendationService.generateRecommendationsFromProlog();
+        List<Recommendation> recs = recommendationService.generateRecommendationsFromProlog(1L);
         assertNotNull(recs);
 
         // A & E: Deduplicated action types per active item (no duplicate action of same type)
@@ -362,12 +362,12 @@ public class CompleteFunctionalCorrectnessAuditTest {
                 "All recommendations must use canonical FoodItem name");
 
         // H & I: Authoritative savings calculation and consistency
-        Map<String, Object> predReport = predictionService.assessInventory(foodItemService.getAllFoodItems());
+        Map<String, Object> predReport = predictionService.assessInventory(foodItemService.getAllFoodItems(1L));
         double expectedSavings = ((Number) predReport.get("potentialSavings")).doubleValue();
         assertTrue(expectedSavings >= 0, "Potential savings must be >= 0");
 
         // J: Calling getAllRecommendations returns clean, deduplicated active records
-        List<Recommendation> allRecs = recommendationService.getAllRecommendations();
+        List<Recommendation> allRecs = recommendationService.getAllRecommendations(1L);
         assertFalse(allRecs.isEmpty());
         assertTrue(allRecs.stream().noneMatch(r -> r.getFoodItemId().equals(zeroMilk.getId())), "All recommendations must exclude zero-stock items");
     }
@@ -395,7 +395,7 @@ public class CompleteFunctionalCorrectnessAuditTest {
         FoodItem noodles = createTestItem("noodles", new BigDecimal("15.00"), "kg", new BigDecimal("2000.00"), LocalDate.now().plusDays(4));
 
         // Generate recommendations
-        List<Recommendation> recs = recommendationService.generateRecommendationsFromProlog();
+        List<Recommendation> recs = recommendationService.generateRecommendationsFromProlog(1L);
         assertNotNull(recs);
 
         // Verify 1 & 2: Zero-stock items must have ZERO active recommendations
@@ -424,9 +424,9 @@ public class CompleteFunctionalCorrectnessAuditTest {
             dupRec.setReasoningDetails(milkRecs.get(0).getReasoningDetails());
             dupRec.setEstimatedSavings(BigDecimal.ZERO);
             dupRec.setStatus(Recommendation.Status.PENDING);
-            recommendationDao.save(dupRec);
+            dupRec.setUserId(1L); recommendationDao.save(dupRec);
 
-            List<Recommendation> activeFromDao = recommendationDao.findActiveRecommendations();
+            List<Recommendation> activeFromDao = recommendationDao.findActiveRecommendations(1L);
             long countForThisAction = activeFromDao.stream()
                     .filter(r -> r.getFoodItemId().equals(activeFreshMilk.getId()) && r.getTitle().equals(milkRecs.get(0).getTitle()))
                     .count();
@@ -442,7 +442,7 @@ public class CompleteFunctionalCorrectnessAuditTest {
         }
 
         // Verify 7: Medium item (noodles) is excluded from HIGH risk level list
-        Optional<PrologAssessment> noodlesAssessOpt = predictionService.assessFoodItemById(noodles.getId());
+        Optional<PrologAssessment> noodlesAssessOpt = predictionService.assessFoodItemById(noodles.getId(), 1L);
         assertTrue(noodlesAssessOpt.isPresent());
         PrologAssessment noodlesAssessment = noodlesAssessOpt.get();
         if ("MEDIUM".equalsIgnoreCase(noodlesAssessment.getRiskLevel())) {
@@ -451,7 +451,7 @@ public class CompleteFunctionalCorrectnessAuditTest {
         }
 
         // Verify 8 & 9: Potential savings calculation consistency
-        Map<String, Object> predReport = predictionService.assessInventory(foodItemService.getAllFoodItems());
+        Map<String, Object> predReport = predictionService.assessInventory(foodItemService.getAllFoodItems(1L));
         double predSavings = ((Number) predReport.get("potentialSavings")).doubleValue();
         assertTrue(predSavings >= 0, "Potential savings must be non-negative");
 

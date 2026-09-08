@@ -92,7 +92,7 @@ public class AuthServlet extends BaseServlet {
                 confirmPassword = getJsonString(json, "confirm_password");
             }
 
-            User user = userService.register(email, password, confirmPassword);
+            User user = userService.register(getJsonString(json, "fullName"), email, password, confirmPassword);
 
             Map<String, Object> data = new LinkedHashMap<>();
             data.put("id", user.getId());
@@ -103,7 +103,7 @@ public class AuthServlet extends BaseServlet {
             sendJson(resp, HttpServletResponse.SC_CREATED, ApiResponse.success("Account created successfully", data));
         } catch (IllegalArgumentException e) {
             String msg = e.getMessage();
-            int status = (msg != null && msg.toLowerCase().contains("already registered"))
+            int status = (msg != null && msg.toLowerCase().contains("already exists"))
                     ? HttpServletResponse.SC_CONFLICT
                     : HttpServletResponse.SC_BAD_REQUEST;
             sendJson(resp, status, ApiResponse.error(msg));

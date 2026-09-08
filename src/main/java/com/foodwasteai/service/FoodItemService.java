@@ -310,9 +310,13 @@ public class FoodItemService {
      * Retrieves stock addition transactions for a specific food item ID sorted newest first.
      */
     public List<InventoryTransaction> getItemStockHistory(Long foodItemId) throws SQLException {
+        throw new IllegalArgumentException("Authenticated user is required");
+    }
+
+    public List<InventoryTransaction> getItemStockHistory(Long foodItemId, Long userId) throws SQLException {
         if (foodItemId == null) return Collections.emptyList();
         if (DatabaseConfig.isAvailable()) {
-            return transactionDao.findByFoodItemId(foodItemId);
+            return transactionDao.findByFoodItemId(foodItemId, userId);
         }
         return memoryTransactions.stream()
                 .filter(t -> foodItemId.equals(t.getFoodItemId()))
@@ -334,6 +338,8 @@ public class FoodItemService {
         if (item.getId() == null) {
             throw new IllegalArgumentException("Food item ID is required for update");
         }
+        if (getFoodItemById(item.getId(), userId).isEmpty()) return false;
+        item.setUserId(userId);
 
         // If category or unit is omitted in update payload, preserve existing values
         if (item.getCategory() == null || item.getCategory().trim().isEmpty() ||
@@ -409,7 +415,7 @@ public class FoodItemService {
     }
 
     public void adjustStock(Long foodItemId, BigDecimal deltaQuantity, InventoryTransaction.Type txType, String notes, Long userId) throws SQLException {
-        Optional<FoodItem> opt = getFoodItemById(foodItemId);
+        Optional<FoodItem> opt = getFoodItemById(foodItemId, userId);
         if (opt.isEmpty()) {
             throw new IllegalArgumentException("Food item #" + foodItemId + " not found");
         }
@@ -432,7 +438,7 @@ public class FoodItemService {
         computeStatus(item);
 
         if (DatabaseConfig.isAvailable()) {
-            foodItemDao.updateQuantity(foodItemId, newQty);
+            foodItemDao.updateQuantity(foodItemId, newQty, userId);
             try {
                 InventoryTransaction tx = new InventoryTransaction(
                         foodItemId,

@@ -173,8 +173,8 @@ public class PrologService {
         String rulesPath = extractedRulesFile.getAbsolutePath().replace("\\", "/");
 
         // Format query: assess_item + evaluate_redistribution_policy
-        String goal = String.format(
-                "use_module('%s'), " +
+        String goal = String.format(java.util.Locale.ROOT,
+                "set_stream(user_output, encoding(utf8)), use_module('%s'), " +
                 "assess_item(%f, %f, %d, %f, %f, Risk, Reasons, RecProd, RecAction, Priority, Redist), " +
                 "Surplus is max(0, %f - %f), " +
                 "evaluate_redistribution_policy(%f, %f, %d, Surplus, %s, RedistStatus, RedistPriority, RedistEligible, RedistReasonEn, RedistReasonMy), " +
@@ -189,7 +189,7 @@ public class PrologService {
         Process process = pb.start();
 
         StringBuilder output = new StringBuilder();
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream(), java.nio.charset.StandardCharsets.UTF_8))) {
             String line;
             while ((line = reader.readLine()) != null) {
                 output.append(line).append("\n");

@@ -147,7 +147,7 @@ public class PrologReasoningTest {
         );
         assertNotNull(testItem.getId());
 
-        Map<String, Object> report = predictionService.assessAllInventory();
+        Map<String, Object> report = predictionService.assessAllInventory(1L);
 
         assertNotNull(report);
         assertTrue(report.containsKey("overallRiskScore"));
@@ -158,7 +158,7 @@ public class PrologReasoningTest {
         java.util.List<PrologAssessment> items = (java.util.List<PrologAssessment>) report.get("items");
         assertNotNull(items);
         assertFalse(items.isEmpty());
-        Optional<PrologAssessment> firstOpt = predictionService.assessFoodItemById(items.get(0).getFoodItemId());
+        Optional<PrologAssessment> firstOpt = predictionService.assessFoodItemById(items.get(0).getFoodItemId(), 1L);
         assertTrue(firstOpt.isPresent());
         assertEquals(items.get(0).getFoodName(), firstOpt.get().getFoodName());
     }

@@ -60,7 +60,7 @@ public class ConfirmedWasteInventorySyncTest {
     @DisplayName("1. Full-stock waste: inventory 12 kg, waste 12 kg -> inventory becomes exactly 0.00 kg")
     public void testFullStockWaste_InventoryBecomesZero() throws SQLException {
         FoodItem item = foodItemService.createFoodItem(
-                new FoodItem(null, "Test Full Waste Pork " + System.currentTimeMillis(), "Meat",
+                new OwnedFoodItemFixture(null, "Test Full Waste Pork " + System.currentTimeMillis(), "Meat",
                         new BigDecimal("12.00"), "kg", new BigDecimal("18000.00"),
                         LocalDate.now().plusDays(2), new BigDecimal("2.00")), 1L
         );
@@ -75,7 +75,7 @@ public class ConfirmedWasteInventorySyncTest {
         assertEquals(0, new BigDecimal("12.00").compareTo(recorded.getQuantityWasted()), "Waste record quantity must be 12.00 kg");
         assertEquals("kg", recorded.getUnit());
 
-        Optional<FoodItem> after = foodItemService.getFoodItemById(itemId);
+        Optional<FoodItem> after = foodItemService.getFoodItemById(itemId, 1L);
         assertTrue(after.isPresent());
         assertEquals(0, BigDecimal.ZERO.compareTo(after.get().getQuantity()), "Inventory quantity must become exactly 0");
         assertEquals("0.00", after.get().getQuantity().setScale(2, RoundingMode.HALF_UP).toPlainString());
@@ -85,7 +85,7 @@ public class ConfirmedWasteInventorySyncTest {
     @DisplayName("2. Partial waste: inventory 12 kg, waste 5 kg -> inventory becomes 7.00 kg")
     public void testPartialWaste_InventoryDeductedMathematically() throws SQLException {
         FoodItem item = foodItemService.createFoodItem(
-                new FoodItem(null, "Test Partial Waste Sugar " + System.currentTimeMillis(), "Baking",
+                new OwnedFoodItemFixture(null, "Test Partial Waste Sugar " + System.currentTimeMillis(), "Baking",
                         new BigDecimal("12.00"), "kg", new BigDecimal("3500.00"),
                         LocalDate.now().plusDays(5), new BigDecimal("2.00")), 1L
         );
@@ -99,7 +99,7 @@ public class ConfirmedWasteInventorySyncTest {
         assertNotNull(recorded.getId());
         assertEquals(0, new BigDecimal("5.00").compareTo(recorded.getQuantityWasted()));
 
-        Optional<FoodItem> after = foodItemService.getFoodItemById(itemId);
+        Optional<FoodItem> after = foodItemService.getFoodItemById(itemId, 1L);
         assertTrue(after.isPresent());
         assertEquals(0, new BigDecimal("7.00").compareTo(after.get().getQuantity()), "Inventory must be 12 - 5 = 7.00 kg");
         assertEquals("7.00", after.get().getQuantity().setScale(2, RoundingMode.HALF_UP).toPlainString());
@@ -109,7 +109,7 @@ public class ConfirmedWasteInventorySyncTest {
     @DisplayName("3. Reload: repeated GET requests never perform another deduction")
     public void testReload_NeverPerformsDeduction() throws SQLException {
         FoodItem item = foodItemService.createFoodItem(
-                new FoodItem(null, "Reload Safe Bread " + System.currentTimeMillis(), "Bakery",
+                new OwnedFoodItemFixture(null, "Reload Safe Bread " + System.currentTimeMillis(), "Bakery",
                         new BigDecimal("12.00"), "pcs", new BigDecimal("1500.00"),
                         LocalDate.now().plusDays(3), new BigDecimal("2.00")), 1L
         );
@@ -123,13 +123,13 @@ public class ConfirmedWasteInventorySyncTest {
 
         // Simulate reloading pages 10 times via GET equivalents
         for (int i = 0; i < 10; i++) {
-            List<FoodItem> inv = foodItemService.getAllFoodItems();
-            List<WasteRecord> records = wasteService.getAllWasteRecords();
+            List<FoodItem> inv = foodItemService.getAllFoodItems(1L);
+            List<WasteRecord> records = wasteService.getAllWasteRecords(1L);
             assertNotNull(inv);
             assertNotNull(records);
         }
 
-        Optional<FoodItem> after10Reloads = foodItemService.getFoodItemById(itemId);
+        Optional<FoodItem> after10Reloads = foodItemService.getFoodItemById(itemId, 1L);
         assertTrue(after10Reloads.isPresent());
         assertEquals(0, new BigDecimal("8.00").compareTo(after10Reloads.get().getQuantity()),
                 "Reloading must NEVER deduct inventory (must remain 8.00 pcs)");
@@ -139,7 +139,7 @@ public class ConfirmedWasteInventorySyncTest {
     @DisplayName("4. Duplicate request: idempotent submission blocks duplicate waste and double deduction")
     public void testDuplicateSubmission_BlocksDuplicateAndDoubleDeduction() throws SQLException {
         FoodItem item = foodItemService.createFoodItem(
-                new FoodItem(null, "Idempotent Beef " + System.currentTimeMillis(), "Meat",
+                new OwnedFoodItemFixture(null, "Idempotent Beef " + System.currentTimeMillis(), "Meat",
                         new BigDecimal("15.00"), "kg", new BigDecimal("22000.00"),
                         LocalDate.now().plusDays(4), new BigDecimal("2.00")), 1L
         );
@@ -156,7 +156,7 @@ public class ConfirmedWasteInventorySyncTest {
 
         assertEquals(r1.getId(), r2.getId(), "Duplicate request must return the existing waste record");
 
-        Optional<FoodItem> after = foodItemService.getFoodItemById(itemId);
+        Optional<FoodItem> after = foodItemService.getFoodItemById(itemId, 1L);
         assertTrue(after.isPresent());
         assertEquals(0, new BigDecimal("10.00").compareTo(after.get().getQuantity()),
                 "Inventory must be deducted exactly once (15 - 5 = 10.00 kg, not 5.00 kg)");
@@ -166,7 +166,7 @@ public class ConfirmedWasteInventorySyncTest {
     @DisplayName("5. Negative inventory rejection: waste exceeding available stock is rejected safely")
     public void testQuantityNeverBecomesNegative() throws SQLException {
         FoodItem item = foodItemService.createFoodItem(
-                new FoodItem(null, "Strict Stock Cheese " + System.currentTimeMillis(), "Dairy",
+                new OwnedFoodItemFixture(null, "Strict Stock Cheese " + System.currentTimeMillis(), "Dairy",
                         new BigDecimal("10.00"), "kg", new BigDecimal("12000.00"),
                         LocalDate.now().plusDays(3), new BigDecimal("2.00")), 1L
         );
@@ -180,7 +180,7 @@ public class ConfirmedWasteInventorySyncTest {
             wasteService.recordWaste(overWaste, 1L);
         }, "Excess waste must throw IllegalArgumentException");
 
-        Optional<FoodItem> after = foodItemService.getFoodItemById(itemId);
+        Optional<FoodItem> after = foodItemService.getFoodItemById(itemId, 1L);
         assertTrue(after.isPresent());
         assertEquals(0, new BigDecimal("10.00").compareTo(after.get().getQuantity()), "Inventory must remain intact at 10.00 kg");
         assertTrue(after.get().getQuantity().compareTo(BigDecimal.ZERO) >= 0, "Inventory must never be negative");
@@ -190,7 +190,7 @@ public class ConfirmedWasteInventorySyncTest {
     @DisplayName("6. Future/new food item follows the same rule without code changes")
     public void testFutureNewFoodItem_FollowsSameRule() throws SQLException {
         FoodItem newFood = foodItemService.createFoodItem(
-                new FoodItem(null, "Organic Starfruit " + System.currentTimeMillis(), "Produce",
+                new OwnedFoodItemFixture(null, "Organic Starfruit " + System.currentTimeMillis(), "Produce",
                         new BigDecimal("25.00"), "kg", new BigDecimal("4500.00"),
                         LocalDate.now().minusDays(1), new BigDecimal("5.00")), 1L
         );
@@ -202,7 +202,7 @@ public class ConfirmedWasteInventorySyncTest {
         );
         wasteService.recordWaste(waste, 1L);
 
-        Optional<FoodItem> after = foodItemService.getFoodItemById(newId);
+        Optional<FoodItem> after = foodItemService.getFoodItemById(newId, 1L);
         assertTrue(after.isPresent());
         assertEquals(0, BigDecimal.ZERO.compareTo(after.get().getQuantity()), "New food item stock must become exactly 0.00");
     }
@@ -213,10 +213,10 @@ public class ConfirmedWasteInventorySyncTest {
         LocalDate today = ExpiryStatusResolver.getToday();
         LocalDate tomorrow = today.plusDays(1);
 
-        FoodItem activeTomorrow = new FoodItem(101L, "Active Milk", "Dairy", new BigDecimal("10.00"), "liter",
+        FoodItem activeTomorrow = new OwnedFoodItemFixture(101L, "Active Milk", "Dairy", new BigDecimal("10.00"), "liter",
                 new BigDecimal("3000.00"), tomorrow, new BigDecimal("2.00"));
 
-        FoodItem zeroStockItem = new FoodItem(102L, "Wasted Pork", "Meat", BigDecimal.ZERO, "kg",
+        FoodItem zeroStockItem = new OwnedFoodItemFixture(102L, "Wasted Pork", "Meat", BigDecimal.ZERO, "kg",
                 new BigDecimal("20000.00"), tomorrow, new BigDecimal("2.00"));
 
         List<FoodItem> items = List.of(activeTomorrow, zeroStockItem);
@@ -243,7 +243,7 @@ public class ConfirmedWasteInventorySyncTest {
     @DisplayName("8. Waste Record remains visible after inventory becomes 0")
     public void testWasteRecord_RemainsVisibleAfterStockZero() throws SQLException {
         FoodItem item = foodItemService.createFoodItem(
-                new FoodItem(null, "Fish Batch " + System.currentTimeMillis(), "Seafood",
+                new OwnedFoodItemFixture(null, "Fish Batch " + System.currentTimeMillis(), "Seafood",
                         new BigDecimal("8.00"), "kg", new BigDecimal("15000.00"),
                         LocalDate.now().plusDays(2), new BigDecimal("1.00")), 1L
         );
@@ -255,12 +255,12 @@ public class ConfirmedWasteInventorySyncTest {
         wasteService.recordWaste(waste, 1L);
 
         // Verify stock is 0
-        Optional<FoodItem> after = foodItemService.getFoodItemById(itemId);
+        Optional<FoodItem> after = foodItemService.getFoodItemById(itemId, 1L);
         assertTrue(after.isPresent());
         assertEquals(0, BigDecimal.ZERO.compareTo(after.get().getQuantity()));
 
         // Verify waste records query still returns the historical waste record
-        List<WasteRecord> itemWaste = wasteService.getWasteByFoodItemId(itemId);
+        List<WasteRecord> itemWaste = wasteService.getWasteByFoodItemId(itemId, 1L);
         assertFalse(itemWaste.isEmpty(), "Waste record must remain visible");
         assertEquals(1, itemWaste.size());
         assertEquals(0, new BigDecimal("8.00").compareTo(itemWaste.get(0).getQuantityWasted()));
@@ -270,7 +270,7 @@ public class ConfirmedWasteInventorySyncTest {
     @DisplayName("9. Real backend 0.00 representation returned for inventory page")
     public void testBackendRealZeroRepresentation() throws SQLException {
         FoodItem item = foodItemService.createFoodItem(
-                new FoodItem(null, "Rice Bag " + System.currentTimeMillis(), "Grains",
+                new OwnedFoodItemFixture(null, "Rice Bag " + System.currentTimeMillis(), "Grains",
                         new BigDecimal("20.00"), "kg", new BigDecimal("2500.00"),
                         LocalDate.now().plusDays(10), new BigDecimal("2.00")), 1L
         );
@@ -278,7 +278,7 @@ public class ConfirmedWasteInventorySyncTest {
 
         wasteService.recordWaste(new WasteRecord(itemId, new BigDecimal("20.00"), WasteRecord.Reason.SPOILED, null, LocalDateTime.now(), "Water damage"), 1L);
 
-        FoodItem fetched = foodItemService.getFoodItemById(itemId).orElseThrow();
+        FoodItem fetched = foodItemService.getFoodItemById(itemId, 1L).orElseThrow();
         assertEquals(BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP), fetched.getQuantity());
         assertEquals("0.00", fetched.getQuantity().toPlainString());
         assertEquals("kg", fetched.getUnit());
@@ -291,7 +291,7 @@ public class ConfirmedWasteInventorySyncTest {
 
         // Create expired item with unsold stock (12.00 kg)
         FoodItem expiredPork = foodItemService.createFoodItem(
-                new FoodItem(null, "Auto Expired Pork " + System.currentTimeMillis(), "Meat",
+                new OwnedFoodItemFixture(null, "Auto Expired Pork " + System.currentTimeMillis(), "Meat",
                         new BigDecimal("12.00"), "kg", new BigDecimal("18000.00"),
                         today.minusDays(1), new BigDecimal("1.00")), 1L
         );
@@ -301,10 +301,10 @@ public class ConfirmedWasteInventorySyncTest {
         List<WasteRecord> convertedFirstRun = wasteService.convertExpiredInventoryToWaste(1L);
         assertFalse(convertedFirstRun.isEmpty(), "First run must convert the expired item");
 
-        FoodItem afterRun1 = foodItemService.getFoodItemById(porkId).orElseThrow();
+        FoodItem afterRun1 = foodItemService.getFoodItemById(porkId, 1L).orElseThrow();
         assertEquals(0, BigDecimal.ZERO.compareTo(afterRun1.getQuantity()), "Stock must be exactly 0.00 after Run Evaluation");
 
-        List<WasteRecord> wasteAfterRun1 = wasteService.getWasteByFoodItemId(porkId);
+        List<WasteRecord> wasteAfterRun1 = wasteService.getWasteByFoodItemId(porkId, 1L);
         assertEquals(1, wasteAfterRun1.size(), "Exactly 1 waste record must exist");
         assertEquals(0, new BigDecimal("12.00").compareTo(wasteAfterRun1.get(0).getQuantityWasted()));
 
@@ -315,9 +315,9 @@ public class ConfirmedWasteInventorySyncTest {
         }
 
         // Inventory must remain 0.00 kg, and waste records must remain exactly 1
-        FoodItem afterRepeated = foodItemService.getFoodItemById(porkId).orElseThrow();
+        FoodItem afterRepeated = foodItemService.getFoodItemById(porkId, 1L).orElseThrow();
         assertEquals(0, BigDecimal.ZERO.compareTo(afterRepeated.getQuantity()), "Stock must remain 0.00 kg");
-        List<WasteRecord> wasteAfterRepeated = wasteService.getWasteByFoodItemId(porkId);
+        List<WasteRecord> wasteAfterRepeated = wasteService.getWasteByFoodItemId(porkId, 1L);
         assertEquals(1, wasteAfterRepeated.size(), "Must NOT have duplicate waste records");
     }
 }

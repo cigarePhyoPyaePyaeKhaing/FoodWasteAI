@@ -15,7 +15,7 @@ public class InventoryTransactionDao extends BaseDao {
     public InventoryTransaction save(InventoryTransaction tx) throws SQLException {
         ValidationUtils.validateInventoryTransaction(tx);
         String sql = "INSERT INTO inventory_transactions (food_item_id, transaction_type, quantity, unit, notes, created_by) " +
-                     "VALUES (?, ?, ?, ?, ?, ?)";
+                     "SELECT ?, ?, ?, ?, ?, ? FROM food_items WHERE id = ? AND user_id = ?";
         try (Connection conn = getConnection()) {
             Long validUserId = resolveValidUserId(conn, tx.getCreatedBy());
             try (PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -24,6 +24,8 @@ public class InventoryTransactionDao extends BaseDao {
                 stmt.setBigDecimal(3, tx.getQuantity());
                 stmt.setString(4, tx.getUnit() != null ? tx.getUnit().trim() : "kg");
                 stmt.setString(5, tx.getNotes());
+                stmt.setLong(7, tx.getFoodItemId());
+                stmt.setLong(8, requireUserId(tx.getCreatedBy()));
                 if (validUserId != null) {
                     stmt.setLong(6, validUserId);
                 } else {
@@ -31,6 +33,7 @@ public class InventoryTransactionDao extends BaseDao {
                 }
 
                 int affected = stmt.executeUpdate();
+                if (affected != 1) throw new SQLException("Food item not found");
                 if (affected > 0) {
                     try (ResultSet keys = stmt.getGeneratedKeys()) {
                         if (keys.next()) {
@@ -46,16 +49,21 @@ public class InventoryTransactionDao extends BaseDao {
     }
 
     public List<InventoryTransaction> findByFoodItemId(Long foodItemId) throws SQLException {
+        throw new IllegalArgumentException("Authenticated user is required");
+    }
+
+    public List<InventoryTransaction> findByFoodItemId(Long foodItemId, Long userId) throws SQLException {
         List<InventoryTransaction> list = new ArrayList<>();
         String sql = "SELECT t.id, t.food_item_id, f.name AS food_name, t.transaction_type, t.quantity, t.unit, " +
                      "t.notes, t.created_by, u.full_name AS user_name, t.created_at " +
                      "FROM inventory_transactions t " +
                      "LEFT JOIN food_items f ON t.food_item_id = f.id " +
                      "LEFT JOIN users u ON t.created_by = u.id " +
-                     "WHERE t.food_item_id = ? ORDER BY t.created_at DESC, t.id DESC";
+                     "WHERE t.food_item_id = ? AND f.user_id = ? ORDER BY t.created_at DESC, t.id DESC";
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setLong(1, foodItemId);
+            stmt.setLong(2, requireUserId(userId));
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
                     list.add(mapResultSetToTransaction(rs));
@@ -66,16 +74,21 @@ public class InventoryTransactionDao extends BaseDao {
     }
 
     public List<InventoryTransaction> findRecent(int limit) throws SQLException {
+        throw new IllegalArgumentException("Authenticated user is required");
+    }
+
+    public List<InventoryTransaction> findRecent(int limit, Long userId) throws SQLException {
         List<InventoryTransaction> list = new ArrayList<>();
         String sql = "SELECT t.id, t.food_item_id, f.name AS food_name, t.transaction_type, t.quantity, t.unit, " +
                      "t.notes, t.created_by, u.full_name AS user_name, t.created_at " +
                      "FROM inventory_transactions t " +
                      "LEFT JOIN food_items f ON t.food_item_id = f.id " +
                      "LEFT JOIN users u ON t.created_by = u.id " +
-                     "ORDER BY t.created_at DESC LIMIT ?";
+                     "WHERE f.user_id = ? ORDER BY t.created_at DESC LIMIT ?";
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setInt(1, limit);
+            stmt.setLong(1, requireUserId(userId));
+            stmt.setInt(2, limit);
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
                     list.add(mapResultSetToTransaction(rs));

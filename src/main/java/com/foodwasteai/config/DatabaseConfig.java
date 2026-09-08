@@ -33,6 +33,14 @@ public class DatabaseConfig {
         String sslMode = AppConfig.getDbSslMode();
         boolean isProd = AppConfig.isProduction();
 
+        // Tests include destructive fixtures. Never let inherited production
+        // configuration connect them to an operational database.
+        if (Boolean.getBoolean("foodwaste.testRun") &&
+                (isProd || !("localhost".equalsIgnoreCase(host) || "127.0.0.1".equals(host))
+                        || !dbName.endsWith("_test"))) {
+            throw new IllegalStateException("Tests require a local database with a name ending in _test");
+        }
+
         logger.info("Initializing HikariCP DataSource for MySQL at {}:{}/{} (SSL Mode: {}, Environment: {})",
                 host, port, dbName, sslMode, AppConfig.getAppEnv());
 
@@ -77,7 +85,9 @@ public class DatabaseConfig {
                         applyBilingualMigrations(conn);
                     }
                     if (AppConfig.getBoolean("DB_AUTO_SEED", false)) {
-                        ensureDefaultUsersExist(conn);
+                        if (Boolean.getBoolean("foodwaste.testRun")) {
+                            ensureDefaultUsersExist(conn);
+                        }
                         ensureDefaultRecipientsExist(conn);
                     }
                     logger.info("Production database connection established successfully to {}:{}/{}!", host, port, dbName);
@@ -272,6 +282,9 @@ public class DatabaseConfig {
     public static boolean isAvailable() {
         if (!initializationAttempted) {
             initialize();
+        }
+        if (!available && AppConfig.isProduction()) {
+            throw new IllegalStateException("Database is unavailable");
         }
         return available;
     }

@@ -89,196 +89,43 @@ public class SecurityAndAuthTest {
         return client.send(req, HttpResponse.BodyHandlers.ofString());
     }
 
-    // 1. Root URL opens Dashboard without login
-    @Test
-    @DisplayName("1. Root URL '/' opens Dashboard without login")
-    public void testRootUrlOpensDashboardWithoutLogin() throws Exception {
-        HttpResponse<String> resp = sendGet("/");
-        assertEquals(200, resp.statusCode());
-        assertTrue(resp.body().contains("Dashboard"));
-        assertFalse(resp.body().contains("Sign In to Portal"));
-        assertFalse(resp.body().contains("handleLogin"));
-    }
 
-    // 2. Dashboard loads with no session
-    @Test
-    @DisplayName("2. Dashboard loads with no session")
-    public void testDashboardLoadsWithNoSession() throws Exception {
-        HttpResponse<String> resp = sendGet("/dashboard.html");
-        assertEquals(200, resp.statusCode());
-        assertTrue(resp.body().contains("Dashboard"));
-    }
-
-    // 3. Inventory works without auth
-    @Test
-    @DisplayName("3. Inventory API and HTML page work without auth")
-    public void testInventoryWorksWithoutAuth() throws Exception {
-        HttpResponse<String> pageResp = sendGet("/inventory.html");
-        assertEquals(200, pageResp.statusCode());
-
-        HttpResponse<String> apiResp = sendGet("/api/inventory");
-        assertEquals(200, apiResp.statusCode());
-        assertTrue(apiResp.body().contains("\"success\":true"));
-
-        String uniqueName = "Test NoAuth Item " + System.currentTimeMillis();
-        String itemJson = String.format("{\"name\":\"%s\",\"category\":\"Produce\",\"quantity\":15.0,\"unit\":\"kg\",\"pricePerUnit\":2000.0,\"expiryDate\":\"%s\",\"reorderThreshold\":5.0}",
-                uniqueName, LocalDate.now().plusDays(10));
-        HttpResponse<String> createResp = sendPostJson("/api/inventory", itemJson);
-        assertEquals(201, createResp.statusCode());
-        assertTrue(createResp.body().contains(uniqueName));
-    }
-
-    // 4. Sales works without auth
-    @Test
-    @DisplayName("4. Sales API and HTML page work without auth")
-    public void testSalesWorksWithoutAuth() throws Exception {
-        HttpResponse<String> pageResp = sendGet("/sales.html");
-        assertEquals(200, pageResp.statusCode());
-
-        FoodItem item = foodItemService.createFoodItem(new FoodItem(null, "Sales Test " + System.currentTimeMillis(), "Produce",
-                new BigDecimal("20.00"), "kg", new BigDecimal("1000.00"), LocalDate.now().plusDays(10), new BigDecimal("2.00")), null);
-
-        String saleJson = String.format("{\"foodItemId\":%d,\"quantitySold\":3.0,\"unitPrice\":1000.0}", item.getId());
-        HttpResponse<String> saleResp = sendPostJson("/api/sales", saleJson);
-        assertEquals(201, saleResp.statusCode());
-        assertTrue(saleResp.body().contains("\"success\":true"));
-    }
-
-    // 5. Waste works without auth
-    @Test
-    @DisplayName("5. Waste API and HTML page work without auth")
-    public void testWasteWorksWithoutAuth() throws Exception {
-        HttpResponse<String> pageResp = sendGet("/waste.html");
-        assertEquals(200, pageResp.statusCode());
-
-        FoodItem item = foodItemService.createFoodItem(new FoodItem(null, "Waste Test " + System.currentTimeMillis(), "Dairy",
-                new BigDecimal("10.00"), "liter", new BigDecimal("1500.00"), LocalDate.now().plusDays(5), new BigDecimal("2.00")), null);
-
-        String wasteJson = String.format("{\"foodItemId\":%d,\"quantityWasted\":2.0,\"reason\":\"EXPIRED\",\"notes\":\"No-auth test\"}", item.getId());
-        HttpResponse<String> wasteResp = sendPostJson("/api/waste", wasteJson);
-        assertEquals(201, wasteResp.statusCode());
-        assertTrue(wasteResp.body().contains("\"success\":true"));
-    }
-
-    // 6. Prediction works without auth
-    @Test
-    @DisplayName("6. Prediction API works without auth")
-    public void testPredictionWorksWithoutAuth() throws Exception {
-        HttpResponse<String> resp = sendGet("/api/prediction");
-        assertEquals(200, resp.statusCode());
-        assertTrue(resp.body().contains("\"success\":true"));
-    }
-
-    // 7. Recommendations work without auth
-    @Test
-    @DisplayName("7. Recommendations API works without auth")
-    public void testRecommendationsWorkWithoutAuth() throws Exception {
-        HttpResponse<String> resp = sendGet("/api/recommendations");
-        assertEquals(200, resp.statusCode());
-        assertTrue(resp.body().contains("\"success\":true"));
-    }
-
-    // 8. Redistribution works without auth
-    @Test
-    @DisplayName("8. Redistribution API and HTML page work without auth")
-    public void testRedistributionWorksWithoutAuth() throws Exception {
-        HttpResponse<String> pageResp = sendGet("/redistribution.html");
-        assertEquals(200, pageResp.statusCode());
-
-        HttpResponse<String> recipientsResp = sendGet("/api/redistribution/recipients");
-        assertEquals(200, recipientsResp.statusCode());
-        assertTrue(recipientsResp.body().contains("\"success\":true"));
-    }
-
-    // 9. No login redirect
     @ParameterizedTest
-    @ValueSource(strings = {"/dashboard.html", "/inventory.html", "/sales.html", "/waste.html", "/redistribution.html", "/reports.html", "/settings.html"})
-    @DisplayName("9. No login redirect on any standard application route")
-    public void testNoLoginRedirect(String path) throws Exception {
-        HttpResponse<String> resp = sendGet(path);
-        assertNotEquals(302, resp.statusCode(), "Route " + path + " must not redirect to login");
-        assertEquals(200, resp.statusCode());
+    @ValueSource(strings={"/", "/index.html", "/dashboard.html", "/inventory.html", "/sales.html", "/waste.html", "/redistribution.html", "/reports.html", "/settings.html", "/users.html"})
+    void privatePagesRedirectAnonymousUsers(String path) throws Exception {
+        var response=sendGet(path);
+        assertEquals(302,response.statusCode());
+        assertTrue(response.headers().firstValue("Location").orElse("").endsWith("/login.html"));
     }
-
-    // 10. No auth-only 401/403
     @ParameterizedTest
-    @ValueSource(strings = {"/api/inventory", "/api/sales", "/api/waste", "/api/prediction", "/api/recommendations", "/api/redistribution", "/api/version", "/api/health"})
-    @DisplayName("10. No auth-only 401 or 403 on standard API endpoints")
-    public void testNoAuthOnly401or403(String apiPath) throws Exception {
-        HttpResponse<String> resp = sendGet(apiPath);
-        assertNotEquals(401, resp.statusCode(), "API " + apiPath + " must not return 401");
-        assertNotEquals(403, resp.statusCode(), "API " + apiPath + " must not return 403");
-        assertEquals(200, resp.statusCode());
+    @ValueSource(strings={"/api/inventory", "/api/sales", "/api/waste", "/api/prediction", "/api/recommendations", "/api/redistribution", "/api/redistribution/recipients", "/api/inventory/1.css", "/api/auth/me"})
+    void anonymousApiRequestsCannotReadOrMutate(String path) throws Exception {
+        for(String method:new String[]{"GET","POST","PUT","DELETE"}) {
+            var response=client.send(HttpRequest.newBuilder(URI.create(baseUrl+path)).method(method,HttpRequest.BodyPublishers.noBody()).build(),HttpResponse.BodyHandlers.ofString());
+            assertEquals(401,response.statusCode(),method+" "+path);
+            assertTrue(response.body().contains("AUTHENTICATION_REQUIRED"));
+        }
     }
-
-    // 11. No logout UI
     @ParameterizedTest
-    @ValueSource(strings = {"/dashboard.html", "/inventory.html", "/sales.html", "/waste.html", "/redistribution.html", "/reports.html", "/settings.html"})
-    @DisplayName("11. No logout UI elements in any page")
-    public void testNoLogoutUi(String path) throws Exception {
-        HttpResponse<String> resp = sendGet(path);
-        assertFalse(resp.body().contains("sidebar-logout-btn"), "Page " + path + " must not contain sidebar-logout-btn");
-        assertFalse(resp.body().contains("Auth.logout()"), "Page " + path + " must not contain Auth.logout()");
+    @ValueSource(strings={"/login.html","/register.html"})
+    void publicAuthenticationPagesRemainAccessible(String path) throws Exception {
+        var response=sendGet(path);assertEquals(200,response.statusCode());
+        assertTrue(response.body().contains("auth-page.js"));
     }
-
-    // 12. No Restaurant Manager profile card
-    @ParameterizedTest
-    @ValueSource(strings = {"/dashboard.html", "/inventory.html", "/sales.html", "/waste.html", "/redistribution.html", "/reports.html", "/settings.html"})
-    @DisplayName("12. No user identity profile card in sidebar")
-    public void testNoUserProfileCard(String path) throws Exception {
-        HttpResponse<String> resp = sendGet(path);
-        assertFalse(resp.body().contains("sidebar-account-card"), "Page " + path + " must not contain sidebar-account-card");
-        assertFalse(resp.body().contains("current-user-avatar"), "Page " + path + " must not contain current-user-avatar");
-        assertFalse(resp.body().contains("current-user-name"), "Page " + path + " must not contain current-user-name");
-    }
-
-    // 13. No ADMIN/STAFF badge
-    @ParameterizedTest
-    @ValueSource(strings = {"/dashboard.html", "/inventory.html", "/sales.html", "/waste.html", "/redistribution.html", "/reports.html", "/settings.html"})
-    @DisplayName("13. No ADMIN/STAFF role badges in application pages")
-    public void testNoRoleBadges(String path) throws Exception {
-        HttpResponse<String> resp = sendGet(path);
-        assertFalse(resp.body().contains("current-user-role"), "Page " + path + " must not contain current-user-role");
-        assertFalse(resp.body().contains("admin-only"), "Page " + path + " must not contain admin-only class");
-    }
-
-    // 14. Users page/navigation removed
-    @Test
-    @DisplayName("14. Users page and navigation links removed")
-    public void testUsersPageAndNavigationRemoved() throws Exception {
-        HttpResponse<String> usersPageResp = sendGet("/users.html");
-        assertEquals(404, usersPageResp.statusCode(), "/users.html should return 404 Not Found");
-
-        HttpResponse<String> dashResp = sendGet("/dashboard.html");
-        assertFalse(dashResp.body().contains("href=\"/users.html\""));
-
-        HttpResponse<String> settingsResp = sendGet("/settings.html");
-        assertFalse(settingsResp.body().contains("href=\"/users.html\""));
-    }
-
-    // 15. Login page no longer part of normal app
-    @Test
-    @DisplayName("15. Login form is no longer part of application")
-    public void testLoginPageNoLongerPartOfNormalApp() throws Exception {
-        HttpResponse<String> rootResp = sendGet("/");
-        assertFalse(rootResp.body().contains("name=\"password\"") || rootResp.body().contains("id=\"password\""));
-        assertFalse(rootResp.body().contains("id=\"login-form\""));
-    }
-
     // 16. Zero-stock protections still pass
     @Test
     @DisplayName("16. Zero-stock business protections remain enforced")
     public void testZeroStockProtectionsPass() throws Exception {
-        FoodItem zeroItem = foodItemService.createFoodItem(new FoodItem(null, "Zero Stock Test " + System.currentTimeMillis(), "Produce",
-                BigDecimal.ZERO, "kg", new BigDecimal("500.00"), LocalDate.now().plusDays(5), new BigDecimal("1.00")), null);
+        FoodItem zeroItem = foodItemService.createFoodItem(new OwnedFoodItemFixture(null, "Zero Stock Test " + System.currentTimeMillis(), "Produce",
+                BigDecimal.ZERO, "kg", new BigDecimal("500.00"), LocalDate.now().plusDays(5), new BigDecimal("1.00")), 1L);
 
         // Attempting to sell zero stock item must fail validation
         Sale invalidSale = new Sale(zeroItem.getId(), new BigDecimal("1.00"), new BigDecimal("500.00"), null, 1, LocalDateTime.now());
-        assertThrows(IllegalArgumentException.class, () -> salesService.recordSale(invalidSale, null));
+        assertThrows(IllegalArgumentException.class, () -> salesService.recordSale(invalidSale, 1L));
 
         // Attempting to waste zero stock item must fail validation
         WasteRecord invalidWaste = new WasteRecord(zeroItem.getId(), new BigDecimal("1.00"), WasteRecord.Reason.SPOILED, null, LocalDateTime.now(), "Fail test");
-        assertThrows(IllegalArgumentException.class, () -> wasteService.recordWaste(invalidWaste, null));
+        assertThrows(IllegalArgumentException.class, () -> wasteService.recordWaste(invalidWaste, 1L));
     }
 
     // 17. Expiry redistribution boundaries still pass
@@ -312,19 +159,19 @@ public class SecurityAndAuthTest {
     @Test
     @DisplayName("20. Transaction integrity and stock deduction remain safe and consistent")
     public void testTransactionIntegrityPasses() throws Exception {
-        FoodItem item = foodItemService.createFoodItem(new FoodItem(null, "Stock Integrity Item " + System.currentTimeMillis(), "Produce",
-                new BigDecimal("50.00"), "kg", new BigDecimal("1000.00"), LocalDate.now().plusDays(10), new BigDecimal("5.00")), null);
+        FoodItem item = foodItemService.createFoodItem(new OwnedFoodItemFixture(null, "Stock Integrity Item " + System.currentTimeMillis(), "Produce",
+                new BigDecimal("50.00"), "kg", new BigDecimal("1000.00"), LocalDate.now().plusDays(10), new BigDecimal("5.00")), 1L);
         Long itemId = item.getId();
 
         // 1. Sell 10 kg
-        salesService.recordSale(new Sale(itemId, new BigDecimal("10.00"), new BigDecimal("1000.00"), null, 1, LocalDateTime.now()), null);
-        Optional<FoodItem> afterSale = foodItemService.getFoodItemById(itemId);
+        salesService.recordSale(new Sale(itemId, new BigDecimal("10.00"), new BigDecimal("1000.00"), null, 1, LocalDateTime.now()), 1L);
+        Optional<FoodItem> afterSale = foodItemService.getFoodItemById(itemId, 1L);
         assertTrue(afterSale.isPresent());
         assertEquals(0, new BigDecimal("40.00").compareTo(afterSale.get().getQuantity()));
 
         // 2. Waste 5 kg
-        wasteService.recordWaste(new WasteRecord(itemId, new BigDecimal("5.00"), WasteRecord.Reason.PREPARATION_WASTE, null, LocalDateTime.now(), "Trim"), null);
-        Optional<FoodItem> afterWaste = foodItemService.getFoodItemById(itemId);
+        wasteService.recordWaste(new WasteRecord(itemId, new BigDecimal("5.00"), WasteRecord.Reason.PREPARATION_WASTE, null, LocalDateTime.now(), "Trim"), 1L);
+        Optional<FoodItem> afterWaste = foodItemService.getFoodItemById(itemId, 1L);
         assertTrue(afterWaste.isPresent());
         assertEquals(0, new BigDecimal("35.00").compareTo(afterWaste.get().getQuantity()));
     }

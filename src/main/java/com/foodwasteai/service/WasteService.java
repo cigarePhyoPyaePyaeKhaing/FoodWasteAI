@@ -113,7 +113,7 @@ public class WasteService {
     public Optional<WasteRecord> getWasteRecordById(Long id, Long userId) throws SQLException {
         if (id == null) return Optional.empty();
         if (DatabaseConfig.isAvailable()) {
-            return wasteDao.findById(id);
+            return wasteDao.findById(id, userId);
         }
         return Optional.ofNullable(memoryWaste.get(id));
     }
@@ -164,7 +164,7 @@ public class WasteService {
 
         // Idempotency check with in-flight lock: if a clientRequestId is provided, ensure strictly one execution
         if (record.getClientRequestId() != null && !record.getClientRequestId().trim().isEmpty()) {
-            String token = record.getClientRequestId().trim();
+            String token = userId + ":" + record.getClientRequestId().trim();
             WasteRecord existing = processedClientRequests.get(token);
             if (existing != null) {
                 logger.warn("Idempotent duplicate waste request blocked (token: '{}'). Returning existing waste record #{}.", token, existing.getId());
@@ -305,7 +305,7 @@ public class WasteService {
                     record.setClientRequestId("auto_expiry_waste_" + item.getId() + "_" + today);
 
                     try {
-                        WasteRecord saved = recordWaste(record, userId != null ? userId : 1L);
+                        WasteRecord saved = recordWaste(record, userId);
                         if (saved != null) {
                             converted.add(saved);
                             logger.info("Automatically converted expired inventory item #{} ('{}') to confirmed waste: {} {} (Stock -> 0)",
@@ -328,7 +328,7 @@ public class WasteService {
     public boolean deleteWasteRecord(Long id, Long userId) throws SQLException {
         if (id == null) return false;
         if (DatabaseConfig.isAvailable()) {
-            return wasteDao.delete(id);
+            return wasteDao.delete(id, userId);
         }
         return memoryWaste.remove(id) != null;
     }

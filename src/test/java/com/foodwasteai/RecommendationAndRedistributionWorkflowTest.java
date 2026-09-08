@@ -46,32 +46,32 @@ public class RecommendationAndRedistributionWorkflowTest {
     public void testCompleteDataFlowPersistence() throws SQLException {
         // 1. Create a test item for evaluation
         FoodItem testItem = foodItemService.createFoodItem(
-                new FoodItem(null, "Test Workflow Item " + System.currentTimeMillis(), "Poultry",
+                new OwnedFoodItemFixture(null, "Test Workflow Item " + System.currentTimeMillis(), "Poultry",
                         new BigDecimal("40.00"), "kg", new BigDecimal("6500.00"),
                         LocalDate.now().plusDays(1), new BigDecimal("10.00")), 1L
         );
         assertNotNull(testItem.getId());
 
         // 2. Execute SWI-Prolog batch evaluation
-        Map<String, Object> predReport = predictionService.assessAllInventory();
+        Map<String, Object> predReport = predictionService.assessAllInventory(1L);
         assertNotNull(predReport);
         assertTrue(predReport.containsKey("overallRiskScore"));
 
         // 3. Verify prediction_items persisted in database if DB is available
         if (DatabaseConfig.isAvailable()) {
-            Optional<Prediction> latestPred = predictionDao.findLatestPrediction();
+            Optional<Prediction> latestPred = predictionDao.findLatestPrediction(1L);
             assertTrue(latestPred.isPresent(), "Prediction record must be saved in predictions table");
-            List<PredictionItem> pItems = predictionDao.findItemsByPredictionId(latestPred.get().getId());
+            List<PredictionItem> pItems = predictionDao.findItemsByPredictionId(latestPred.get().getId(), 1L);
             assertFalse(pItems.isEmpty(), "Prediction items must be saved in prediction_items table");
         }
 
         // 4. Generate recommendations from prediction items
-        List<Recommendation> recs = recommendationService.generateRecommendationsFromProlog();
+        List<Recommendation> recs = recommendationService.generateRecommendationsFromProlog(1L);
         assertNotNull(recs);
         assertFalse(recs.isEmpty(), "Generated recommendations must not be empty");
 
         // Verify recommendations in database
-        List<Recommendation> dbRecs = recommendationService.getAllRecommendations();
+        List<Recommendation> dbRecs = recommendationService.getAllRecommendations(1L);
         assertFalse(dbRecs.isEmpty(), "Recommendations must be retrievable via service");
     }
 
@@ -80,22 +80,22 @@ public class RecommendationAndRedistributionWorkflowTest {
     public void testRiskLevelRecommendationRules() throws SQLException {
         // Create HIGH, MEDIUM, LOW test items
         foodItemService.createFoodItem(
-                new FoodItem(null, "Test Fresh Milk " + System.currentTimeMillis(), "Dairy",
+                new OwnedFoodItemFixture(null, "Test Fresh Milk " + System.currentTimeMillis(), "Dairy",
                         new BigDecimal("40.00"), "kg", new BigDecimal("2800.00"),
                         LocalDate.now().plusDays(1), new BigDecimal("10.00")), 1L
         );
         foodItemService.createFoodItem(
-                new FoodItem(null, "Test Vegetables " + System.currentTimeMillis(), "Produce",
+                new OwnedFoodItemFixture(null, "Test Vegetables " + System.currentTimeMillis(), "Produce",
                         new BigDecimal("50.00"), "kg", new BigDecimal("1800.00"),
                         LocalDate.now().plusDays(3), new BigDecimal("10.00")), 1L
         );
         foodItemService.createFoodItem(
-                new FoodItem(null, "Test Rice " + System.currentTimeMillis(), "Grains",
+                new OwnedFoodItemFixture(null, "Test Rice " + System.currentTimeMillis(), "Grains",
                         new BigDecimal("80.00"), "kg", new BigDecimal("3500.00"),
                         LocalDate.now().plusDays(30), new BigDecimal("20.00")), 1L
         );
 
-        List<Recommendation> recs = recommendationService.generateRecommendationsFromProlog();
+        List<Recommendation> recs = recommendationService.generateRecommendationsFromProlog(1L);
 
         // 1. Verify HIGH Risk Directives (Fresh Milk or Fresh Fish)
         // Must contain: "Reduce next production batch", "Redistribute excess inventory", "Prioritize usage today"
@@ -150,7 +150,7 @@ public class RecommendationAndRedistributionWorkflowTest {
 
         // 2. Create High Risk Item for Redistribution
         FoodItem highRiskItem = foodItemService.createFoodItem(
-                new FoodItem(null, "Test Fresh Milk " + System.currentTimeMillis(), "Dairy", new BigDecimal("40.00"), "kg", new BigDecimal("5000.00"), LocalDate.now().plusDays(1), new BigDecimal("8.00")), 1L
+                new OwnedFoodItemFixture(null, "Test Fresh Milk " + System.currentTimeMillis(), "Dairy", new BigDecimal("40.00"), "kg", new BigDecimal("5000.00"), LocalDate.now().plusDays(1), new BigDecimal("8.00")), 1L
         );
         BigDecimal initialQty = highRiskItem.getQuantity();
 
@@ -168,16 +168,16 @@ public class RecommendationAndRedistributionWorkflowTest {
         assertEquals(partner.getName(), saved.getRecipientName());
 
         // 4. Verify Inventory stock deduction
-        Optional<FoodItem> afterOpt = foodItemService.getFoodItemById(highRiskItem.getId());
+        Optional<FoodItem> afterOpt = foodItemService.getFoodItemById(highRiskItem.getId(), 1L);
         assertTrue(afterOpt.isPresent());
         assertEquals(0, initialQty.subtract(new BigDecimal("10.00")).compareTo(afterOpt.get().getQuantity()));
 
         // 5. Update Status: PENDING -> COMPLETED
-        boolean updatedCompleted = redistributionService.updateDispatchStatus(saved.getId(), Redistribution.Status.COMPLETED);
+        boolean updatedCompleted = redistributionService.updateDispatchStatus(saved.getId(), Redistribution.Status.COMPLETED, 1L);
         assertTrue(updatedCompleted, "Status update to COMPLETED should succeed");
 
         // 6. Verify Display Stats: quantity redistributed, money saved, waste reduction impact
-        Map<String, Object> stats = redistributionService.getRedistributionStats();
+        Map<String, Object> stats = redistributionService.getRedistributionStats(1L);
         assertNotNull(stats);
         assertTrue(stats.containsKey("quantityRedistributedKg"));
         assertTrue(stats.containsKey("estimatedMoneySaved"));

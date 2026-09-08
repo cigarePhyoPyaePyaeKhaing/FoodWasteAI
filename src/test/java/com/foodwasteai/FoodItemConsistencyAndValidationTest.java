@@ -49,12 +49,12 @@ public class FoodItemConsistencyAndValidationTest {
         String[] validUnits = {"kg", "g", "liter", "liters", "ml", "pcs", "pieces", "loaves", "units", "portions", "cans", "packs", "pack"};
 
         for (String cat : validCategories) {
-            FoodItem item = new FoodItem(null, "Test Item", cat, BigDecimal.valueOf(10), "kg", BigDecimal.valueOf(1000), expiry);
+            FoodItem item = new OwnedFoodItemFixture(null, "Test Item", cat, BigDecimal.valueOf(10), "kg", BigDecimal.valueOf(1000), expiry);
             assertDoesNotThrow(() -> ValidationUtils.validateFoodItem(item), "Should accept valid category: " + cat);
         }
 
         for (String unit : validUnits) {
-            FoodItem item = new FoodItem(null, "Test Item", "Produce", BigDecimal.valueOf(10), unit, BigDecimal.valueOf(1000), expiry);
+            FoodItem item = new OwnedFoodItemFixture(null, "Test Item", "Produce", BigDecimal.valueOf(10), unit, BigDecimal.valueOf(1000), expiry);
             assertDoesNotThrow(() -> ValidationUtils.validateFoodItem(item), "Should accept valid unit: " + unit);
         }
     }
@@ -64,11 +64,11 @@ public class FoodItemConsistencyAndValidationTest {
     public void testInvalidCategoriesAndUnitsRejected() {
         LocalDate expiry = ExpiryStatusResolver.getToday().plusDays(10);
 
-        FoodItem badCatItem = new FoodItem(null, "Invalid Item", "RandomNonExistentCategory", BigDecimal.valueOf(10), "kg", BigDecimal.valueOf(1000), expiry);
+        FoodItem badCatItem = new OwnedFoodItemFixture(null, "Invalid Item", "RandomNonExistentCategory", BigDecimal.valueOf(10), "kg", BigDecimal.valueOf(1000), expiry);
         IllegalArgumentException catEx = assertThrows(IllegalArgumentException.class, () -> ValidationUtils.validateFoodItem(badCatItem));
         assertTrue(catEx.getMessage().contains("Invalid food category"), "Error message should mention invalid category");
 
-        FoodItem badUnitItem = new FoodItem(null, "Invalid Item", "Produce", BigDecimal.valueOf(10), "invalid_unit_xyz", BigDecimal.valueOf(1000), expiry);
+        FoodItem badUnitItem = new OwnedFoodItemFixture(null, "Invalid Item", "Produce", BigDecimal.valueOf(10), "invalid_unit_xyz", BigDecimal.valueOf(1000), expiry);
         IllegalArgumentException unitEx = assertThrows(IllegalArgumentException.class, () -> ValidationUtils.validateFoodItem(badUnitItem));
         assertTrue(unitEx.getMessage().contains("Invalid measurement unit"), "Error message should mention invalid unit");
     }
@@ -77,7 +77,7 @@ public class FoodItemConsistencyAndValidationTest {
     @DisplayName("Fish item preserves Seafood category and Fresh Milk preserves liter unit across creation and update")
     public void testFishAndMilkCategoryAndUnitPreservation() throws Exception {
         LocalDate expiryFish = ExpiryStatusResolver.getToday().plusDays(5);
-        FoodItem fish = new FoodItem(null, "Whole Sea Bass Fish " + System.currentTimeMillis(), "Seafood", BigDecimal.valueOf(8.5), "kg", BigDecimal.valueOf(12000), expiryFish);
+        FoodItem fish = new OwnedFoodItemFixture(null, "Whole Sea Bass Fish " + System.currentTimeMillis(), "Seafood", BigDecimal.valueOf(8.5), "kg", BigDecimal.valueOf(12000), expiryFish);
         FoodItem savedFish = foodItemService.createFoodItem(fish, 1L);
         assertNotNull(savedFish.getId());
         assertEquals("Seafood", savedFish.getCategory());
@@ -89,7 +89,7 @@ public class FoodItemConsistencyAndValidationTest {
         boolean updatedFish = foodItemService.updateFoodItem(savedFish, 1L);
         assertTrue(updatedFish);
 
-        Optional<FoodItem> reloadedFish = foodItemService.getFoodItemById(savedFish.getId());
+        Optional<FoodItem> reloadedFish = foodItemService.getFoodItemById(savedFish.getId(), 1L);
         assertTrue(reloadedFish.isPresent());
         assertEquals("Seafood", reloadedFish.get().getCategory(), "Fish category must remain Seafood and NOT Poultry");
         assertEquals("kg", reloadedFish.get().getUnit());
@@ -97,7 +97,7 @@ public class FoodItemConsistencyAndValidationTest {
 
         // Test Fresh Milk (Dairy, liter)
         LocalDate expiryMilk = ExpiryStatusResolver.getToday().plusDays(3);
-        FoodItem milk = new FoodItem(null, "Fresh Pasteurized Milk " + System.currentTimeMillis(), "Dairy", BigDecimal.valueOf(15.0), "liter", BigDecimal.valueOf(2500), expiryMilk);
+        FoodItem milk = new OwnedFoodItemFixture(null, "Fresh Pasteurized Milk " + System.currentTimeMillis(), "Dairy", BigDecimal.valueOf(15.0), "liter", BigDecimal.valueOf(2500), expiryMilk);
         FoodItem savedMilk = foodItemService.createFoodItem(milk, 1L);
         assertNotNull(savedMilk.getId());
         assertEquals("Dairy", savedMilk.getCategory());
@@ -107,7 +107,7 @@ public class FoodItemConsistencyAndValidationTest {
         boolean updatedMilk = foodItemService.updateFoodItem(savedMilk, 1L);
         assertTrue(updatedMilk);
 
-        Optional<FoodItem> reloadedMilk = foodItemService.getFoodItemById(savedMilk.getId());
+        Optional<FoodItem> reloadedMilk = foodItemService.getFoodItemById(savedMilk.getId(), 1L);
         assertTrue(reloadedMilk.isPresent());
         assertEquals("Dairy", reloadedMilk.get().getCategory());
         assertEquals("liter", reloadedMilk.get().getUnit(), "Milk unit must remain liter and NOT kg after update");
@@ -120,7 +120,7 @@ public class FoodItemConsistencyAndValidationTest {
 
         // 1. Expiry +1 day (e.g. Sep 3 from Sep 2)
         LocalDate exp1 = today.plusDays(1);
-        FoodItem fish = new FoodItem(null, "Fish Expiry 1 Day " + System.currentTimeMillis(), "Seafood", BigDecimal.valueOf(10.0), "kg", BigDecimal.valueOf(8000), exp1);
+        FoodItem fish = new OwnedFoodItemFixture(null, "Fish Expiry 1 Day " + System.currentTimeMillis(), "Seafood", BigDecimal.valueOf(10.0), "kg", BigDecimal.valueOf(8000), exp1);
         FoodItem savedFish = foodItemService.createFoodItem(fish, 1L);
         savedFish.updateComputedExpiryFields();
         assertEquals(1, savedFish.getExpiryDaysRemaining());
@@ -128,7 +128,7 @@ public class FoodItemConsistencyAndValidationTest {
 
         // 2. Expiry +5 days (e.g. Sep 7 from Sep 2)
         LocalDate exp5 = today.plusDays(5);
-        FoodItem bread = new FoodItem(null, "Bread Expiry 5 Days " + System.currentTimeMillis(), "Bakery", BigDecimal.valueOf(15.0), "pcs", BigDecimal.valueOf(1500), exp5);
+        FoodItem bread = new OwnedFoodItemFixture(null, "Bread Expiry 5 Days " + System.currentTimeMillis(), "Bakery", BigDecimal.valueOf(15.0), "pcs", BigDecimal.valueOf(1500), exp5);
         FoodItem savedBread = foodItemService.createFoodItem(bread, 1L);
         savedBread.updateComputedExpiryFields();
         assertEquals(5, savedBread.getExpiryDaysRemaining());
@@ -136,7 +136,7 @@ public class FoodItemConsistencyAndValidationTest {
 
         // 3. Expiry +6 days (e.g. Sep 8 from Sep 2)
         LocalDate exp6 = today.plusDays(6);
-        FoodItem milk = new FoodItem(null, "Milk Expiry 6 Days " + System.currentTimeMillis(), "Dairy", BigDecimal.valueOf(20.0), "liter", BigDecimal.valueOf(2500), exp6);
+        FoodItem milk = new OwnedFoodItemFixture(null, "Milk Expiry 6 Days " + System.currentTimeMillis(), "Dairy", BigDecimal.valueOf(20.0), "liter", BigDecimal.valueOf(2500), exp6);
         FoodItem savedMilk = foodItemService.createFoodItem(milk, 1L);
         savedMilk.updateComputedExpiryFields();
         assertEquals(6, savedMilk.getExpiryDaysRemaining());
@@ -144,7 +144,7 @@ public class FoodItemConsistencyAndValidationTest {
 
         // 4. Expiry +15 days (e.g. Sep 17 from Sep 2)
         LocalDate exp15 = today.plusDays(15);
-        FoodItem chicken = new FoodItem(null, "Chicken Expiry 15 Days " + System.currentTimeMillis(), "Poultry", BigDecimal.valueOf(20.0), "kg", BigDecimal.valueOf(6500), exp15);
+        FoodItem chicken = new OwnedFoodItemFixture(null, "Chicken Expiry 15 Days " + System.currentTimeMillis(), "Poultry", BigDecimal.valueOf(20.0), "kg", BigDecimal.valueOf(6500), exp15);
         FoodItem savedChicken = foodItemService.createFoodItem(chicken, 1L);
         savedChicken.updateComputedExpiryFields();
         assertEquals(15, savedChicken.getExpiryDaysRemaining());
@@ -181,7 +181,7 @@ public class FoodItemConsistencyAndValidationTest {
         }
 
         // 7. RedistributionService candidate evaluation
-        Map<String, Object> candidateMap = redistributionService.evaluateRedistributionCandidates();
+        Map<String, Object> candidateMap = redistributionService.evaluateRedistributionCandidates(1L);
         assertNotNull(candidateMap);
         @SuppressWarnings("unchecked")
         List<RedistributionService.CandidateItem> redistCandidates = (List<RedistributionService.CandidateItem>) candidateMap.get("redistributionCandidates");
@@ -196,7 +196,7 @@ public class FoodItemConsistencyAndValidationTest {
         assertFalse(chickenInPriority, "Chicken with 15 days must NOT be in PRIORITY_DONATION");
         // 8. Recommendation and Redistribution Quantity Consistency for Fish
         RecommendationService recommendationService = new RecommendationService();
-        List<Recommendation> recs = recommendationService.generateRecommendationsFromProlog();
+        List<Recommendation> recs = recommendationService.generateRecommendationsFromProlog(1L);
         Optional<Recommendation> fishRecOpt = recs.stream()
                 .filter(r -> savedFish.getId().equals(r.getFoodItemId()) && r.getCategory() == Recommendation.Category.REDISTRIBUTION)
                 .findFirst();
@@ -217,7 +217,7 @@ public class FoodItemConsistencyAndValidationTest {
         }
 
         // Test 100 kg scenario (producing exact 15.0 kg surplus and 85.0 kg expected demand)
-        FoodItem fish100 = new FoodItem(null, "Bulk Fish 100kg " + System.currentTimeMillis(), "Seafood", BigDecimal.valueOf(100.0), "kg", BigDecimal.valueOf(8000), exp1);
+        FoodItem fish100 = new OwnedFoodItemFixture(null, "Bulk Fish 100kg " + System.currentTimeMillis(), "Seafood", BigDecimal.valueOf(100.0), "kg", BigDecimal.valueOf(8000), exp1);
         FoodItem savedFish100 = foodItemService.createFoodItem(fish100, 1L);
         Optional<PrologAssessment> assess100Opt = predictionService.assessFoodItem(savedFish100);
         assertTrue(assess100Opt.isPresent());
@@ -247,7 +247,7 @@ public class FoodItemConsistencyAndValidationTest {
     @DisplayName("Zero-stock items (quantity = 0) evaluate to OUT_OF_STOCK, are non-eligible for donation, and receive no active recommendations")
     public void testZeroStockItemNonActionable() throws Exception {
         LocalDate exp1 = ExpiryStatusResolver.getToday().plusDays(1);
-        FoodItem zeroStockFish = new FoodItem(null, "Zero Stock Fish " + System.currentTimeMillis(), "Seafood", BigDecimal.ZERO, "kg", BigDecimal.valueOf(8000), exp1);
+        FoodItem zeroStockFish = new OwnedFoodItemFixture(null, "Zero Stock Fish " + System.currentTimeMillis(), "Seafood", BigDecimal.ZERO, "kg", BigDecimal.valueOf(8000), exp1);
         FoodItem saved = foodItemService.createFoodItem(zeroStockFish, 1L);
         assertNotNull(saved.getId());
 
@@ -262,7 +262,7 @@ public class FoodItemConsistencyAndValidationTest {
         assertEquals(0.0, assess.getProjectedSurplus(), 0.01);
 
         // 2. RedistributionService candidate evaluation must omit zero-stock items from actionable candidates
-        Map<String, Object> candidateReport = redistributionService.evaluateRedistributionCandidates();
+        Map<String, Object> candidateReport = redistributionService.evaluateRedistributionCandidates(1L);
         @SuppressWarnings("unchecked")
         List<RedistributionService.CandidateItem> priorityCand = (List<RedistributionService.CandidateItem>) candidateReport.get("priorityCandidates");
         @SuppressWarnings("unchecked")
@@ -275,7 +275,7 @@ public class FoodItemConsistencyAndValidationTest {
 
         // 3. RecommendationService must not generate active recommendations for zero-stock items
         RecommendationService recService = new RecommendationService();
-        List<Recommendation> recs = recService.generateRecommendationsFromProlog();
+        List<Recommendation> recs = recService.generateRecommendationsFromProlog(1L);
         boolean hasRecForZeroStock = recs.stream().anyMatch(r -> saved.getId().equals(r.getFoodItemId()));
         assertFalse(hasRecForZeroStock, "Zero-stock item must not generate active mitigation or donation recommendations");
 

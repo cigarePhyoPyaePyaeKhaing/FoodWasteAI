@@ -100,7 +100,7 @@ public class EndToEndProductionWorkflowAuditTest {
     }
 
     private FoodItem createAuditItem(String name, String category, BigDecimal qty, String unit, BigDecimal price, LocalDate expiry) throws SQLException {
-        FoodItem item = new FoodItem();
+        FoodItem item = new OwnedFoodItemFixture();
         item.setName(name + "_" + System.currentTimeMillis() + "_" + UUID.randomUUID().toString().substring(0, 4));
         item.setCategory(category);
         item.setQuantity(qty);
@@ -139,13 +139,13 @@ public class EndToEndProductionWorkflowAuditTest {
         boolean updated = foodItemService.updateFoodItem(fish, 1L);
         assertTrue(updated);
 
-        FoodItem reloadedFish = foodItemService.getFoodItemById(fish.getId()).orElseThrow();
+        FoodItem reloadedFish = foodItemService.getFoodItemById(fish.getId(), 1L).orElseThrow();
         assertEquals("Seafood", reloadedFish.getCategory(), "Category must stay Seafood");
         assertEquals("kg", reloadedFish.getUnit(), "Unit must stay kg");
         assertEquals(0, new BigDecimal("45.00").compareTo(reloadedFish.getQuantity()));
 
         // 4. Negative quantity creation is rejected
-        FoodItem negativeItem = new FoodItem(null, "Negative Item", "Produce", new BigDecimal("-5.00"), "kg", new BigDecimal("1000.00"), today.plusDays(10));
+        FoodItem negativeItem = new OwnedFoodItemFixture(null, "Negative Item", "Produce", new BigDecimal("-5.00"), "kg", new BigDecimal("1000.00"), today.plusDays(10));
         assertThrows(IllegalArgumentException.class, () -> ValidationUtils.validateFoodItem(negativeItem));
 
         // 5. Negative stock reduction is rejected
@@ -174,7 +174,7 @@ public class EndToEndProductionWorkflowAuditTest {
         assertNotNull(recorded1.getId());
         assertEquals(0, new BigDecimal("32500.00").compareTo(recorded1.getTotalAmount()));
 
-        FoodItem afterSale1 = foodItemService.getFoodItemById(item.getId()).orElseThrow();
+        FoodItem afterSale1 = foodItemService.getFoodItemById(item.getId(), 1L).orElseThrow();
         assertEquals(0, new BigDecimal("15.00").compareTo(afterSale1.getQuantity()));
 
         // 2. Oversell attempt (20 kg when 15 kg available) is rejected with zero stock change
@@ -185,7 +185,7 @@ public class EndToEndProductionWorkflowAuditTest {
         oversell.setSaleDate(LocalDateTime.now());
         assertThrows(IllegalArgumentException.class, () -> salesService.recordSale(oversell, 1L));
 
-        FoodItem afterFailedSale = foodItemService.getFoodItemById(item.getId()).orElseThrow();
+        FoodItem afterFailedSale = foodItemService.getFoodItemById(item.getId(), 1L).orElseThrow();
         assertEquals(0, new BigDecimal("15.00").compareTo(afterFailedSale.getQuantity()), "Stock must remain 15.00 kg after failed oversale");
 
         // 3. Exact remaining stock sale (15 kg) -> stock becomes 0.00 kg
@@ -197,7 +197,7 @@ public class EndToEndProductionWorkflowAuditTest {
         Sale recorded2 = salesService.recordSale(sale2, 1L);
         assertNotNull(recorded2.getId());
 
-        FoodItem afterSale2 = foodItemService.getFoodItemById(item.getId()).orElseThrow();
+        FoodItem afterSale2 = foodItemService.getFoodItemById(item.getId(), 1L).orElseThrow();
         assertEquals(0, BigDecimal.ZERO.compareTo(afterSale2.getQuantity()), "Stock must be exactly 0.00 kg");
     }
 
@@ -221,7 +221,7 @@ public class EndToEndProductionWorkflowAuditTest {
         assertNotNull(logged1.getId());
         assertEquals(0, new BigDecimal("80000.00").compareTo(logged1.getMonetaryLoss()));
 
-        FoodItem afterW1 = foodItemService.getFoodItemById(item.getId()).orElseThrow();
+        FoodItem afterW1 = foodItemService.getFoodItemById(item.getId(), 1L).orElseThrow();
         assertEquals(0, new BigDecimal("15.00").compareTo(afterW1.getQuantity()));
 
         // 2. Excessive waste attempt (20 kg when 15 kg left) is rejected
@@ -231,7 +231,7 @@ public class EndToEndProductionWorkflowAuditTest {
         overWaste.setReason(WasteRecord.Reason.SPOILED);
         assertThrows(IllegalArgumentException.class, () -> wasteService.recordWaste(overWaste, 1L));
 
-        FoodItem afterFailedWaste = foodItemService.getFoodItemById(item.getId()).orElseThrow();
+        FoodItem afterFailedWaste = foodItemService.getFoodItemById(item.getId(), 1L).orElseThrow();
         assertEquals(0, new BigDecimal("15.00").compareTo(afterFailedWaste.getQuantity()));
 
         // 3. Waste remaining 15 kg -> stock becomes 0 kg
@@ -242,11 +242,11 @@ public class EndToEndProductionWorkflowAuditTest {
         WasteRecord logged2 = wasteService.recordWaste(w2, 1L);
         assertNotNull(logged2.getId());
 
-        FoodItem afterW2 = foodItemService.getFoodItemById(item.getId()).orElseThrow();
+        FoodItem afterW2 = foodItemService.getFoodItemById(item.getId(), 1L).orElseThrow();
         assertEquals(0, BigDecimal.ZERO.compareTo(afterW2.getQuantity()));
 
         // 4. Historical waste immutability: both waste logs exist in history
-        List<WasteRecord> wasteHistory = new WasteRecordDao().findByFoodItemId(item.getId());
+        List<WasteRecord> wasteHistory = new WasteRecordDao().findByFoodItemId(item.getId(), 1L);
         assertEquals(2, wasteHistory.size(), "Both waste records must remain in historical database");
         BigDecimal totalLoggedLoss = wasteHistory.stream().map(WasteRecord::getMonetaryLoss).reduce(BigDecimal.ZERO, BigDecimal::add);
         assertEquals(0, new BigDecimal("200000.00").compareTo(totalLoggedLoss), "Total loss must be 200,000 MMK");
@@ -273,12 +273,12 @@ public class EndToEndProductionWorkflowAuditTest {
                 "Zero-stock item must be excluded from active forecast list");
 
         // 2. Excluded from active recommendations
-        List<Recommendation> recs = recommendationService.generateRecommendationsFromProlog();
+        List<Recommendation> recs = recommendationService.generateRecommendationsFromProlog(1L);
         assertTrue(recs.stream().noneMatch(r -> r.getFoodItemId().equals(zeroItem.getId())),
                 "Zero-stock item must never generate active recommendations");
 
         // 3. Excluded from redistribution candidates
-        Map<String, Object> redist = redistributionService.evaluateRedistributionCandidates();
+        Map<String, Object> redist = redistributionService.evaluateRedistributionCandidates(1L);
         @SuppressWarnings("unchecked")
         List<RedistributionService.CandidateItem> prioList = (List<RedistributionService.CandidateItem>) redist.get("priorityCandidates");
         @SuppressWarnings("unchecked")
@@ -310,7 +310,7 @@ public class EndToEndProductionWorkflowAuditTest {
         assertEquals(6, milk.getExpiryDaysRemaining());
 
         // Assessment
-        Optional<PrologAssessment> assessOpt = predictionService.assessFoodItemById(milk.getId());
+        Optional<PrologAssessment> assessOpt = predictionService.assessFoodItemById(milk.getId(), 1L);
         assertTrue(assessOpt.isPresent());
         PrologAssessment assess = assessOpt.get();
         assertEquals(6, assess.getExpiryDays());
@@ -388,7 +388,7 @@ public class EndToEndProductionWorkflowAuditTest {
         createdDispatchIds.add(scheduled.getId());
 
         // Stock decreased from 40.00 to 25.00 kg exactly once
-        FoodItem afterDispatch = foodItemService.getFoodItemById(item.getId()).orElseThrow();
+        FoodItem afterDispatch = foodItemService.getFoodItemById(item.getId(), 1L).orElseThrow();
         assertEquals(0, new BigDecimal("25.00").compareTo(afterDispatch.getQuantity()), "Stock must be 25.00 kg after dispatch");
 
         // Dispatch exceeding remaining stock (30.00 kg when 25.00 kg available) is rejected
@@ -398,7 +398,7 @@ public class EndToEndProductionWorkflowAuditTest {
         overDispatch.setQuantity(new BigDecimal("30.00"));
         assertThrows(IllegalArgumentException.class, () -> redistributionService.scheduleDispatch(overDispatch, 1L));
 
-        FoodItem afterFailedDispatch = foodItemService.getFoodItemById(item.getId()).orElseThrow();
+        FoodItem afterFailedDispatch = foodItemService.getFoodItemById(item.getId(), 1L).orElseThrow();
         assertEquals(0, new BigDecimal("25.00").compareTo(afterFailedDispatch.getQuantity()));
     }
 

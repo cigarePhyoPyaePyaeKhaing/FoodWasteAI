@@ -113,14 +113,15 @@ public class PredictionService {
     public double calculateExpectedDailyDemand(FoodItem item) {
         if (item == null) return 0.0;
         double stock = item.getQuantity() != null ? Math.max(0.0, item.getQuantity().doubleValue()) : 0.0;
-        return calculateExpectedDailyDemand(item.getId(), stock);
+        return calculateExpectedDailyDemand(item.getId(), stock, item.getUserId());
     }
 
-    public double calculateExpectedDailyDemand(Long itemId, double stock) {
+    public double calculateExpectedDailyDemand(Long itemId, double stock) { return calculateExpectedDailyDemand(itemId, stock, null); }
+    public double calculateExpectedDailyDemand(Long itemId, double stock, Long userId) {
         if (stock <= 0.0) return 0.0;
         if (itemId != null) {
             try {
-                BigDecimal avgSales = salesDao.getHistoricalAverageDailySales(itemId, 7);
+                BigDecimal avgSales = salesDao.getHistoricalAverageDailySales(itemId, 7, userId);
                 if (avgSales != null && avgSales.compareTo(BigDecimal.ZERO) > 0) {
                     return avgSales.doubleValue();
                 }
@@ -140,7 +141,7 @@ public class PredictionService {
 
         double expectedDemand = calculateExpectedDailyDemand(item);
 
-        double histWasteRate = stock > 0 ? calculateConfirmedHistoricalWasteRate(item.getId()) : 0.0;
+        double histWasteRate = stock > 0 ? calculateConfirmedHistoricalWasteRate(item.getId(), item.getUserId()) : 0.0;
 
         double currentProduction = expectedDemand * 1.1;
 
@@ -236,7 +237,7 @@ public class PredictionService {
                     continue;
                 }
 
-                double histWasteRate = calculateConfirmedHistoricalWasteRate(item.getId());
+                double histWasteRate = calculateConfirmedHistoricalWasteRate(item.getId(), item.getUserId());
 
                 double currentProduction = dailyDemand * 1.1;
 
@@ -667,7 +668,7 @@ public class PredictionService {
         // into confirmed waste records and deduct inventory to exactly 0.00 atomically.
         if (wasteService != null) {
             try {
-                wasteService.convertExpiredInventoryToWaste(userId != null ? userId : 1L);
+                wasteService.convertExpiredInventoryToWaste(userId);
             } catch (Exception e) {
                 logger.warn("Could not automatically convert expired inventory to waste: {}", e.getMessage());
             }
@@ -733,7 +734,7 @@ public class PredictionService {
                     pi.setReasoningTextMy(a.getReasonMy());
                     pItems.add(pi);
                 }
-                predictionDao.savePredictionItems(savedPred.getId(), pItems);
+                predictionDao.savePredictionItems(savedPred.getId(), pItems, userId);
             } catch (Exception e) {
                 logger.warn("Could not persist predictions to MySQL: {}", e.getMessage());
             }
@@ -819,20 +820,23 @@ public class PredictionService {
     }
 
     public List<PredictionItem> getLatestPredictionItems() throws SQLException {
+        throw new IllegalArgumentException("Authenticated user is required");
+    }
+    public List<PredictionItem> getLatestPredictionItems(Long userId) throws SQLException {
         if (DatabaseConfig.isAvailable()) {
-            Optional<Prediction> latest = predictionDao.findLatestPrediction();
+            Optional<Prediction> latest = predictionDao.findLatestPrediction(userId);
             if (latest.isPresent()) {
-                return predictionDao.findItemsByPredictionId(latest.get().getId());
+                return predictionDao.findItemsByPredictionId(latest.get().getId(), userId);
             }
         }
         return Collections.emptyList();
     }
 
     /** Confirmed per-item history only. Zero waste is a valid measured rate. */
-    private double calculateConfirmedHistoricalWasteRate(Long itemId) {
+    private double calculateConfirmedHistoricalWasteRate(Long itemId, Long userId) {
         if (itemId == null) return 0.0;
         try {
-            BigDecimal rate = wasteDao.calculateHistoricalWasteRate(itemId, 14);
+            BigDecimal rate = wasteDao.calculateHistoricalWasteRate(itemId, 14, userId);
             return rate != null ? rate.doubleValue() : 0.0;
         } catch (SQLException e) {
             throw new IllegalStateException("Cannot assess waste risk without confirmed waste history for item " + itemId, e);

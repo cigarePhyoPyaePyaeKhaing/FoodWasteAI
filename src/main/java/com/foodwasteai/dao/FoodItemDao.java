@@ -18,12 +18,18 @@ import java.util.Optional;
 public class FoodItemDao extends BaseDao {
 
     public Optional<FoodItem> findById(Long id) throws SQLException {
-        String sql = "SELECT f.id, f.name, f.category, f.quantity, f.unit, f.price_per_unit, f.expiry_date, f.status, f.created_at, f.updated_at, " +
+        throw new IllegalArgumentException("Authenticated user is required");
+    }
+
+    public Optional<FoodItem> findById(Long id, Long userId) throws SQLException {
+        requireUserId(userId);
+        String sql = "SELECT f.id, f.name, f.category, f.quantity, f.unit, f.price_per_unit, f.expiry_date, f.status, f.created_at, f.updated_at, f.user_id, " +
                      "COALESCE((SELECT SUM(t.quantity) FROM inventory_transactions t WHERE t.food_item_id = f.id AND t.transaction_type IN ('PURCHASE', 'STOCK_IN')), f.quantity) AS total_quantity " +
-                     "FROM food_items f WHERE f.id = ?";
+                     "FROM food_items f WHERE f.id = ? AND f.user_id = ?";
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setLong(1, id);
+            stmt.setLong(2, userId);
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
                     return Optional.of(mapResultSetToFoodItem(rs));
@@ -33,9 +39,7 @@ public class FoodItemDao extends BaseDao {
         return Optional.empty();
     }
 
-    public Optional<FoodItem> findById(Long id, Long userId) throws SQLException {
-        return findById(id);
-    }
+
 
     public List<FoodItem> findAll() throws SQLException {
         return findAll(null);
@@ -43,14 +47,14 @@ public class FoodItemDao extends BaseDao {
 
     public List<FoodItem> findAll(Long userId) throws SQLException {
         List<FoodItem> list = new ArrayList<>();
-        String sql = "SELECT f.id, f.name, f.category, f.quantity, f.unit, f.price_per_unit, f.expiry_date, f.status, f.created_at, f.updated_at, " +
+        String sql = "SELECT f.id, f.name, f.category, f.quantity, f.unit, f.price_per_unit, f.expiry_date, f.status, f.created_at, f.updated_at, f.user_id, " +
                      "COALESCE((SELECT SUM(t.quantity) FROM inventory_transactions t WHERE t.food_item_id = f.id AND t.transaction_type IN ('PURCHASE', 'STOCK_IN')), f.quantity) AS total_quantity " +
-                     "FROM food_items f ORDER BY f.expiry_date ASC, f.name ASC";
+                     "FROM food_items f WHERE f.user_id = ? ORDER BY f.expiry_date ASC, f.name ASC";
         try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql);
-             ResultSet rs = stmt.executeQuery()) {
-            while (rs.next()) {
-                list.add(mapResultSetToFoodItem(rs));
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setLong(1, requireUserId(userId));
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) list.add(mapResultSetToFoodItem(rs));
             }
         }
         return list;
@@ -62,12 +66,13 @@ public class FoodItemDao extends BaseDao {
 
     public List<FoodItem> findByCategory(String category, Long userId) throws SQLException {
         List<FoodItem> list = new ArrayList<>();
-        String sql = "SELECT f.id, f.name, f.category, f.quantity, f.unit, f.price_per_unit, f.expiry_date, f.status, f.created_at, f.updated_at, " +
+        String sql = "SELECT f.id, f.name, f.category, f.quantity, f.unit, f.price_per_unit, f.expiry_date, f.status, f.created_at, f.updated_at, f.user_id, " +
                      "COALESCE((SELECT SUM(t.quantity) FROM inventory_transactions t WHERE t.food_item_id = f.id AND t.transaction_type IN ('PURCHASE', 'STOCK_IN')), f.quantity) AS total_quantity " +
-                     "FROM food_items f WHERE f.category = ? ORDER BY f.expiry_date ASC";
+                     "FROM food_items f WHERE f.category = ? AND f.user_id = ? ORDER BY f.expiry_date ASC";
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, category);
+            stmt.setLong(2, requireUserId(userId));
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
                     list.add(mapResultSetToFoodItem(rs));
@@ -83,12 +88,13 @@ public class FoodItemDao extends BaseDao {
 
     public List<FoodItem> findNearExpiry(int daysThreshold, Long userId) throws SQLException {
         List<FoodItem> list = new ArrayList<>();
-        String sql = "SELECT f.id, f.name, f.category, f.quantity, f.unit, f.price_per_unit, f.expiry_date, f.status, f.created_at, f.updated_at, " +
+        String sql = "SELECT f.id, f.name, f.category, f.quantity, f.unit, f.price_per_unit, f.expiry_date, f.status, f.created_at, f.updated_at, f.user_id, " +
                      "COALESCE((SELECT SUM(t.quantity) FROM inventory_transactions t WHERE t.food_item_id = f.id AND t.transaction_type IN ('PURCHASE', 'STOCK_IN')), f.quantity) AS total_quantity " +
-                     "FROM food_items f WHERE f.expiry_date <= DATE_ADD(CURDATE(), INTERVAL ? DAY) AND f.quantity > 0 ORDER BY f.expiry_date ASC";
+                     "FROM food_items f WHERE f.expiry_date <= DATE_ADD(CURDATE(), INTERVAL ? DAY) AND f.quantity > 0 AND f.user_id = ? ORDER BY f.expiry_date ASC";
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, daysThreshold);
+            stmt.setLong(2, requireUserId(userId));
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
                     list.add(mapResultSetToFoodItem(rs));
@@ -104,8 +110,8 @@ public class FoodItemDao extends BaseDao {
 
     public FoodItem save(FoodItem item) throws SQLException {
         ValidationUtils.validateFoodItem(item);
-        String sql = "INSERT INTO food_items (name, category, quantity, unit, price_per_unit, expiry_date, status) " +
-                     "VALUES (?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO food_items (name, category, quantity, unit, price_per_unit, expiry_date, status, user_id) " +
+                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             stmt.setString(1, item.getName().trim());
@@ -115,6 +121,7 @@ public class FoodItemDao extends BaseDao {
             stmt.setBigDecimal(5, item.getPricePerUnit());
             stmt.setDate(6, Date.valueOf(item.getExpiryDate()));
             stmt.setString(7, item.getStatus() != null ? item.getStatus() : "OK");
+            stmt.setLong(8, requireUserId(item.getUserId()));
 
             int affected = stmt.executeUpdate();
             if (affected > 0) {
@@ -137,7 +144,7 @@ public class FoodItemDao extends BaseDao {
      */
     public FoodItem saveOrMergeStockWithTransaction(FoodItem item, Long userId) throws SQLException {
         ValidationUtils.validateFoodItem(item);
-        item.setUserId(userId);
+        item.setUserId(requireUserId(userId));
 
         String normName = item.getName() != null ? item.getName().trim() : "";
         String normUnit = item.getUnit() != null ? item.getUnit().trim() : "kg";
@@ -146,21 +153,21 @@ public class FoodItemDao extends BaseDao {
         BigDecimal addedQty = item.getQuantity() != null ? item.getQuantity() : BigDecimal.ZERO;
 
         String selectMatchingSql =
-                "SELECT id, name, category, quantity, unit, price_per_unit, expiry_date, status, created_at, updated_at " +
+                "SELECT id, name, category, quantity, unit, price_per_unit, expiry_date, status, created_at, updated_at, user_id " +
                 "FROM food_items " +
                 "WHERE LOWER(TRIM(name)) = LOWER(?) " +
                 "  AND LOWER(TRIM(unit)) = LOWER(?) " +
                 "  AND price_per_unit = ? " +
-                "  AND expiry_date = ? " +
+                "  AND expiry_date = ? AND user_id = ? " +
                 "ORDER BY id ASC LIMIT 1 FOR UPDATE";
 
         String updateStockSql = "UPDATE food_items SET quantity = ?, status = CASE " +
                                 "WHEN expiry_date < CURDATE() THEN 'EXPIRED' " +
                                 "WHEN expiry_date <= DATE_ADD(CURDATE(), INTERVAL 2 DAY) THEN 'NEAR_EXPIRY' " +
-                                "ELSE 'OK' END, updated_at = CURRENT_TIMESTAMP WHERE id = ?";
+                                "ELSE 'OK' END, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?";
 
-        String insertFoodSql = "INSERT INTO food_items (name, category, quantity, unit, price_per_unit, expiry_date, status) " +
-                               "VALUES (?, ?, ?, ?, ?, ?, ?)";
+        String insertFoodSql = "INSERT INTO food_items (name, category, quantity, unit, price_per_unit, expiry_date, status, user_id) " +
+                               "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 
         String insertTxSql = "INSERT INTO inventory_transactions (food_item_id, transaction_type, quantity, unit, notes, created_by) " +
                              "VALUES (?, 'PURCHASE', ?, ?, ?, ?)";
@@ -181,6 +188,7 @@ public class FoodItemDao extends BaseDao {
                 stmt.setString(2, normUnit);
                 stmt.setBigDecimal(3, price);
                 stmt.setDate(4, Date.valueOf(expiry));
+                stmt.setLong(5, userId);
                 try (ResultSet rs = stmt.executeQuery()) {
                     if (rs.next()) {
                         existingMatch = mapResultSetToFoodItem(rs);
@@ -196,6 +204,7 @@ public class FoodItemDao extends BaseDao {
                 try (PreparedStatement updateStmt = conn.prepareStatement(updateStockSql)) {
                     updateStmt.setBigDecimal(1, newQty);
                     updateStmt.setLong(2, existingMatch.getId());
+                    updateStmt.setLong(3, userId);
                     updateStmt.executeUpdate();
                 }
 
@@ -249,6 +258,7 @@ public class FoodItemDao extends BaseDao {
                     insertStmt.setBigDecimal(5, price);
                     insertStmt.setDate(6, Date.valueOf(expiry));
                     insertStmt.setString(7, item.getStatus() != null ? item.getStatus() : "OK");
+                    insertStmt.setLong(8, userId);
 
                     insertStmt.executeUpdate();
                     try (ResultSet keys = insertStmt.getGeneratedKeys()) {
@@ -316,7 +326,7 @@ public class FoodItemDao extends BaseDao {
             throw new IllegalArgumentException("Food item ID is required for update");
         }
         String sql = "UPDATE food_items SET name = ?, category = ?, quantity = ?, unit = ?, price_per_unit = ?, " +
-                     "expiry_date = ?, status = ? WHERE id = ?";
+                     "expiry_date = ?, status = ? WHERE id = ? AND user_id = ?";
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, item.getName().trim());
@@ -327,23 +337,29 @@ public class FoodItemDao extends BaseDao {
             stmt.setDate(6, Date.valueOf(item.getExpiryDate()));
             stmt.setString(7, item.getStatus());
             stmt.setLong(8, item.getId());
+            stmt.setLong(9, requireUserId(item.getUserId()));
 
             return stmt.executeUpdate() > 0;
         }
     }
 
     public boolean updateQuantity(Long id, BigDecimal newQuantity) throws SQLException {
+        throw new IllegalArgumentException("Authenticated user is required");
+    }
+
+    public boolean updateQuantity(Long id, BigDecimal newQuantity, Long userId) throws SQLException {
         if (newQuantity != null && newQuantity.compareTo(BigDecimal.ZERO) == 0) {
             newQuantity = BigDecimal.ZERO.setScale(2, java.math.RoundingMode.HALF_UP);
         }
         String sql = "UPDATE food_items SET quantity = ?, status = CASE " +
                      "WHEN expiry_date < CURDATE() THEN 'EXPIRED' " +
                      "WHEN expiry_date <= DATE_ADD(CURDATE(), INTERVAL 2 DAY) THEN 'NEAR_EXPIRY' " +
-                     "ELSE 'OK' END WHERE id = ?";
+                     "ELSE 'OK' END WHERE id = ? AND user_id = ?";
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setBigDecimal(1, newQuantity);
             stmt.setLong(2, id);
+            stmt.setLong(3, requireUserId(userId));
 
             return stmt.executeUpdate() > 0;
         }
@@ -354,10 +370,11 @@ public class FoodItemDao extends BaseDao {
     }
 
     public boolean delete(Long id, Long userId) throws SQLException {
-        String sql = "DELETE FROM food_items WHERE id = ?";
+        String sql = "DELETE FROM food_items WHERE id = ? AND user_id = ?";
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setLong(1, id);
+            stmt.setLong(2, requireUserId(userId));
             return stmt.executeUpdate() > 0;
         }
     }
@@ -365,6 +382,7 @@ public class FoodItemDao extends BaseDao {
     private FoodItem mapResultSetToFoodItem(ResultSet rs) throws SQLException {
         FoodItem item = new FoodItem();
         item.setId(rs.getLong("id"));
+        item.setUserId(rs.getLong("user_id"));
         item.setName(rs.getString("name"));
         item.setCategory(rs.getString("category"));
         BigDecimal remainingQty = rs.getBigDecimal("quantity");

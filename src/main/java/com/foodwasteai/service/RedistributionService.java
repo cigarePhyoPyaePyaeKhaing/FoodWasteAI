@@ -79,8 +79,12 @@ public class RedistributionService {
     }
 
     public List<Redistribution> getAllDispatches() throws SQLException {
+        throw new IllegalArgumentException("Authenticated user is required");
+    }
+    public List<Redistribution> getAllDispatches(Long userId) throws SQLException {
+        if (userId == null || userId <= 0) throw new IllegalArgumentException("Authenticated user is required");
         if (DatabaseConfig.isAvailable()) {
-            return redistributionDao.findAllDispatches();
+            return redistributionDao.findAllDispatches(userId);
         }
         return new ArrayList<>(memoryDispatches.values());
     }
@@ -129,7 +133,7 @@ public class RedistributionService {
 
         // Idempotency check with in-flight lock: if a clientRequestId is provided, ensure strictly one execution
         if (dispatch.getClientRequestId() != null && !dispatch.getClientRequestId().trim().isEmpty()) {
-            String token = dispatch.getClientRequestId().trim();
+            String token = userId + ":" + dispatch.getClientRequestId().trim();
             Redistribution existing = processedClientRequests.get(token);
             if (existing != null) {
                 logger.warn("Idempotent duplicate redistribution request blocked (token: '{}'). Returning existing dispatch record #{}.", token, existing.getId());
@@ -174,7 +178,7 @@ public class RedistributionService {
         }
 
         // Validate food item exists
-        Optional<FoodItem> foodOpt = foodItemService.getFoodItemById(dispatch.getFoodItemId());
+        Optional<FoodItem> foodOpt = foodItemService.getFoodItemById(dispatch.getFoodItemId(), userId);
         if (foodOpt.isEmpty()) {
             throw new IllegalArgumentException("Food item not found with ID: " + dispatch.getFoodItemId());
         }
@@ -233,7 +237,7 @@ public class RedistributionService {
 
         Redistribution saved;
         if (DatabaseConfig.isAvailable()) {
-            saved = redistributionDao.saveDispatch(dispatch);
+            saved = redistributionDao.saveDispatch(dispatch, userId);
         } else {
             long id = dispatchIdGen.incrementAndGet();
             dispatch.setId(id);
@@ -243,6 +247,7 @@ public class RedistributionService {
         }
 
         // Synchronously deduct inventory balance
+        if (!DatabaseConfig.isAvailable()) {
         foodItemService.adjustStock(
                 dispatch.getFoodItemId(),
                 dispatch.getQuantity().negate(),
@@ -250,15 +255,20 @@ public class RedistributionService {
                 "Surplus food redistribution dispatch #" + saved.getId() + " to " + recipient.getName(),
                 userId
         );
+        }
 
         logger.info("Scheduled surplus food dispatch #{} of {} {} to {}", saved.getId(), saved.getQuantity(), saved.getUnit(), recipient.getName());
         return saved;
     }
 
     public boolean updateDispatchStatus(Long id, Redistribution.Status status) throws SQLException {
+        throw new IllegalArgumentException("Authenticated user is required");
+    }
+    public boolean updateDispatchStatus(Long id, Redistribution.Status status, Long userId) throws SQLException {
+        if (userId == null || userId <= 0) throw new IllegalArgumentException("Authenticated user is required");
         if (id == null || status == null) return false;
         if (DatabaseConfig.isAvailable()) {
-            return redistributionDao.updateStatus(id, status);
+            return redistributionDao.updateStatus(id, status, userId);
         }
         Redistribution d = memoryDispatches.get(id);
         if (d != null) {
@@ -273,9 +283,13 @@ public class RedistributionService {
      * Aggregates live redistribution metrics: quantity redistributed, money saved, and waste reduction impact.
      */
     public Map<String, Object> getRedistributionStats() throws SQLException {
-        List<Redistribution> dispatches = getAllDispatches();
+        throw new IllegalArgumentException("Authenticated user is required");
+    }
+    public Map<String, Object> getRedistributionStats(Long userId) throws SQLException {
+        if (userId == null || userId <= 0) throw new IllegalArgumentException("Authenticated user is required");
+        List<Redistribution> dispatches = getAllDispatches(userId);
         List<RedistributionRecipient> recipients = getAllRecipients();
-        List<FoodItem> items = foodItemService.getAllFoodItems();
+        List<FoodItem> items = foodItemService.getAllFoodItems(userId);
         Map<Long, FoodItem> foodMap = new HashMap<>();
         for (FoodItem f : items) {
             foodMap.put(f.getId(), f);
@@ -419,7 +433,11 @@ public class RedistributionService {
      * Evaluates live inventory strictly through PrologService without Java decision tree overrides.
      */
     public Map<String, Object> evaluateRedistributionCandidates() throws SQLException {
-        List<FoodItem> items = foodItemService.getAllFoodItems();
+        throw new IllegalArgumentException("Authenticated user is required");
+    }
+    public Map<String, Object> evaluateRedistributionCandidates(Long userId) throws SQLException {
+        if (userId == null || userId <= 0) throw new IllegalArgumentException("Authenticated user is required");
+        List<FoodItem> items = foodItemService.getAllFoodItems(userId);
         List<CandidateItem> priorityCandidates = new ArrayList<>();
         List<CandidateItem> redistributionCandidates = new ArrayList<>();
         List<CandidateItem> notEligible = new ArrayList<>();

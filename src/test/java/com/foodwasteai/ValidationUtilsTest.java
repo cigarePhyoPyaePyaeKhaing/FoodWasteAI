@@ -28,13 +28,13 @@ public class ValidationUtilsTest {
     @Test
     @DisplayName("Should validate food item constraints")
     public void testFoodItemValidation() {
-        FoodItem item = new FoodItem(1L, "Chicken", "Poultry", new BigDecimal("50.0"), "kg", new BigDecimal("6500"), LocalDate.now().plusDays(2));
+        FoodItem item = new OwnedFoodItemFixture(1L, "Chicken", "Poultry", new BigDecimal("50.0"), "kg", new BigDecimal("6500"), LocalDate.now().plusDays(2));
         assertDoesNotThrow(() -> ValidationUtils.validateFoodItem(item));
 
-        FoodItem negativeQtyItem = new FoodItem(2L, "Chicken", "Poultry", new BigDecimal("-5.0"), "kg", new BigDecimal("6500"), LocalDate.now());
+        FoodItem negativeQtyItem = new OwnedFoodItemFixture(2L, "Chicken", "Poultry", new BigDecimal("-5.0"), "kg", new BigDecimal("6500"), LocalDate.now());
         assertThrows(IllegalArgumentException.class, () -> ValidationUtils.validateFoodItem(negativeQtyItem));
 
-        FoodItem missingExpiryItem = new FoodItem(3L, "Chicken", "Poultry", new BigDecimal("5.0"), "kg", new BigDecimal("6500"), null);
+        FoodItem missingExpiryItem = new OwnedFoodItemFixture(3L, "Chicken", "Poultry", new BigDecimal("5.0"), "kg", new BigDecimal("6500"), null);
         assertThrows(IllegalArgumentException.class, () -> ValidationUtils.validateFoodItem(missingExpiryItem));
     }
 

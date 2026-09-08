@@ -42,7 +42,7 @@ public class RedistributionDuplicateSubmissionTest {
     @DisplayName("1. Single redistribution submission creates exactly one record and deducts inventory once")
     public void testSingleRedistributionCreatesExactlyOneRecord() throws SQLException {
         FoodItem item = foodItemService.createFoodItem(
-                new FoodItem(null, "Single Redist Milk " + System.currentTimeMillis(), "Dairy",
+                new OwnedFoodItemFixture(null, "Single Redist Milk " + System.currentTimeMillis(), "Dairy",
                         new BigDecimal("20.00"), "liter", new BigDecimal("3500.00"), LocalDate.now().plusDays(2), new BigDecimal("5.00")), 1L
         );
         Long itemId = item.getId();
@@ -63,7 +63,7 @@ public class RedistributionDuplicateSubmissionTest {
         assertNotNull(created.getId());
 
         // Verify inventory deducted exactly once
-        Optional<FoodItem> after = foodItemService.getFoodItemById(itemId);
+        Optional<FoodItem> after = foodItemService.getFoodItemById(itemId, 1L);
         assertTrue(after.isPresent());
         assertEquals(0, initialStock.subtract(new BigDecimal("5.00")).compareTo(after.get().getQuantity()));
     }
@@ -72,7 +72,7 @@ public class RedistributionDuplicateSubmissionTest {
     @DisplayName("2. Rapid double-submit with same clientRequestId creates exactly 1 record and deducts inventory once")
     public void testRapidDoubleSubmissionWithSameTokenCreatesOnlyOneRecord() throws SQLException {
         FoodItem item = foodItemService.createFoodItem(
-                new FoodItem(null, "Double Submit Yogurt " + System.currentTimeMillis(), "Dairy",
+                new OwnedFoodItemFixture(null, "Double Submit Yogurt " + System.currentTimeMillis(), "Dairy",
                         new BigDecimal("30.00"), "kg", new BigDecimal("4000.00"), LocalDate.now().plusDays(2), new BigDecimal("5.00")), 1L
         );
         Long itemId = item.getId();
@@ -108,7 +108,7 @@ public class RedistributionDuplicateSubmissionTest {
         assertEquals(firstResult.getId(), secondResult.getId(), "Duplicate submit must return the same dispatch record");
 
         // Inventory must be reduced ONLY ONCE (30.00 - 8.00 = 22.00, NOT 14.00)
-        Optional<FoodItem> after = foodItemService.getFoodItemById(itemId);
+        Optional<FoodItem> after = foodItemService.getFoodItemById(itemId, 1L);
         assertTrue(after.isPresent());
         assertEquals(0, new BigDecimal("22.00").compareTo(after.get().getQuantity()),
                 "Inventory must be deducted exactly once (30 - 8 = 22 kg)");
@@ -118,7 +118,7 @@ public class RedistributionDuplicateSubmissionTest {
     @DisplayName("3. Concurrent triple-click requests with same clientRequestId deduplicate atomically")
     public void testConcurrentTripleSubmitWithSameTokenCreatesOnlyOneRecord() throws Exception {
         FoodItem item = foodItemService.createFoodItem(
-                new FoodItem(null, "Concurrent Cake " + System.currentTimeMillis(), "Bakery",
+                new OwnedFoodItemFixture(null, "Concurrent Cake " + System.currentTimeMillis(), "Bakery",
                         new BigDecimal("15.00"), "kg", new BigDecimal("6000.00"), LocalDate.now().plusDays(2), new BigDecimal("3.00")), 1L
         );
         Long itemId = item.getId();
@@ -166,7 +166,7 @@ public class RedistributionDuplicateSubmissionTest {
         }
 
         // Inventory must be reduced ONLY ONCE (15.00 - 3.00 = 12.00, NOT 6.00)
-        Optional<FoodItem> after = foodItemService.getFoodItemById(itemId);
+        Optional<FoodItem> after = foodItemService.getFoodItemById(itemId, 1L);
         assertTrue(after.isPresent());
         assertEquals(0, new BigDecimal("12.00").compareTo(after.get().getQuantity()),
                 "Inventory must be deducted exactly once (15 - 3 = 12 kg)");
@@ -176,7 +176,7 @@ public class RedistributionDuplicateSubmissionTest {
     @DisplayName("4. Legitimate separate submissions create distinct records")
     public void testLegitimateSeparateSubmissionsCreateDistinctRecords() throws SQLException {
         FoodItem item = foodItemService.createFoodItem(
-                new FoodItem(null, "Legitimate Separate " + System.currentTimeMillis(), "Produce",
+                new OwnedFoodItemFixture(null, "Legitimate Separate " + System.currentTimeMillis(), "Produce",
                         new BigDecimal("25.00"), "kg", new BigDecimal("1500.00"), LocalDate.now().plusDays(2), new BigDecimal("5.00")), 1L
         );
         Long itemId = item.getId();
@@ -204,7 +204,7 @@ public class RedistributionDuplicateSubmissionTest {
         assertNotEquals(r1.getId(), r2.getId(), "Separate legitimate requests must create distinct records");
 
         // Inventory should be reduced twice: 25 - 5 - 5 = 15
-        Optional<FoodItem> after = foodItemService.getFoodItemById(itemId);
+        Optional<FoodItem> after = foodItemService.getFoodItemById(itemId, 1L);
         assertTrue(after.isPresent());
         assertEquals(0, new BigDecimal("15.00").compareTo(after.get().getQuantity()));
     }

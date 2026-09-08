@@ -16,7 +16,7 @@ public class PredictionDao extends BaseDao {
 
     public Prediction savePrediction(Prediction pred) throws SQLException {
         String sql = "INSERT INTO predictions (prediction_date, overall_risk_score, expected_total_waste_kg, " +
-                     "estimated_money_lost, potential_savings, status) VALUES (?, ?, ?, ?, ?, ?)";
+                     "estimated_money_lost, potential_savings, status, user_id) VALUES (?, ?, ?, ?, ?, ?, ?)";
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             stmt.setDate(1, Date.valueOf(pred.getPredictionDate() != null ? pred.getPredictionDate() : java.time.LocalDate.now()));
@@ -25,6 +25,7 @@ public class PredictionDao extends BaseDao {
             stmt.setBigDecimal(4, pred.getEstimatedMoneyLost());
             stmt.setBigDecimal(5, pred.getPotentialSavings());
             stmt.setString(6, pred.getStatus() != null ? pred.getStatus().name() : Prediction.Status.GENERATED.name());
+            stmt.setLong(7, requireUserId(pred.getUserId()));
 
             int affected = stmt.executeUpdate();
             if (affected > 0) {
@@ -39,15 +40,25 @@ public class PredictionDao extends BaseDao {
     }
 
     public void savePredictionItems(Long predictionId, List<PredictionItem> items) throws SQLException {
+        throw new IllegalArgumentException("Authenticated user is required");
+    }
+
+    public void savePredictionItems(Long predictionId, List<PredictionItem> items, Long userId) throws SQLException {
+        requireUserId(userId);
         if (predictionId == null || items == null || items.isEmpty()) return;
 
         String sql = "INSERT INTO prediction_items (prediction_id, food_item_id, current_stock, expected_demand, " +
                      "expiry_days, historical_waste_rate, risk_level, risk_percentage, predicted_waste_qty, " +
                      "recommended_production, priority_usage, reasoning_text, reasoning_text_en, reasoning_text_my) " +
-                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                     "SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? FROM predictions p JOIN food_items f ON f.user_id = p.user_id " +
+                     "WHERE p.id = ? AND f.id = ? AND p.user_id = ?";
 
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            // Individual prediction items are committed together.
+            boolean originalAutoCommit = conn.getAutoCommit();
+            conn.setAutoCommit(false);
+            try {
             for (PredictionItem item : items) {
                 stmt.setLong(1, predictionId);
                 stmt.setLong(2, item.getFoodItemId());
@@ -63,13 +74,26 @@ public class PredictionDao extends BaseDao {
                 stmt.setString(12, item.getReasoningText());
                 stmt.setString(13, item.getReasoningTextEn());
                 stmt.setString(14, item.getReasoningTextMy());
+                stmt.setLong(15, predictionId);
+                stmt.setLong(16, item.getFoodItemId());
+                stmt.setLong(17, userId);
                 stmt.addBatch();
             }
-            stmt.executeBatch();
+            for (int count : stmt.executeBatch()) {
+                if (count != 1 && count != Statement.SUCCESS_NO_INFO) throw new SQLException("Prediction item owner mismatch");
+            }
+            conn.commit();
+            } catch (SQLException | RuntimeException exception) {
+                conn.rollback(); throw exception;
+            } finally { conn.setAutoCommit(originalAutoCommit); }
         }
     }
 
     public List<PredictionItem> findItemsByPredictionId(Long predictionId) throws SQLException {
+        throw new IllegalArgumentException("Authenticated user is required");
+    }
+
+    public List<PredictionItem> findItemsByPredictionId(Long predictionId, Long userId) throws SQLException {
         List<PredictionItem> list = new ArrayList<>();
         String sql = "SELECT pi.id, pi.prediction_id, pi.food_item_id, f.name AS food_name, f.unit AS food_unit, pi.current_stock, " +
                      "pi.expected_demand, pi.expiry_days, pi.historical_waste_rate, pi.risk_level, " +
@@ -77,11 +101,13 @@ public class PredictionDao extends BaseDao {
                      "pi.priority_usage, pi.reasoning_text, pi.reasoning_text_en, pi.reasoning_text_my, pi.created_at " +
                      "FROM prediction_items pi " +
                      "JOIN food_items f ON pi.food_item_id = f.id " +
-                     "WHERE pi.prediction_id = ? ORDER BY pi.risk_percentage DESC";
+                     "JOIN predictions p ON p.id = pi.prediction_id AND p.user_id = f.user_id " +
+                     "WHERE pi.prediction_id = ? AND p.user_id = ? ORDER BY pi.risk_percentage DESC";
 
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setLong(1, predictionId);
+            stmt.setLong(2, requireUserId(userId));
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
                     list.add(mapResultSetToPredictionItem(rs));
@@ -98,13 +124,15 @@ public class PredictionDao extends BaseDao {
     public Optional<Prediction> findLatestPrediction(Long userId) throws SQLException {
         String sql = "SELECT id, prediction_date, overall_risk_score, expected_total_waste_kg, " +
                      "estimated_money_lost, potential_savings, status, created_at " +
-                     "FROM predictions ORDER BY id DESC LIMIT 1";
+                     "FROM predictions WHERE user_id = ? ORDER BY id DESC LIMIT 1";
 
         try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql);
-             ResultSet rs = stmt.executeQuery()) {
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setLong(1, requireUserId(userId));
+            try (ResultSet rs = stmt.executeQuery()) {
             if (rs.next()) {
                 Prediction p = new Prediction();
+                p.setUserId(userId);
                 p.setId(rs.getLong("id"));
                 p.setPredictionDate(rs.getDate("prediction_date").toLocalDate());
                 p.setOverallRiskScore(rs.getBigDecimal("overall_risk_score"));
@@ -115,6 +143,7 @@ public class PredictionDao extends BaseDao {
                 Timestamp ct = rs.getTimestamp("created_at");
                 if (ct != null) p.setCreatedAt(ct.toLocalDateTime());
                 return Optional.of(p);
+            }
             }
         }
         return Optional.empty();

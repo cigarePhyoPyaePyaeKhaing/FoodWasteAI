@@ -14,6 +14,12 @@ import java.sql.SQLException;
  * connection pooling access, user foreign key validation, and resource cleanup utilities.
  */
 public abstract class BaseDao {
+    protected static long requireUserId(Long userId) {
+        if (userId == null || userId <= 0) {
+            throw new IllegalArgumentException("Authenticated user is required");
+        }
+        return userId;
+    }
     protected final Logger logger = LoggerFactory.getLogger(getClass());
 
     protected Connection getConnection() throws SQLException {

@@ -131,7 +131,7 @@ public class DatabaseTestingRunner {
 
         System.out.println("\n=== 5. VERIFY PREDICTIONS (AI ASSESSMENT) ===");
         PredictionService predictionService = new PredictionService();
-        Map<String, Object> predictionReport = predictionService.assessAllInventory();
+        Map<String, Object> predictionReport = predictionService.assessAllInventory(1L);
         assertNotNull(predictionReport, "Prediction report must not be null");
 
         @SuppressWarnings("unchecked")

@@ -54,7 +54,7 @@ public class SevenDayForecastRegressionTest {
         LocalDate expectedStart = today.plusDays(1);
         LocalDate expectedEnd = today.plusDays(7);
 
-        FoodItem milk = new FoodItem();
+        FoodItem milk = new OwnedFoodItemFixture();
         milk.setId(101L);
         milk.setName("Fresh Milk");
         milk.setUnit("liter");
@@ -62,7 +62,7 @@ public class SevenDayForecastRegressionTest {
         milk.setPricePerUnit(new BigDecimal("2500.00"));
         milk.setExpiryDate(today.plusDays(2));
 
-        FoodItem chicken = new FoodItem();
+        FoodItem chicken = new OwnedFoodItemFixture();
         chicken.setId(102L);
         chicken.setName("Chicken Breast");
         chicken.setUnit("kg");
@@ -112,7 +112,7 @@ public class SevenDayForecastRegressionTest {
     public void testMultiUnitPreservation() throws SQLException {
         LocalDate today = ExpiryStatusResolver.getToday();
 
-        FoodItem milk = new FoodItem();
+        FoodItem milk = new OwnedFoodItemFixture();
         milk.setId(201L);
         milk.setName("Pasteurized Milk");
         milk.setUnit("liter");
@@ -120,7 +120,7 @@ public class SevenDayForecastRegressionTest {
         milk.setPricePerUnit(new BigDecimal("2000.00"));
         milk.setExpiryDate(today.plusDays(1)); // Expires Day 1
 
-        FoodItem bread = new FoodItem();
+        FoodItem bread = new OwnedFoodItemFixture();
         bread.setId(202L);
         bread.setName("Whole Wheat Bread");
         bread.setUnit("pcs");
@@ -128,7 +128,7 @@ public class SevenDayForecastRegressionTest {
         bread.setPricePerUnit(new BigDecimal("1500.00"));
         bread.setExpiryDate(today.plusDays(1)); // Expires Day 1
 
-        FoodItem beef = new FoodItem();
+        FoodItem beef = new OwnedFoodItemFixture();
         beef.setId(203L);
         beef.setName("Beef Steak");
         beef.setUnit("kg");
@@ -156,7 +156,7 @@ public class SevenDayForecastRegressionTest {
     public void testStockProgressionAndBoundedWaste() throws SQLException {
         LocalDate today = ExpiryStatusResolver.getToday();
 
-        FoodItem veggies = new FoodItem();
+        FoodItem veggies = new OwnedFoodItemFixture();
         veggies.setId(301L);
         veggies.setName("Fresh Salad");
         veggies.setCategory("Salad");
@@ -187,7 +187,7 @@ public class SevenDayForecastRegressionTest {
     public void testZeroStockExclusionAcrossHorizon() throws SQLException {
         LocalDate today = ExpiryStatusResolver.getToday();
 
-        FoodItem zeroStock = new FoodItem();
+        FoodItem zeroStock = new OwnedFoodItemFixture();
         zeroStock.setId(401L);
         zeroStock.setName("Zero Stock Fish");
         zeroStock.setUnit("kg");
@@ -244,7 +244,7 @@ public class SevenDayForecastRegressionTest {
     @DisplayName("7. Controlled Fixture Test: Milk 20L expiring in 3 days progresses daily and does not reset stock")
     public void testControlledMilkForecastProgression() throws SQLException {
         LocalDate today = ExpiryStatusResolver.getToday();
-        FoodItem milk = new FoodItem();
+        FoodItem milk = new OwnedFoodItemFixture();
         milk.setId(501L);
         milk.setName("Pasteurized Milk 20L");
         milk.setCategory("Dairy");
