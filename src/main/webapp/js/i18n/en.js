@@ -580,4 +580,4 @@ window.I18N_EN = {
   "settings.prolog.rulesFile": "Rules File"
 };
 
-Object.assign(window.I18N_EN, {"profile.short":"Profile","profile.preferences":"Your preferences","profile.retry":"Try again","profile.preferencesHint":"Choose your language and appearance in Settings.","profile.staff":"Staff","profile.logout":"Sign out","profile.details":"Account details","profile.loading":"Loading your profile…","profile.title":"My Profile","profile.email":"Email address","profile.subtitle":"Your FoodWaste AI account information.","profile.role":"Account role","profile.admin":"Administrator","profile.error":"Unable to load your profile. Please try again."});
+Object.assign(window.I18N_EN, {"profile.short":"Profile","profile.preferences":"Your preferences","profile.retry":"Try again","profile.preferencesHint":"Choose your language and appearance in Settings.","profile.logout":"Sign out","profile.details":"Account details","profile.loading":"Loading your profile…","profile.title":"My Profile","profile.email":"Email address","profile.subtitle":"Your FoodWaste AI account information.","profile.error":"Unable to load your profile. Please try again."});

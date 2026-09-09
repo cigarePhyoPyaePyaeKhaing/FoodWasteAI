@@ -27,7 +27,6 @@ const Profile = {
     const name = this.user.fullName || this.user.email;
     document.getElementById('profile-name').textContent = name;
     document.getElementById('profile-email').textContent = this.user.email;
-    document.getElementById('profile-role').textContent = I18n.t(this.user.role === 'ADMIN' ? 'profile.admin' : 'profile.staff');
     document.getElementById('profile-avatar').textContent = Array.from(name.trim())[0]?.toUpperCase() || '👤';
   }
 };
