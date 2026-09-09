@@ -11,6 +11,8 @@ const Profile = {
     status.textContent = I18n.t('profile.loading');
     try {
       const response = await API.get('/api/auth/me');
+      // API redirects expired sessions to login; do not show a misleading load error.
+      if (!response) return;
       if (!response.success || !response.data?.email) throw new Error('Missing account');
       this.user = response.data;
       this.render();
